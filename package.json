@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "node server.js",
-    "build": "mkdir -p docs && cp -r public/* docs/"
+    "start": "node server.js"
   },
   "dependencies": {
     "chokidar": "^3.5.3",

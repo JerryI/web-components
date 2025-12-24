@@ -237,7 +237,7 @@ function decodeMaybe(v) {
 
 class WLJSEditor extends HTMLElement {
   static get observedAttributes() {
-    return ["display", "type", "fade"];
+    return ["display", "type", "fade", "encoded"];
   }
 
   async connectedCallback() {
@@ -246,16 +246,6 @@ class WLJSEditor extends HTMLElement {
     this._mounted = true;
     this._instance = null;
 
-    // 1) Render raw, unstyled content immediately (no wrapper classes, no placeholder)
-    const decoded = decodeMaybe(this.textContent ?? "");
-    this.innerHTML = `
-      <pre data-wljs-pre="1">
-        <code data-wljs-raw="1">${escapeHtml(decoded)}</code>
-      </pre>
-    `;
-
-    // 2) Then mount the final renderer and replace the raw <code>
-    // Use rAF to ensure DOM is committed before we try to mount into it.
     requestAnimationFrame(() => this._mount());
   }
 
@@ -264,21 +254,8 @@ class WLJSEditor extends HTMLElement {
     this._teardown();
   }
 
-  attributeChangedCallback() {
-    if (!this.isConnected) return;
-    // Re-render raw immediately, then remount (simple + robust)
-    this._teardown();
-
-    const decoded = decodeMaybe(this.textContent ?? "");
-    this.innerHTML = `
-      <pre data-wljs-pre="1">
-        <code data-wljs-raw="1">${escapeHtml(decoded)}</code>
-      </pre>
-    `;
-    requestAnimationFrame(() => this._mount());
-  }
-
   _getSourceText() {
+    if (this.hasAttribute("encoded")) return decodeURIComponent(this.textContent.trim() ?? ""); 
     const script = this.querySelector('script[type="text/plain"]');
     if (script) return script.textContent.trim() ?? "";
     return this.textContent.trim() ?? "";
@@ -297,15 +274,10 @@ class WLJSEditor extends HTMLElement {
     }
 
     const decoded = this._getSourceText();
-    const raw = this.querySelector('[data-wljs-raw="1"]');
-    if (!raw) return;
 
-    // Create the final host node that the view will render into
-    const host = document.createElement("code");
-    host.setAttribute("data-wljs-host", "1");
-
-    // Replace raw content with final host node (so only the final remains)
-    raw.replaceWith(host);
+    this.replaceChildren();
+    this.classList.add('wljs-mounted');
+    const host = this;
 
     // Instantiate the view
     try {
@@ -313,18 +285,16 @@ class WLJSEditor extends HTMLElement {
       this._instance = new ViewCtor({ element: host }, decoded);
     } catch (e) {
       console.error("[WLJSEditor] mount error:", e);
-      // If it failed, fall back to raw content (restore)
-      host.replaceWith(raw);
       return;
     }
 
     // Optional fade behavior: toggles a class on <pre>
     if (this._instance?.editor && this.hasAttribute("fade")) {
-      const pre = this.querySelector('[data-wljs-pre="1"]');
-      if (pre) pre.classList.add("h-fade-20");
+      this.classList.add("h-fade-20");
+      const self = this;
 
-      this._onFocusIn = () => pre?.classList.remove("h-fade-20");
-      this._onFocusOut = () => pre?.classList.add("h-fade-20");
+      this._onFocusIn = () => self.classList.remove("h-fade-20");
+      this._onFocusOut = () => self.classList.add("h-fade-20");
 
       this.addEventListener("focusin", this._onFocusIn);
       this.addEventListener("focusout", this._onFocusOut);
