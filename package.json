@@ -1,0 +1,14 @@
+{
+  "name": "static-live-server",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "build": "mkdir -p docs && cp -r public/* docs/"
+  },
+  "dependencies": {
+    "chokidar": "^3.5.3",
+    "express": "^4.18.2",
+    "ws": "^8.13.0"
+  }
+}

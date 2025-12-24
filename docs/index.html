@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Static Live Server</title>
+    <!-- Styles -->
+    <base href="/web-components0/">
+    <link rel="stylesheet" href="wljs/common/styles.css" />
+ 
+  </head>
+  <body>
+    <main>
+      <h1>Static Live Server</h1>
+      <p>Edit any file in <code>public/</code> to trigger an automatic reload.</p>
+
+
+    <wljs-store json="attachments/8f0674d8-8a5d-40d7-b8a5-bf7114e97175.txt"></wljs-store>
+
+
+    ## Static plots
+    Some example with 2D/3D graphics
+
+    <wljs-editor display="codemirror" type="Input" ><xmp>
+Manipulate[Plot[a[w, 0, eps, 128.6, 158.4, 9.0], {w,0,100}, PlotRange->Full, Prolog->{}, Epilog->{
+ Line @ matrix[[All, {1,2}]], Dashed, Red, Line @ N @Table[
+    {m[[1]], m[[2]] - a[m[[1]], 0, eps, 128.6, 158.4, 9.0]}
+  , {m,  Select[matrix[[All, {1,2}]], MatchQ[#, {__Real}]&]}]
+
+}], {{eps, 6.3}, 0, 7}, ContinuousAction->True]        
+    </xmp></wljs-editor>
+
+    <wljs-editor display="codemirror" type="Output">%28%2AVB%5B%2A%29%28Legended%5BToExpression%5BFrontEndRef%5B%22b5e1bc6c-b6c8-4f57-9bc5-1c131cf9418e%22%5D%2C%20InputForm%5D%2C%20Placed%5BPointLegend%5B%7BDirective%5BPointSize%5B0.009166666666666668%5D%2C%20RGBColor%5B0.24%2C%200.6%2C%200.8%5D%2C%20AbsoluteThickness%5B2%5D%5D%2C%20Directive%5BPointSize%5B0.009166666666666668%5D%2C%20RGBColor%5B0.95%2C%200.627%2C%200.1425%5D%2C%20AbsoluteThickness%5B2%5D%5D%2C%20Directive%5BPointSize%5B0.009166666666666668%5D%2C%20RGBColor%5B0.455%2C%200.7%2C%200.21%5D%2C%20AbsoluteThickness%5B2%5D%5D%7D%2C%20%7B0.3%2C%200.5%2C%200.8%7D%2C%20LegendMarkers%20-%3E%20%7B%7BFalse%2C%20Automatic%7D%2C%20%7BFalse%2C%20Automatic%7D%2C%20%7BFalse%2C%20Automatic%7D%7D%2C%20Joined%20-%3E%20%7BFalse%2C%20False%2C%20False%7D%2C%20LabelStyle%20-%3E%20%7B%7D%2C%20LegendLayout%20-%3E%20%22Column%22%5D%2C%20After%2C%20Identity%5D%5D%29%28%2A%2C%2A%29%28%2A%221%3AeJy9U71LHEEUX01McmogirUSsMwVq97lLGS46HkkrBhdSSszs2%2BS4dYdmZlNPEvBf8BO23QpUlsHgmBhoYWVEFGEEBAs7TIfKudxRSAkr%2Fgx7%2B37%2BL2PfU7EInsQBIF6auAdh08zQIXEWsj4sbFE8B6yZIx1W5deA7WEm2%2FWkXVZ26CBWSkyXcuS2hrQXGOSQjxqzKQEIaFlWiRlWilOsNLL4iShpWJIw%2FGQssmJsAI%2B8UMDi7kJe2IfgJP5LG0665LMwfN7ZOBtiikkzD5Vn9UFz7Sn6J1sSMSV9lrBwAyXQDX%2FCJ5u4TYq5usg97aWX1x%2F30De3RWvv5oWqZByd3jz18LuAZLjTs6Q3Nm28hP5RAMGqkSJNNew9IHTRgZKcdvN39dmTi6R%2FHJ1OEeenSM51Xv8eXXq23%2BoPWLbHj5BNyQukDxdH%2FpaP93%2Fw9q3G7iZ2xGSgZMfLQO8t3N3eH6Hc1g2QKq2VXa3aqrH3htOFbiWqrkWK1hz%2Bm%2B8HD97bW%2FM6KDtxlrCO7zakthfJ8IE0lg3U2BB5w6da%2F%2FdPCLcFLmOLQGznHwlc%2BmrTJsh2aW9TiDTXDd%2FA7lNAyc%3D%22%2A%29%28%2A%5DVB%2A%29</wljs-editor>
+
+
+    </main>
+
+    <script type="module" src="app.js"></script>
+    <script src="reload-client.js"></script>
+  </body>
+</html>
