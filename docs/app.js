@@ -1,4 +1,4 @@
-export const WLJS_BOOTSTRAP = (() => {
+const WLJS_BOOTSTRAP = (() => {
   let _promise = null;
 
   const CSS_URLS = [
@@ -19,19 +19,15 @@ export const WLJS_BOOTSTRAP = (() => {
   const ESM_URLS_IN_ORDER = [
     "wljs/wljs-interpreter/dist/interpreter.js",
     "wljs/wljs-interpreter/src/core.js",
-
     "wljs/wljs-wxf-accelerator/override.js",
-
     "wljs/wljs-export-html/Formats/MDX/Polyfill.js",
     "wljs/wljs-export-html/DynamicsTools/Runners.js",
-
     "wljs/wljs-cells/src/module.js",
     "wljs/wljs-editor/dist/kernel.js",
     "wljs/wljs-editor/src/boxes.js",
     "wljs/wljs-editor/src/metamarkers.js",
     "wljs/wljs-editor/src/objects.js",
     "wljs/wljs-editor/src/frontsubmit.js",
-
     "wljs/wljs-js-support/src/kernel.js",
     "wljs/wljs-magic-support/src/kernel.js",
     "wljs/wljs-mermaid-support/dist/kernel.js",
@@ -49,53 +45,65 @@ export const WLJS_BOOTSTRAP = (() => {
     "wljs/wljs-graphics3d-threejs/dist/kernel.js",
   ];
 
-  function markOnce(el, key) {
-    el.dataset[key] = "1";
-    return el;
+  const loadedCss = new Set();
+  const importedModules = new Set();
+
+  function getBaseHref() {
+    // Falls back to document.baseURI if no <base> tag
+    const baseEl = document.querySelector("base[href]");
+    return baseEl?.href || document.baseURI;
   }
 
-  function loadCSS(href) {
-    return new Promise((resolve, reject) => {
-      // avoid duplicates
-      const existing = document.querySelector(`link[rel="stylesheet"][href="${href}"]`);
-      if (existing) return resolve(existing);
+  function resolve(rel) {
+    return new URL(rel, getBaseHref()).href;
+  }
 
-      const link = markOnce(document.createElement("link"), "wljsCss");
+  function loadCSS(relHref) {
+    const absHref = resolve(relHref);
+
+    return new Promise((resolvePromise, reject) => {
+      if (loadedCss.has(absHref)) return resolvePromise(absHref);
+
+      // avoid duplicates in DOM even if Set was reset somehow
+      const existing = document.querySelector(`link[rel="stylesheet"][href="${absHref}"]`);
+      if (existing) {
+        loadedCss.add(absHref);
+        return resolvePromise(absHref);
+      }
+
+      const link = document.createElement("link");
       link.rel = "stylesheet";
-      const base = document.getElementsByTagName('base')[0].href;
-      link.href = base+href;
-      link.onload = () => resolve(link);
-      link.onerror = () => reject(new Error(`Failed to load CSS: ${href}`));
+      link.href = absHref;
+      link.dataset.wljsCss = "1";
+
+      link.onload = () => {
+        loadedCss.add(absHref);
+        resolvePromise(absHref);
+      };
+      link.onerror = () => reject(new Error(`Failed to load CSS: ${absHref}`));
+
       document.head.appendChild(link);
     });
   }
 
-  // IMPORTANT NOTE:
-  // Injecting <script type="module" src="..."> does NOT guarantee "wait until fully evaluated"
-  // across all browsers the way you'd expect for chaining.
-  // The robust way for strict ordering is dynamic import() sequentially.
   async function importESMSequential(urls) {
-    const base = document.getElementsByTagName('base')[0].href;
-    for (const url of urls) {
-      // If the module has already been imported, this will return the cached module namespace.
-      // Add a cache-buster only if you truly need reload (usually you don't).
+    for (const rel of urls) {
+      const abs = resolve(rel);
+      if (importedModules.has(abs)) continue;
 
-      await import(base+url);
+      await import(abs);
+      importedModules.add(abs);
     }
   }
 
   async function ensureLoaded() {
-    // 1) CSS in parallel (order doesn't matter for "load"; cascade order is determined by insertion order)
-    // If you want cascade order exactly as listed, append in order but still await each onload:
+    // keep cascade order exactly as listed
     for (const href of CSS_URLS) {
       await loadCSS(href);
     }
 
-    // 2) ESM in strict sequence
     await importESMSequential(ESM_URLS_IN_ORDER);
 
-    // 3) optional: sanity checks
-    // (customize these to whatever must exist before components run)
     if (!window.server) console.warn("[WLJS] window.server not present after bootstrap");
     if (!window.SupportedCells) console.warn("[WLJS] window.SupportedCells not present after bootstrap");
   }
@@ -105,7 +113,6 @@ export const WLJS_BOOTSTRAP = (() => {
       if (!_promise) _promise = ensureLoaded();
       return _promise;
     },
-    // optional: expose lists if you want to extend them at runtime
     CSS_URLS,
     ESM_URLS_IN_ORDER,
   };
