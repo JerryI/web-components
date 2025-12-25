@@ -7,10 +7,12 @@ window.server = server;
 
 let promises;
 let symbols;
+let preloadedSymbols;
 let eventsPool;
 
-server.disposeSymbols = () => {
-  let copy = Object.keys(symbols);
+server._disposeSymbols = (symbols) => {
+  if (!symbols) return;
+  let copy = Object.keys(symbols ?? {});
   copy.forEach(sym => {
     delete core[sym]
     delete symbols[sym];
@@ -18,9 +20,6 @@ server.disposeSymbols = () => {
   return copy;
 } 
 
-server.listSymbols = () => {
-  return symbols;
-}
 
 server.loadKernel = async (payload) => {
     if (!payload) return;
@@ -83,6 +82,9 @@ server.loadObjects = (result) => {
         console.warn('Symbols loaded!');
         Object.keys(i).forEach((oName) => {
           console.log('Symbol ' + oName + ' was loaded');
+
+          preloadedSymbols[oName] = true;
+          
           core[oName] = async (args, env) => {
             const data = await interpretate(core[oName].data, env);
             return data;
@@ -134,8 +136,10 @@ server.loadObjects = (result) => {
         });
 
         Object.keys(symbols).forEach((key) => {
-          console.log('request ' + key + ' promise resolved');
-          symbols[key].resolve(i[key]);
+          if (symbols[key].resolve) {
+            console.log('request ' + key + ' promise resolved');
+            symbols[key].resolve(i[key]);
+          }
         });
       });
       
@@ -156,8 +160,13 @@ server.flushEvents = () => {
 server.resetIO = () => {
     console.warn('Virtual server hard reset');
 
+    server._disposeSymbols(symbols);
+    server._disposeSymbols(preloadedSymbols);
+
     promises = {};
     symbols =  {};
+    preloadedSymbols = {};
+
     eventsPool = [];
 
     server.kernel = {
