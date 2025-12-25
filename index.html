@@ -9,9 +9,16 @@
         white-space: pre-wrap;
         word-break: normal;
       }
-      wljs-html,wljs-assets:not(:defined) {
+      wljs-html,wljs-assets {
+        display: inline-block;
+        width:100%;
+      }
+      wljs-html:not(:defined) {
+        display: none;
+      }
+      wljs-assets:not(:defined) {
         display: none
-      } 
+      }
       wljs-editor {
         border: none;
         background: none;

@@ -207,13 +207,14 @@ class WLJSHTML extends HTMLElement {
   }
 
   _getSourceText() {
-    if (this.hasAttribute("encoded")) return decodeURIComponent(this.textContent.trim() ?? ""); 
+    if (this.hasAttribute("encoded")) return decodeURIComponent(this.innerHTML.trim() ?? ""); 
     const script = this.querySelector('script[type="text/plain"]');
     if (script) return script.textContent.trim() ?? "";
     return this.textContent.trim() ?? "";
     }  
 
   _render() {
+    //throw this._getSourceText();
     this.innerHTML = this._getSourceText();
   }
 }
