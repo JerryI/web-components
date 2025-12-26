@@ -9,6 +9,8 @@ A web component library for embedding [WLJS Notebooks](https://wljs.io/) (Jupyte
 - [Basic single html page](https://wljsteam.github.io/web-components/) *this repo*
 - [Next.js blog example](https://wljsteam.github.io/web-components-mdx/)
 
+📥 If you are looking for __ready-to-go solution for publishing notebooks as blog posts__ - check out [Next.js Integration](https://github.com/WLJSTeam/web-components-mdx)
+
 ## Features
 
 - 🚀 **Lazy Loading** - Components and dependencies load progressively, showing *meaningful* raw content while loading
@@ -16,6 +18,7 @@ A web component library for embedding [WLJS Notebooks](https://wljs.io/) (Jupyte
 - 🎨 **Interactive Content** - Embed 2D/3D graphics, plots, manipulatable widgets, and more
 - 📦 **CDN-Ready** - Single script import, all dependencies loaded automatically
 - 🔧 **Flexible Encoding** - Supports both `<xmp>`* tags and URI-encoded content
+- **Framework agnostic** - Life cycle is managed automatically using native web-components compatible with any modern web-framework
 
 > *Yes, we know, that `<xmp>` is not recommended, but it is still widely supported and works better with JS disabled than any other solutions available
 
