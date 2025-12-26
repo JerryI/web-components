@@ -8,7 +8,13 @@
       xmp {
         white-space: pre-wrap;
         word-break: normal;
+        padding: 0rem;
       }
+      html, body {
+        height: 100%;
+        touch-action: manipulation;
+        font-family: system-ui;
+      } 
       wljs-html,wljs-assets {
         display: inline-block;
         width:100%;
@@ -18,7 +24,7 @@
       }
       wljs-assets:not(:defined) {
         display: none
-      }
+      } 
       wljs-editor {
         border: none;
         background: none;
@@ -28,12 +34,27 @@
         overflow: auto;
         padding-top: 0em;
         padding-left: 2px;
+        background: #f5f5f5;
+        border-radius: 6px;
+        padding: calc(1rem + 2px);
+        padding-top: 0rem;
+        overflow: auto;
+        font-family: monospace;
+        font-size: 1rem;
+        margin-bottom: 1rem;
+        min-height: 4rem;
       } 
+      wljs-editor.wljs-hide-undefined {
+        display: none;
+      }
       wljs-editor.wljs-mounted {
-        display: block;
         padding-top: 8px;
-        padding-left: 0px;
-      }           
+        padding-bottom: 4px;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        display: block;
+        min-height: unset;
+      }             
     </style>
   </head>
   <body>
@@ -43,7 +64,7 @@
 
       <wljs-store json="attachments/8f0674d8-8a5d-40d7-b8a5-bf7114e97175.txt"></wljs-store>
 
-      <h1>Static plots</h1>
+      <h2>Static plots</h2>
       <p>Some example with 2D/3D graphics</p>
     
 
