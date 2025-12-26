@@ -4298,6 +4298,24 @@ g3d.Small = (args, env) => {
   return 0.4;
 };
 
+function isMobile() {
+    // 1) Best when available (Chromium etc.)
+    if (navigator.userAgentData?.mobile != null) {
+      return navigator.userAgentData.mobile;
+    }
+
+    // 2) Capability-based heuristic
+    const coarse = window.matchMedia?.("(pointer: coarse)").matches;
+    const smallScreen = window.matchMedia?.("(max-width: 768px)").matches;
+    const touch = navigator.maxTouchPoints > 0;
+
+    // Common practical rule: coarse pointer + (touch or small screen)
+    if (coarse && (touch || smallScreen)) return true;
+
+    // 3) Last-resort UA fallback (older browsers)
+    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+
 const setImageSize = async (options, env) => {
 let ImageSize;
 
@@ -4324,7 +4342,7 @@ if (options.ImageSize) {
   ImageSize = [core.DefaultWidth, core.DefaultWidth*0.618034];
 }
 
-    const mobileDetected = /Mobi/i.test(window.navigator.userAgent);
+    const mobileDetected = isMobile();
     if (mobileDetected) {
       console.warn('Mobile device detected!');
       const k = 2.0 / devicePixelRatio;

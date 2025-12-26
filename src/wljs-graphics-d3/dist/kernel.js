@@ -554,6 +554,24 @@ async function processLabel(ref0, gX, env, textFallback, nodeFallback) {
     return arr.reduce((a, b) => (b.length < a.length ? b : a));
   }
 
+  function isMobile() {
+    // 1) Best when available (Chromium etc.)
+    if (navigator.userAgentData?.mobile != null) {
+      return navigator.userAgentData.mobile;
+    }
+
+    // 2) Capability-based heuristic
+    const coarse = window.matchMedia?.("(pointer: coarse)").matches;
+    const smallScreen = window.matchMedia?.("(max-width: 768px)").matches;
+    const touch = navigator.maxTouchPoints > 0;
+
+    // Common practical rule: coarse pointer + (touch or small screen)
+    if (coarse && (touch || smallScreen)) return true;
+
+    // 3) Last-resort UA fallback (older browsers)
+    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+
 
   g2d.Complex = async (args, env) => {
     console.warn('Complex numbers are only supported as decoration');
@@ -652,7 +670,7 @@ async function processLabel(ref0, gX, env, textFallback, nodeFallback) {
 
     let rawImage = false;
 
-    const mobileDetected = /Mobi/i.test(window.navigator.userAgent);
+    const mobileDetected = isMobile();
     if (mobileDetected) {
       console.warn('Mobile device detected!');
       const k = 2.0 / devicePixelRatio;
