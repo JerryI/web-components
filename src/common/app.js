@@ -291,7 +291,7 @@ class WLJSEditor extends HTMLElement {
     // Instantiate the view
     try {
       const ViewCtor = SupportedCells[display].view;
-      this._instance = new ViewCtor({ element: host, editable:editable }, decoded);
+      this._instance = new ViewCtor({ element: host, noneditable: (!editable) }, decoded);
     } catch (e) {
       console.error("[WLJSEditor] mount error:", e);
       return;

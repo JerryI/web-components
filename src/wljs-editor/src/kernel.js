@@ -1089,6 +1089,7 @@ class CodeMirrorCell {
 
       const extensions = EditorExtensions.map((e) => e(self, initialLang));
 
+      if (parent.noneditable) extensions.push(EditorView.editable.of(false));
       //if (type.className) extensions.push(EditorView.editorAttributes.of({class: type.className}))
 
       const editor = new EditorView({
