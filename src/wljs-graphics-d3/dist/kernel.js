@@ -651,6 +651,16 @@ async function processLabel(ref0, gX, env, textFallback, nodeFallback) {
     }
 
     let rawImage = false;
+    if (devicePixelRatio > 2.0) {
+      const k = 2.0 / devicePixelRatio;
+      if (typeof ImageSize == 'number') {
+        ImageSize = ImageSize * k;
+      } else if (typeof ImageSize[0] == 'number') {
+        ImageSize[0] = ImageSize[0] * k;
+        ImageSize[1] = ImageSize[1] * k;
+      }
+
+    }
 
     if (options.ImageSizeRaw) {
       const size = await interpretate(options.ImageSizeRaw, env);
@@ -672,12 +682,12 @@ async function processLabel(ref0, gX, env, textFallback, nodeFallback) {
     let tinyGraph = false;
 
     if (ImageSize instanceof Array) {
-      if (ImageSize[0] < 100 && !(options.PaddingIsImportant)) {
+      if (ImageSize[0] < 100*devicePixelRatio && !(options.PaddingIsImportant)) {
         tinyGraph = true;
      
       }
     } else {
-      if (ImageSize < 100 && !(options.PaddingIsImportant)) {
+      if (ImageSize < 100*devicePixelRatio && !(options.PaddingIsImportant)) {
         tinyGraph = true;
   
       }
@@ -697,8 +707,6 @@ async function processLabel(ref0, gX, env, textFallback, nodeFallback) {
     let framed = false;
     let axesstyle = undefined;
     let ticksstyle = undefined;
-
-    console.log(options);
 
     if (options.Frame && !tinyGraph) {
       options.Frame = await interpretate(options.Frame, env);
