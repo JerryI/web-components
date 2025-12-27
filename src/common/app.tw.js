@@ -6,7 +6,7 @@ const WLJS_BOOTSTRAP = (() => {
   let _promise = null;
 
   const CSS_URLS = [
-    "common/styles.min.css",
+    "common/styles.tw.css",
     "wljs-editor/src/styles.css",
     "wljs-graphics3d-threejs/src/styles.css",
     "wljs-html-support/src/style.css",
