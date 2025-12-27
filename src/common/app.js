@@ -185,6 +185,11 @@ class WLJSStore extends HTMLElement {
     }
 
     virtualServer.flushEvents?.();
+    const event = new CustomEvent('loaded', {
+	    bubbles: true,
+	    cancelable: true
+    });
+    this.dispatchEvent(event);
   }
 }
 
