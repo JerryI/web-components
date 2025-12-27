@@ -2003,6 +2003,12 @@
         const b = (await interpretate(args[2], env)) * 255;
 
         return "rgb("+r+","+g+","+b+")";
+      } else if (args.length == 4) {
+        const r = (await interpretate(args[0], env)) * 255;
+        const g = (await interpretate(args[1], env)) * 255;
+        const b = (await interpretate(args[2], env)) * 255;
+
+        return "rgb("+r+","+g+","+b+")";
       } else {
         let a = await interpretate(args[0], env);
 
