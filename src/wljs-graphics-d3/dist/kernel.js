@@ -2021,7 +2021,7 @@ async function processLabel(ref0, gX, env, textFallback, nodeFallback) {
 
       let GUIEnabled = false;
 
-      if (options.Controls || (typeof options.Controls === 'undefined')) {
+      if (options.Controls || (typeof options.Controls === 'undefined') && !tinyGraph && !mobileDetected) {
         //add pan and zoom
         if (typeof options.Controls === 'undefined') {
           GUIEnabled = true;
