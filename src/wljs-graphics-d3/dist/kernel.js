@@ -29,4868 +29,61 @@ var _default = ({
 
 default_1 = node.default = _default;
 
-let g3d = {};
-g3d.name = "WebObjects/Graphics3D";
-interpretate.contextExpand(g3d); 
-
-["AlignmentPoint", "AspectRatio", "AutomaticImageSize", "Axes", 
-"AxesEdge", "AxesLabel", "AxesOrigin", "AxesStyle", "Background", 
-"BaselinePosition", "BaseStyle", "Boxed", "BoxRatios", "BoxStyle", 
-"ClipPlanes", "ClipPlanesStyle", "ColorOutput", "ContentSelectable", 
-"ColorFunction",
-"ControllerLinking", "ControllerMethod", "ControllerPath", 
-"CoordinatesToolOptions", "DisplayFunction", "Epilog", "FaceGrids", 
-"FaceGridsStyle", "FormatType", "ImageMargins", "ImagePadding", 
-"ImageSize", "ImageSizeRaw", "LabelStyle", "Lighting", "Method", 
-"PlotLabel", "PlotRange", "PlotRangePadding", "PlotRegion", 
-"PreserveImageOptions", "Prolog", "RotationAction", 
-"SphericalRegion", "Ticks", "TicksStyle", "TouchscreenAutoZoom", 
-"ViewAngle", "ViewCenter", "ViewMatrix", "ViewPoint", 
-"ViewProjection", "VertexTextureCoordinates", "RTX","ViewRange", "ViewVector", "ViewVertical", "Controls", "PointerLockControls", "VertexNormals", "VertexColors"].map((e)=>{
-  g3d[e] = () => e;
-});
-
-g3d.VertexNormals.update = () => "VertexNormals";
-g3d.VertexColors.update = () => "VertexColors";
-
-g3d.Void = (args, env) => {console.log(args); console.warn('went to the void...');};
-g3d.Void.update = () => {};
-g3d.Void.destroy = () => {};
-
-g3d.CapForm = g3d.Void;
-g3d.Appearance = g3d.Void;
-
-g3d.All = () => 'All';
-
-/**
-* @type {import('three')}
-*/
-let THREE;
-let MathUtils;
-
-/**
- * Create a set of tick‐marks around the boundary of a rectangle
- * instead of drawing every grid line.
- *
- * @param {number} width   Full width of the plane
- * @param {number} height  Full height of the plane
- * @param {number} divisions  Number of subdivisions per side
- * @param {number} tickLength  Length of each tick (in world units)
- */
-function createATicks(width, height, divisions, nodubs = false, special = false) {
-  const halfW = width / 2;
-  const halfH = height / 2;
-  const stepX = width / divisions;
-  const stepY = height / divisions;
-  const dir = 1;
-  const points = [];
-  const tickLength = [stepX*0.4, stepY*0.4];
-  const material = new THREE.LineBasicMaterial({ toneMapped: false, color: new THREE.Color("gray") });
-
-  // vertical ticks on bottom/top
-  if (special) {
-    points.push(new THREE.Vector3(halfW, halfH, 0));
-    points.push(new THREE.Vector3(halfW, -halfH, 0));
-    
-    points.push(new THREE.Vector3(-halfW, halfH, 0));
-    points.push(new THREE.Vector3(-halfW, -halfH, 0));
-
-    if (nodubs) {
-      points.push(new THREE.Vector3(-halfW, -halfH, 0));
-      points.push(new THREE.Vector3(halfW, -halfH, 0));
-
-      points.push(new THREE.Vector3(halfW, -halfH, 0));
-      points.push(new THREE.Vector3(halfW, halfH, 0));
-      
-    }
-  }
-    for (let i = 0; i <= divisions; i++) {
-      const x = -halfW + stepX*i;
-      // bottom edge tick (positive→up, or negative→down if inverted)
-
-      points.push(new THREE.Vector3(x, -halfH, 0));
-      points.push(new THREE.Vector3(x, -halfH + dir*tickLength[1], 0));
-      // top edge tick
-
-      if (!nodubs) {
-        points.push(new THREE.Vector3(x,  halfH, 0));
-        points.push(new THREE.Vector3(x,  halfH - dir*tickLength[1], 0));
-      }
-    }
-  
-
-  
-  // horizontal ticks on left/right
-
-    for (let j = 0; j <= divisions; j++) {
-      const y = -halfH + stepY*j;
-      // right edge
-
-      points.push(new THREE.Vector3( halfW, y, 0));
-      points.push(new THREE.Vector3( halfW - dir*tickLength[0], y, 0));
-
-      // left edge
-
-
-      points.push(new THREE.Vector3(-halfW, y, 0));
-      points.push(new THREE.Vector3(-halfW + dir*tickLength[0], y, 0));
-
-    }
-  
-   
-
-
-  return new THREE.LineSegments(
-    new THREE.BufferGeometry().setFromPoints(points),
-    material
-  );
-}
-
-
-g3d.LABColor =  async (args, env) => {
-  let lab;
-  if (args.length > 1)
-    lab = [await interpretate(args[0], env), await interpretate(args[1], env), await interpretate(args[2], env)];
-  else 
-    lab = await interpretate(args[0], env);
-
-    const color = default_1({luminance: 100*lab[0], a: 100*lab[1], b: 100*lab[2]});
-  console.log('LAB color');
-  console.log(color);
-  
-  env.color = new THREE.Color(color.red / 255.0, color.green / 255.0, color.blue / 255.0);
-  if (args.length > 3) env.opacity = await interpretate(args[3], env);
-  
-  return env.color;   
-};
-
-g3d.LABColor.update = () => {};
-
-
-g3d.LinearFog = async (args, env) => {
-  let near = 1; let far = 100;
-  let color = 0xcccccc;
-  if (args.length > 0) {
-    color = await interpretate(args[0], env);
-  } if (args.length > 1) {
-    [near, far] = await interpretate(args[1], env);
-  }
-  
-  env.global.scene.fog = new THREE.Fog( color, near, far );
-};
-
-
-
-g3d.Style = async (args, env) => {
-  const copy = env;
-  const options = await core._getRules(args, env);
-  
-  if (options.FontSize) {
-    copy.fontSize = options.FontSize;
-  }  
-
-  if (options.FontColor) {
-    copy.color = options.FontColor;
-  }
-
-  if (options.FontFamily) {
-    copy.fontFamily = options.FontFamily;
+function arrdims(arr) {
+    if (arr.length === 0)                   return 0;
+    if (arr[0].length === undefined)        return 1;
+    if (arr[0][0].length === undefined)     return 2;
+    if (arr[0][0][0].length === undefined)  return 3;
   } 
 
-  for(let i=1; i<(args.length - Object.keys(options).length); ++i) {
-    const res = await interpretate(args[i], copy);
-    if (res == 'Bold') {
-      copy.fontweight = 'bold';
-    }
-  }
-
-  return await interpretate(args[0], copy);
-};
-
-g3d.Style.update = async (args, env) => {
-    const options = await core._getRules(args, env);
-    
-    if (options.FontSize) {
-      env.fontSize = options.FontSize;
-    }  
-  
-    if (options.FontFamily) {
-      env.fontFamily = options.FontFamily;
-    } 
-  
-    return await interpretate(args[0], env);
-};  
-
-/**
- * @description https://threejs.org/docs/#api/en/materials/LineDashedMaterial
- */
-g3d.Dashing = (args, env) => {
-  console.log("Dashing not implemented");
-};
-
-g3d.Annotation = core.List;
-
-g3d.GraphicsGroup = async (args, env) => {
-  const group = new THREE.Group();
-  let copy = {...env};
-
-  copy.mesh = group;
-
-  for (const a of args) {
-    await interpretate(a, copy);
-  }
-
-  env.mesh.add(group);
-};
-
-g3d.Metalness = (args, env) => {
-  env.metalness = interpretate(args[0], env);
-};
-
-g3d.Emissive = async (args, env) => {
-  const copy = {...env};
-  await interpretate(args[0], copy);
-  env.emissive = copy.color;
-  if (args.length > 1) {
-    env.emissiveIntensity = await interpretate(args[1], copy);
-  }
-};
-
-g3d.Glow = g3d.Emissive;
-
-let hsv2hsl = (h,s,v,l=v-v*s/2, m=Math.min(l,1-l)) => [h,m?(v-l)/m:0,l];
-
-g3d.Hue = async (args, env) => {
-    env.colorInherit = false;
-  
-
-    let color = await Promise.all(args.map(el => interpretate(el, env)));
-    if (color.length < 3) {
-      color = [color[0], 1,1];
-    }
-    color = hsv2hsl(...color);
-    color = [color[0], (color[1]*100).toFixed(2), (color[2]*100).toFixed(2)];
-
-
-    env.color = new THREE.Color("hsl("+(3.14*100*color[0]).toFixed(2)+","+color[1]+"%,"+color[2]+"%)");
-    return env.color; 
-
-};   
-
-g3d.EdgeForm = async (args, env) => {
-  env.edgecolor = await interpretate(args[0], {...env});
-};
-
-g3d.RGBColor = async (args, env) => {
-  env.colorInherit = false;
-
-  if (args.length !== 3 && args.length !== 1) {
-    console.log("RGB format not implemented", args);
-    console.error("RGB values should be triple!");
-    return;
-  }
-
-  let a = [...args];
-
-  if (args.length === 1) {
-    a = await interpretate(args[0], env); // return [r, g, b] , 0<=r, g, b<=1
-  }
-
-  const r = await interpretate(a[0], env);
-  const g = await interpretate(a[1], env);
-  const b = await interpretate(a[2], env);
-
-  env.color = new THREE.Color(r, g, b);
-  return env.color;
-};
-
-g3d.GrayLevel = async (args, env) => { 
-  env.colorInherit = false;
-  const r = await interpretate(args[0], env);
-
-  env.color = new THREE.Color(r, r, r);
-  return env.color;
-
-};
-
-
-
-g3d.Roughness = (args, env) => {
-  const o = interpretate(args[0], env);
-  if (typeof o !== "number") console.error("Opacity must have number value!");
-  console.log(o);
-  env.roughness = o;  
-};
-
-g3d.Opacity = (args, env) => {
-  var o = interpretate(args[0], env);
-  if (typeof o !== "number") console.error("Opacity must have number value!");
-  console.log(o);
-  env.opacity = o;
-};
-
-g3d.Scale = async (args, env) => {
-  // args: [object, scale, center?]
-  const object = args[0];
-  let scale = await interpretate(args[1], env);
-  let center = args.length > 2 ? await interpretate(args[2], env) : [0, 0, 0];
-
-  if (scale instanceof NumericArrayObject) scale = scale.normal();
-  if (!Array.isArray(scale)) scale = [scale, scale, scale];
-  if (center instanceof NumericArrayObject) center = center.normal();
-
-  const group = new THREE.Group();
-  await interpretate(object, { ...env, mesh: group });
-
-  // Build transformation: T(center) * S(scale) * T(-center)
-  const t1 = new THREE.Matrix4().makeTranslation(-center[0], -center[1], -center[2]);
-  const s = new THREE.Matrix4().makeScale(scale[0], scale[1], scale[2]);
-  const t2 = new THREE.Matrix4().makeTranslation(center[0], center[1], center[2]);
-  const m = new THREE.Matrix4().multiplyMatrices(t2, s).multiply(t1);
-  group.applyMatrix4(m);
-
-  env.mesh.add(group);
-  env.local.group = group;
-  env.local.scale = scale.slice();
-  env.local.center = center.slice();
-  return group;
-};
-
-g3d.Scale.update = async (args, env) => {
-  let scale = await interpretate(args[1], env);
-  let center = args.length > 2 ? await interpretate(args[2], env) : [0, 0, 0];
-  if (scale instanceof NumericArrayObject) scale = scale.normal();
-  if (!Array.isArray(scale)) scale = [scale, scale, scale];
-  if (center instanceof NumericArrayObject) center = center.normal();
-
-  // Compute delta scale
-  const prevScale = env.local.scale || [1, 1, 1];
-  const prevCenter = env.local.center || [0, 0, 0];
-
-  // Remove previous scaling by applying inverse
-  const t1 = new THREE.Matrix4().makeTranslation(-prevCenter[0], -prevCenter[1], -prevCenter[2]);
-  const sInv = new THREE.Matrix4().makeScale(1 / prevScale[0], 1 / prevScale[1], 1 / prevScale[2]);
-  const t2 = new THREE.Matrix4().makeTranslation(prevCenter[0], prevCenter[1], prevCenter[2]);
-  const mInv = new THREE.Matrix4().multiplyMatrices(t2, sInv).multiply(t1);
-  env.local.group.applyMatrix4(mInv);
-
-  // Apply new scaling
-  const t1n = new THREE.Matrix4().makeTranslation(-center[0], -center[1], -center[2]);
-  const sn = new THREE.Matrix4().makeScale(scale[0], scale[1], scale[2]);
-  const t2n = new THREE.Matrix4().makeTranslation(center[0], center[1], center[2]);
-  const mn = new THREE.Matrix4().multiplyMatrices(t2n, sn).multiply(t1n);
-  env.local.group.applyMatrix4(mn);
-
-  env.local.scale = scale.slice();
-  env.local.center = center.slice();
-  env.wake && env.wake();
-};
-
-g3d.Scale.virtual = true; 
-g3d.Scale.destroy = () => {};
-
-
-g3d.ImageScaled = (args, env) => { };
-
-g3d.Thickness = async (args, env) => { env.thickness = await interpretate(args[0], env);
-};
-
-g3d.AbsoluteThickness = async (args, env) => { env.thickness = await interpretate(args[0], env);
-};
-
-g3d.Arrowheads = async (args, env) => {
-    let obj = await interpretate(args[0], env);
-    if (Array.isArray(obj)) {
-      obj = obj.flat(Infinity)[0];
-      env.arrowHeight = obj*280;
-      env.arrowRadius = obj*180;      
-    } else {
-      env.arrowHeight = obj*280;
-      env.arrowRadius = obj*180;
-    }
-};
-
-const g3dComplex = {};
-
-g3dComplex.Tube = async (args, env) => {
-  let data = await interpretate(args[0], env);
-
-  let radius = 1;
-  if (args.length > 1) radius = await interpretate(args[1], env);
-  if (env.radius) radius = env.radius;
-
-  if (radius instanceof NumericArrayObject) {
-    radius = radius.normal();
-  }
-
-  if (data instanceof NumericArrayObject) { 
-    
-    data = data.buffer;
-    
-  } else {
-    if (Array.isArray(data[0])) {
-      data.forEach((d) => interpretate(['Tube', ['JSObject', d], ...args.slice(1)], env) );
-      return;
-    }
-  }
-
-  let coordinates = [];
-  const ref = env.vertices.position.array;
-  for (let i=0; i<data.length; ++i) {
-    const index = (data[i]-1)*3;
-    coordinates.push([ref[index], ref[index+1], ref[index+2]]);
-  }
-
-  /**
-   * @type {env.material}}
-   */  
-  const material = new env.material({
-    color: env.color,
-    transparent: env.opacity < 1.0,
-    roughness: env.roughness,
-    opacity: env.opacity,
-    metalness: env.metalness,
-    emissive: env.emissive,
-    emissiveIntensity: env.emissiveIntensity,  
-    ior: env.ior,
-    transmission: env.transmission,
-    thinFilm: env.thinFilm,
-    thickness: env.materialThickness,
-    attenuationColor: env.attenuationColor,
-    attenuationDistance: env.attenuationDistance,
-    clearcoat: env.clearcoat,
-    clearcoatRoughness: env.clearcoatRoughness,
-    sheenColor: env.sheenColor,
-    sheenRoughness: env.sheenRoughness,
-    iridescence: env.iridescence,
-    iridescenceIOR: env.iridescenceIOR,
-    iridescenceThickness: env.iridescenceThickness,
-    specularColor: env.specularColor,
-    specularIntensity: env.specularIntensity,
-    matte: env.matte
-    
-  });
-
-  if (!VariableTube) {
-    VariableTube = await import('./index-2643bfa9.js');
-    VariableTube = VariableTube.VariableTube;
-  } 
-
-    const tube = new VariableTube( material, coordinates, null, radius, 16, false );
-
-    env.mesh.add(tube.mesh);
-    env.local.tube = tube;
-  
-    //geometry.dispose();
-  
-    material.dispose();  
-};
-
-g3dComplex.Tube.update = () => console.error('Tube inside Complex does not support updates');
-
-g3dComplex.Tube.destroy = async (args, env) => {
-  if (env.local.tube) env.local.tube.dispose();
-};
-
-g3dComplex.Tube.virtual = true;
-
-g3d.Cone = async (args, env) => {
-
-  let radius = 1;
-  if (args.length > 1) radius = await interpretate(args[1], env);
-  /**
-   * @type {THREE.Vector3}}
-   */
-  let coordinates = await interpretate(args[0], env);
-  //throw coordinates;
-
-  if (coordinates instanceof NumericArrayObject) {
-    coordinates = coordinates.normal();
-  }
-
-  if (radius instanceof NumericArrayObject) {
-    radius = radius.normal();
-  }  
-
-  if (!Array.isArray(radius)) {
-    radius = coordinates.map(() => radius);
-  }
-
-  radius[radius.length - 1] = 0.;
-
-  let dir = [coordinates[0][0]-coordinates[1][0], coordinates[0][1]-coordinates[1][0], coordinates[0][2]-coordinates[1][2]];
-
-  const base = dir.map((el, index) => coordinates[0][index] + 0.0001 * el); //Dirty hack
-  coordinates.unshift(base);
-  radius.unshift(0.000001);
-
-
-
-
-
-  /**
-   * @type {env.material}}
-   */  
-  const material = new env.material({
-    color: env.color,
-    transparent: env.opacity < 1.0,
-    roughness: env.roughness,
-    opacity: env.opacity,
-    metalness: env.metalness,
-    emissive: env.emissive,
-    emissiveIntensity: env.emissiveIntensity,  
-    ior: env.ior,
-    transmission: env.transmission,
-    thinFilm: env.thinFilm,
-    thickness: env.materialThickness,
-    attenuationColor: env.attenuationColor,
-    attenuationDistance: env.attenuationDistance,
-    clearcoat: env.clearcoat,
-    clearcoatRoughness: env.clearcoatRoughness,
-    sheenColor: env.sheenColor,
-    sheenRoughness: env.sheenRoughness,
-    iridescence: env.iridescence,
-    iridescenceIOR: env.iridescenceIOR,
-    iridescenceThickness: env.iridescenceThickness,
-    specularColor: env.specularColor,
-    specularIntensity: env.specularIntensity,
-    matte: env.matte
-    
-  });
-
-  if (!VariableTube) {
-    VariableTube = await import('./index-2643bfa9.js');
-    VariableTube = VariableTube.VariableTube;
-  } 
-
-    const tube = new VariableTube( material, coordinates, null, radius, 16, false );
-
-    env.mesh.add(tube.mesh);
-    env.local.tube = tube;
-  
-    //geometry.dispose();
-  
-  material.dispose();
-};
-
-g3d.Cone.update = async (args, env) => {
-  let radius = 1;
-  if (args.length > 1) radius = await interpretate(args[1], env);
-
-  let coordinates = await interpretate(args[0], env);
-
-  if (coordinates instanceof NumericArrayObject) {
-    coordinates = coordinates.normal();
-  }
-
-  if (radius instanceof NumericArrayObject) {
-    radius = radius.normal();
-  }  
-
-  if (!Array.isArray(radius)) {
-    radius = coordinates.map(() => radius);
-  }
-
-  radius[radius.length - 1] = 0.;
-  let dir = [coordinates[0][0]-coordinates[1][0], coordinates[0][1]-coordinates[1][0], coordinates[0][2]-coordinates[1][2]];
-
-  const base = dir.map((el, index) => coordinates[0][index] + 0.0001 * el); //Dirty hack
-  coordinates.unshift(base);
-  radius.unshift(0.000001);
-
-  env.local.tube.update(coordinates, radius);
-  
-  //env.local.tube.geometry.dispose();
-  //env.local.tube.geometry = new VariableTube(path, Math.max(20, 4 * array.length), radius, 16, false);
-  env.wake(true);
-};
-
-g3d.Cone.virtual = true;
-
-g3d.Cone.destroy = async (args, env) => {
-  env.local.tube.dispose();
-};
-
-g3d.Tube = async (args, env) => {
-
-  let radius = 1;
-  if (args.length > 1) radius = await interpretate(args[1], env);
-  /**
-   * @type {THREE.Vector3}}
-   */
-  let coordinates = await interpretate(args[0], env);
-  //throw coordinates;
-
-  if (coordinates instanceof NumericArrayObject) {
-    coordinates = coordinates.normal();
-  }
-
-  if (radius instanceof NumericArrayObject) {
-    radius = radius.normal();
-  }  
-
-
-
-  /**
-   * @type {env.material}}
-   */  
-  const material = new env.material({
-    color: env.color,
-    transparent: env.opacity < 1.0,
-    roughness: env.roughness,
-    opacity: env.opacity,
-    metalness: env.metalness,
-    emissive: env.emissive,
-    emissiveIntensity: env.emissiveIntensity,  
-    ior: env.ior,
-    transmission: env.transmission,
-    thinFilm: env.thinFilm,
-    thickness: env.materialThickness,
-    attenuationColor: env.attenuationColor,
-    attenuationDistance: env.attenuationDistance,
-    clearcoat: env.clearcoat,
-    clearcoatRoughness: env.clearcoatRoughness,
-    sheenColor: env.sheenColor,
-    sheenRoughness: env.sheenRoughness,
-    iridescence: env.iridescence,
-    iridescenceIOR: env.iridescenceIOR,
-    iridescenceThickness: env.iridescenceThickness,
-    specularColor: env.specularColor,
-    specularIntensity: env.specularIntensity,
-    matte: env.matte
-    
-  });
-
-  if (!VariableTube) {
-    VariableTube = await import('./index-2643bfa9.js');
-    VariableTube = VariableTube.VariableTube;
-  } 
-
-    const tube = new VariableTube( material, coordinates, null, radius, 16, false );
-
-    env.mesh.add(tube.mesh);
-    env.local.tube = tube;
-  
-    //geometry.dispose();
-  
-  material.dispose();
-};
-
-g3d.Tube.update = async (args, env) => {
-  let radius = 1;
-  if (args.length > 1) radius = await interpretate(args[1], env);
-
-  let coordinates = await interpretate(args[0], env);
-
-  if (coordinates instanceof NumericArrayObject) {
-    coordinates = coordinates.normal();
-  }
-
-  if (radius instanceof NumericArrayObject) {
-    radius = radius.normal();
-  }  
-
-  env.local.tube.update(coordinates, radius);
-  
-  //env.local.tube.geometry.dispose();
-  //env.local.tube.geometry = new VariableTube(path, Math.max(20, 4 * array.length), radius, 16, false);
-  env.wake(true);
-};
-
-g3d.Tube.virtual = true;
-
-g3d.Tube.destroy = async (args, env) => {
-  env.local.tube.dispose();
-};
-
-
-g3d.TubeArrow = async (args, env) => {
-
-
-  let radius = 1;
-  if (args.length > 1) radius = await interpretate(args[1], env);
-  /**
-   * @type {THREE.Vector3}}
-   */
-  const coordinates = await interpretate(args[0], env);
-  //throw coordinates;
-
-  /**
-   * @type {env.material}}
-   */  
-  const material = new env.material({
-    color: env.color,
-    transparent: env.opacity < 1.0,
-    roughness: env.roughness,
-    opacity: env.opacity,
-    metalness: env.metalness,
-    emissive: env.emissive,
-    emissiveIntensity: env.emissiveIntensity,
-    
-    ior: env.ior,
-    transmission: env.transmission,
-    thinFilm: env.thinFilm,
-thickness: env.materialThickness,
-    attenuationColor: env.attenuationColor,
-    attenuationDistance: env.attenuationDistance,
-    clearcoat: env.clearcoat,
-    clearcoatRoughness: env.clearcoatRoughness,
-    sheenColor: env.sheenColor,
-    sheenRoughness: env.sheenRoughness,
-    iridescence: env.iridescence,
-    iridescenceIOR: env.iridescenceIOR,
-    iridescenceThickness: env.iridescenceThickness,
-    specularColor: env.specularColor,
-    specularIntensity: env.specularIntensity,
-    matte: env.matte
-    
-  });
-
-  //points 1, 2
-  const p2 = new THREE.Vector3(...coordinates[0]);
-  const p1 = new THREE.Vector3(...coordinates[1]);
-  //direction
-  const dp = p2.clone().addScaledVector(p1, -1);
-
-  const geometry = new THREE.CylinderGeometry(radius, radius, dp.length(), 32, 1);
-
-  //calculate the center (might be done better, i hope BoundingBox doest not envolve heavy computations)
-
-
-  //default geometry
-  const cylinder = new THREE.Mesh(geometry, material);
-
-  //cone
-  const conegeometry = new THREE.ConeGeometry(env.arrowRadius/100.0, env.arrowHeight/60.0, 32 );
-  const cone = new THREE.Mesh(conegeometry, material);
-  cone.position.y = dp.length()/2 + env.arrowHeight/120.0;
-
-  let group = new THREE.Group();
-  group.add(cylinder, cone);
-
-
-  var HALF_PI = Math.PI * .5;
-  var position  = p1.clone().add(p2).divideScalar(2);
-
-  var orientation = new THREE.Matrix4();//a new orientation matrix to offset pivot
-  var offsetRotation = new THREE.Matrix4();//a matrix to fix pivot rotation
-  new THREE.Matrix4();//a matrix to fix pivot position
-  orientation.lookAt(p1,p2,new THREE.Vector3(0,1,0));//look at destination
-  offsetRotation.makeRotationX(HALF_PI);//rotate 90 degs on X
-  orientation.multiply(offsetRotation);//combine orientation with rotation transformations
-  
-  env.local.matrix = group.matrix.clone();
-  group.applyMatrix4(orientation);
-
-
-  //group.position=position;    
-
-
-  //translate its center to the middle target point
-  group.position.addScaledVector(position, 1);
-
-  env.local.group = group;
-
-  env.mesh.add(group);
-
-  geometry.dispose();
-  conegeometry.dispose();
-  material.dispose();
-
-  return group;
-};
-
-g3d.TubeArrow.update = async (args, env) => {
-  /**
-   * @type {THREE.Vector3}}
-   */
   
   
-  const coordinates = await interpretate(args[0], env);
-  //points 1, 2
-  const p2 = new THREE.Vector3(...coordinates[0]);
-  const p1 = new THREE.Vector3(...coordinates[1]);
-  //direction
-  p2.clone().addScaledVector(p1, -1);
-
-  //const geometry = new THREE.CylinderGeometry(radius, radius, dp.length(), 32, 1);
-
-  //calculate the center (might be done better, i hope BoundingBox doest not envolve heavy computations)
-
-
-  //default geometry
-  //const cylinder = new THREE.Mesh(geometry, material);
-
-  //cone
-  //const conegeometry = new THREE.ConeGeometry(env.arrowRadius, env.arrowHeight, 32 );
-  //const cone = new THREE.Mesh(conegeometry, material);
-  //cone.position.y = dp.length()/2 + env.arrowHeight/2;
-
-  ///let group = new THREE.Group();
-  //group.add(cylinder, cone);
-
-
-  var HALF_PI = Math.PI * .5;
-  var position  = p1.clone().add(p2).divideScalar(2);
-
-  var orientation = new THREE.Matrix4();//a new orientation matrix to offset pivot
-  var offsetRotation = new THREE.Matrix4();//a matrix to fix pivot rotation
-  new THREE.Matrix4();//a matrix to fix pivot position
-  orientation.lookAt(p1,p2,new THREE.Vector3(0,1,0));//look at destination
-  offsetRotation.makeRotationX(HALF_PI);//rotate 90 degs on X
-  orientation.multiply(offsetRotation);//combine orientation with rotation transformations
-
-  env.local.matrix.decompose( env.local.group.position, env.local.group.quaternion, env.local.group.scale );
-  env.local.group.matrix.copy( env.local.matrix );
-
-  env.local.group.applyMatrix4(orientation);
-
-
-  //group.position=position;    
-
-
-  //translate its center to the middle target point
-  env.local.group.position.addScaledVector(position, 1);
-
-  env.wake(true);
-};
-
-//g3d.TubeArrow.virtual = true 
-
-g3d.Arrow = async (args, env) => {
-  let arr;
-
-  if (args.length === 1) {
-    if (args[0][0] === 'Tube' || args[0][0] === 'TubeArrow') {
-      //console.log('TUBE inside!');
-      args[0][0] = 'TubeArrow';
-      return await interpretate(args[0], env);
-    } else {
-      arr = await interpretate(args[0], env);
-    }
-  } else {
-    arr = await interpretate(args[0], env);
-  }
-  
-  if (arr.length === 1) arr = arr[0];
-
-
-  if (arr.length > 2) {
-    var geometry = new THREE.BufferGeometry();
-    const points = arr.slice(0, -1);
-
-    geometry.setAttribute( 'position', new THREE.BufferAttribute( new Float32Array(points.flat()), 3 ) );
-
-    const material = new THREE.LineBasicMaterial({
-      linewidth: env.thickness,
-      color: env.color,
-      opacity: env.opacity,
-      transparent: env.opacity < 1.0 ? true : false
-    });
-    const line = new THREE.Line(geometry, material);
-
-    env.local.line = line;
-
-    env.mesh.add(line);
-  }
-
-  const points = [
-    new THREE.Vector4(...arr[arr.length-2], 1),
-    new THREE.Vector4(...arr[arr.length-1], 1),
-  ];
-
-  points.forEach((p) => {
-    p = p.applyMatrix4(env.matrix);
-  });
-
-  const origin = points[0].clone();
-  const dir = points[1].add(points[0].negate());
-  const len = dir.length();
-
-  const arrowHelper = new THREE.ArrowHelper(
-    dir.normalize(),
-    origin,
-    len,
-    env.color
-  );
-  //arrowHelper.castShadow = env.shadows;
-  //arrowHelper.receiveShadow = env.shadows;
-   
-
-
-  env.mesh.add(arrowHelper);
-  arrowHelper.line.material.linewidth = env.thickness;
-
-  env.local.arrow = arrowHelper;
-
-  return arrowHelper;
-};
-
-g3d.Arrow.update = async (args, env) => {
-  let arr;
-
-  if (args.length === 1) {
-    if (args[0][0] === 'Tube' || args[0][0] === 'TubeArrow') {
-      console.log('TUBE inside!');
-      //args[0][0] = 'TubeArrow';
-      return await interpretate(args[0], env);
-    } else {
-      arr = await interpretate(args[0], env);
-    }
-  } else {
-    arr = await interpretate(args[0], env);
-    if (arr instanceof NumericArrayObject) {
-      arr = arr.normal();
-    }
-  }
-  
-  if (arr.length === 1) arr = arr[0];
-
-  if (env.local.line) {
-    //update line geometry
-    const positionAttribute = env.local.line.geometry.getAttribute( 'position' );
-    const points = arr.slice(0, -1);
-
-    positionAttribute.needsUpdate = true;
-
-    for ( let i = 0; i < positionAttribute.count; i ++ ) {
-      positionAttribute.setXYZ( i, ...(points[i]));
-    }
-
-    env.local.line.geometry.computeBoundingBox();
-    env.local.line.geometry.computeBoundingSphere();
-  }
-
-  const points = [
-    new THREE.Vector4(...arr[arr.length-2], 1),
-    new THREE.Vector4(...arr[arr.length-1], 1),
-  ];
-
-  points.forEach((p) => {
-    p = p.applyMatrix4(env.matrix);
-  });
-
-
-  env.local.arrow.position.copy(points[0]);
-
-  const dir = points[1].add(points[0].negate());
-
-  const len = dir.length();
-
-  env.local.arrow.setDirection(dir.normalize());
-  env.local.arrow.setLength(len);
-
-  env.wake(true);
-
-};
-
-g3d.Arrow.destroy = async (args, env) => {
-  if (env.local.line) env.local.line.dispose();
-  if (env.local.arrow) env.local.arrow.dispose();
-};
-
-g3d.Arrow.virtual = true;
-
-//g3d.Tube = g3d.TubeArrow
-
-g3dComplex.Point = async (args, env) => {
-  let data = await interpretate(args[0], env);
-  
-
-  const geometry = new THREE.BufferGeometry();
-
-  geometry.setAttribute('position', env.vertices.position);
-  //env.vertices.geometry.clone();
-  
-
-  if (data instanceof NumericArrayObject) { 
-    const dp = data.normal(); //FIXME!!!
-    geometry.setIndex( dp.flat().map((e)=>e-1) );
-  } else {  
-    if (!Array.isArray(data)) data = [data];
-    geometry.setIndex( data.flat().map((e)=>e-1) );
-  }
-
-  let material;
-  
-  if (env?.vertices?.colored) {
-    //geometry.setAttribute()
-    geometry.setAttribute( 'color', env.vertices.colors );
-
-    material = new THREE.PointsMaterial({
-      vertexColors: true,
-      transparent: env.opacity < 1,
-      opacity: env.opacity, 
-      size: 3.1 * env.pointSize / (0.011111111111111112)       
-    });
-
-  } else {
-    material = new THREE.PointsMaterial( { color: env.color, opacity: env.opacity, size: 3.1 * env.pointSize / (0.011111111111111112)} );
-  }  
-
-  env.local.material = material;
-  
-  
-  const points = new THREE.Points( geometry, material );
-
-  env.local.geometry = geometry;
-
-  env.mesh.add(points);
-  env.local.points = points;
-
-  
-
-  return env.local.points;  
-};
-
-g3dComplex.Point.virtual = true;
-
-g3dComplex.Point.destroy = (args, env) => {
-  env.local.geometry.dispose();
-  env.local.material.dispose();
-
-};
-
-g3d.Point = async (args, env) => {
-  let data = await interpretate(args[0], env);
-
-
-  const geometry = new THREE.BufferGeometry();
-
-
-    if (data instanceof NumericArrayObject) { 
-      geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( data.buffer, 3 ) );
-    } else {
-
-      geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( new Float32Array(data.flat(Infinity)), 3 ) );
-    }
-    
-
-
-  let material;
-  
-  material = new THREE.PointsMaterial( { color: env.color, opacity: env.opacity, size: 3.1 * env.pointSize / (0.011111111111111112)} );
-  
-  
-  const points = new THREE.Points( geometry, material );
-
-  env.local.geometry = geometry;
-
-  env.mesh.add(points);
-  env.local.points = points;
-
-  env.local.material = material;
-
-  return env.local.points;
-};
-
-g3d.Point.update = async (args, env) => {
-
-  let data = await interpretate(args[0], env);
-  if (data instanceof NumericArrayObject) {
-    env.local.geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( data.buffer, 3 ) );
-  } else {  
-    env.local.geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( data.flat(Infinity), 3 ) );
-  }
-
-  env.wake(true);
-
-  
-  return env.local.points;
-};
-
-g3d.Point.destroy = async (args, env) => {
-  env.local.geometry.dispose();
-  env.local.material.dispose();
-};
-
-g3d.Point.virtual = true;
-
-
-g3d.Sphere = async (args, env) => {
-  var radius = 1;
-  if (args.length > 1) radius = await interpretate(args[1], env);
-
-  const material = new env.material({
-    color: env.color,
-    roughness: env.roughness,
-    opacity: env.opacity,
-    transparent: env.opacity < 1.0,
-    metalness: env.metalness,
-    emissive: env.emissive,
-    emissiveIntensity: env.emissiveIntensity,
-    ior: env.ior,
-    transmission: env.transmission,
-    thinFilm: env.thinFilm,
-thickness: env.materialThickness,
-    attenuationColor: env.attenuationColor,
-    attenuationDistance: env.attenuationDistance,
-    clearcoat: env.clearcoat,
-    clearcoatRoughness: env.clearcoatRoughness,
-    sheenColor: env.sheenColor,
-    sheenRoughness: env.sheenRoughness,
-    iridescence: env.iridescence,
-    iridescenceIOR: env.iridescenceIOR,
-    iridescenceThickness: env.iridescenceThickness,
-    specularColor: env.specularColor,
-    specularIntensity: env.specularIntensity,
-    matte: env.matte
-  });
-
-  function addSphere(cr) {
-    const origin = new THREE.Vector4(...cr, 1);
-    const geometry = new THREE.SphereGeometry(radius, 40, 40);
-    const sphere = new THREE.Mesh(geometry, material);
-
-    sphere.position.set(origin.x, origin.y, origin.z);
-    sphere.castShadow = env.shadows;
-    sphere.receiveShadow = env.shadows;
-
-    env.mesh.add(sphere);
-    geometry.dispose();
-    return sphere;
-  }
-
-  console.log(env.local);
-  let list = await interpretate(args[0], env);
-
-  if (list instanceof NumericArrayObject) { // convert back automatically
-    list = list.normal();
-  }
-
-  console.log('DRAW A SPHERE');
-
-  if (list.length === 3) {
-    env.local.object = [addSphere(list)];
-  } else {
-
-    //env.local.multiple = true;
-    env.local.object = [];
-
-    list.forEach((el) => {
-      env.local.object.push(addSphere(el));
-    });
-  } 
-
-  material.dispose();
-
-  return env.local.object;
-};
-
-g3d.Sphere.update = async (args, env) => {
-  //console.log('Sphere: updating the data!');
-  env.wake(true);
-
-  let c = await interpretate(args[0], env);
-  if (c instanceof NumericArrayObject) { // convert back automatically
-    c = c.normal();
-  }
-
-  if (env.local.object.length == 1) {
-    c = [c];
-  }
-
-  if (env.Lerp) {
-
-      if (!env.local.lerp) {
-        console.log('creating worker for lerp of movements multiple..');
-        const initial = c.map((e)=> new THREE.Vector3(...e));
-
-        const worker = {
-          alpha: 0.05,
-          target: initial,
-          eval: () => {
-            for (let i=0; i<env.local.object.length; ++i)
-              env.local.object[i].position.lerp(worker.target[i], 0.05);
-          }
-        };
-
-        env.local.lerp = worker;  
-
-        env.Handlers.push(worker);
-      }
-      
-      for (let i=0; i<c.length; ++i)
-        env.local.lerp.target[i].fromArray(c[i]);
-
-      return;
-
-
-  }
-
-  {
-    let i = 0;
-    c.forEach((cc)=>{
-      env.local.object[i].position.set(...cc);
-      ++i;
-    });
-
-    return;
-  }
-
-};
-
-g3d.Sphere.destroy = async (args, env) => {
-  console.log('Sphere: destroy');
-};
-
-g3d.Sphere.virtual = true;
-
-g3d.Sky = (args, env) => {
-  const sky = new Sky();
-  sky.scale.setScalar( 10000 );
-  env.mesh.add( sky );
-  env.sky = sky;
-  env.sun = new THREE.Vector3();
-
-  const skyUniforms = sky.material.uniforms;
-
-  skyUniforms[ 'turbidity' ].value = 10;
-  skyUniforms[ 'rayleigh' ].value = 2;
-  skyUniforms[ 'mieCoefficient' ].value = 0.005;
-  skyUniforms[ 'mieDirectionalG' ].value = 0.8;
-};
-
-g3d._Water = (args, env) => {
-  const waterGeometry = new THREE.PlaneGeometry( 10000, 10000 );
-
-  const water = new Water(
-    waterGeometry,
-    {
-      textureWidth: 512,
-      textureHeight: 512,
-      waterNormals: new THREE.TextureLoader().load( 'textures/waternormals.jpg', function ( texture ) {
-
-        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-      } ),
-
-      sunDirection: new THREE.Vector3(),
-      sunColor: 0xffffff,
-      waterColor: 0x001e0f,
-      distortionScale: 3.7,
-      fog: true
-    }
-    );
-
-    water.rotation.x = - Math.PI / 2;
-
-    env.mesh.add( water );
-    env.water = water;
-};
-
-g3d.Cube = async (args, env) => {
-  let position = new THREE.Vector3(0, 0, 0);
-  let scale = new THREE.Vector3(1, 1, 1);
-  let rotation = new THREE.Euler(0, 0, 0);
-
-  for (const arg of args) {
-    const val = await interpretate(arg, env);
-
-    if (typeof val === "number") {
-      scale.set(val, val, val);
-    } else if (Array.isArray(val)) {
-      if (val.length === 3) {
-        if (val.every(v => typeof v === "number")) {
-          // assume it's a position vector
-          position.set(...val);
-        }
-      } else if (val.length === 2) {
-        const [theta, phi] = val;
-        if (typeof theta === "number" && typeof phi === "number") {
-          // rotation angles
-          rotation.z = theta;
-          rotation.y = phi;
-        }
-      }
-    }
-  }
-
-  const geometry = new THREE.BoxGeometry(1, 1, 1);
-  const material = new env.material({
-    color: env.color,
-    transparent: true,
-    opacity: env.opacity,
-    roughness: env.roughness,
-    depthWrite: true,
-    metalness: env.metalness,
-    emissive: env.emissive,
-    emissiveIntensity: env.emissiveIntensity,
-    ior: env.ior,
-    transmission: env.transmission,
-    thinFilm: env.thinFilm,
-    thickness: env.materialThickness,
-    attenuationColor: env.attenuationColor,
-    attenuationDistance: env.attenuationDistance,
-    clearcoat: env.clearcoat,
-    clearcoatRoughness: env.clearcoatRoughness,
-    sheenColor: env.sheenColor,
-    sheenRoughness: env.sheenRoughness,
-    iridescence: env.iridescence,
-    iridescenceIOR: env.iridescenceIOR,
-    iridescenceThickness: env.iridescenceThickness,
-    specularColor: env.specularColor,
-    specularIntensity: env.specularIntensity,
-    matte: env.matte
-  });
-
-  const cube = new THREE.Mesh(geometry, material);
-
-  // Apply transformations
-  cube.position.copy(position);
-  cube.scale.copy(scale);
-  cube.rotation.copy(rotation);
-
-  cube.receiveShadow = env.shadows;
-  cube.castShadow = env.shadows;
-
-  env.mesh.add(cube);
-  env.local.geometry = cube.geometry.clone();
-  env.local.box = cube;
-
-  geometry.dispose();
-  material.dispose();
-
-  return cube;
-};
-
-g3d.Cube.update = async (args, env) => {
-  const box = env.local.box;
-  if (!box) {
-    console.warn("No cube found to update.");
-    return;
-  }
-
-  let position = new THREE.Vector3(0, 0, 0);
-  let scale = new THREE.Vector3(1, 1, 1);
-  let rotation = new THREE.Euler(0, 0, 0);
-
-  for (const arg of args) {
-    const val = await interpretate(arg, env);
-
-    if (typeof val === "number") {
-      scale.set(val, val, val);
-    } else if (Array.isArray(val)) {
-      if (val.length === 3 && val.every(v => typeof v === "number")) {
-        position.set(...val);
-      } else if (val.length === 2) {
-        const [theta, phi] = val;
-        if (typeof theta === "number" && typeof phi === "number") {
-          rotation.z = theta;
-          rotation.y = phi;
-        }
-      }
-    }
-  }
-
-  // Apply transformations
-  box.position.copy(position);
-  box.rotation.copy(rotation);
-
-  // Reset geometry and rescale
-  box.geometry.copy(env.local.geometry);
-  box.geometry.applyMatrix4(new THREE.Matrix4().makeScale(scale.x, scale.y, scale.z));
-
-  env.wake(true);
-};
-
-g3d.Cube.destroy = async (args, env) => {
-  env.local.box.geometry.dispose();
-};
-
-g3d.Cube.virtual = true;
-
-g3d.Cuboid = async (args, env) => {
-  //if (params.hasOwnProperty('geometry')) {
-  //	var points = [new THREE.Vector4(...interpretate(func.args[0]), 1),
-  //				new THREE.Vector4(...interpretate(func.args[1]), 1)];
-  //}
-  /**
-   * @type {THREE.Vector4}
-   */
-  var diff;
-  /**
-   * @type {THREE.Vector4}
-   */
-  var origin;
-  var p;
-
-  if (args.length === 2) {
-    var points = [
-      new THREE.Vector4(...(await interpretate(args[1], env)), 1),
-      new THREE.Vector4(...(await interpretate(args[0], env)), 1),
-    ];
-
-    origin = points[0]
-      .clone()
-      .add(points[1])
-      .divideScalar(2);
-    diff = points[0].clone().add(points[1].clone().negate());
-  } else if (args.length === 1) {
-    p = await interpretate(args[0], env);
-    origin = new THREE.Vector4(...p, 1);
-    diff = new THREE.Vector4(1, 1, 1, 1);
-
-    //shift it
-    origin.add(diff.clone().divideScalar(2));
-  } else {
-    console.error("Expected 2 or 1 arguments");
-    return;
-  }
-
-  //env.local.prev = [diff.x, diff.y, diff.z];
-
-  const geometry = new THREE.BoxGeometry(1, 1, 1);
-  const material = new env.material({
-    color: env.color,
-    transparent: true,
-    opacity: env.opacity,
-    roughness: env.roughness,
-    depthWrite: true,
-    metalness: env.metalness,
-    emissive: env.emissive,
-    emissiveIntensity: env.emissiveIntensity,
-    ior: env.ior,
-    transmission: env.transmission,
-    thinFilm: env.thinFilm,
-thickness: env.materialThickness,
-    attenuationColor: env.attenuationColor,
-    attenuationDistance: env.attenuationDistance,
-    clearcoat: env.clearcoat,
-    clearcoatRoughness: env.clearcoatRoughness,
-    sheenColor: env.sheenColor,
-    sheenRoughness: env.sheenRoughness,
-    iridescence: env.iridescence,
-    iridescenceIOR: env.iridescenceIOR,
-    iridescenceThickness: env.iridescenceThickness,
-    specularColor: env.specularColor,
-    specularIntensity: env.specularIntensity,
-    matte: env.matte    
-    
-    
-    
-  });
-
-  //material.side = THREE.DoubleSide;
-
-  const cube = new THREE.Mesh(geometry, material);
-
-  //var tr = new THREE.Matrix4();
-  //	tr.makeTranslation(origin.x,origin.y,origin.z);
-
-  //cube.applyMatrix(params.matrix.clone().multiply(tr));
-
-  cube.position.set(origin.x, origin.y, origin.z);
-
-  env.local.geometry = cube.geometry.clone();
-  cube.geometry.applyMatrix4(new THREE.Matrix4().makeScale(diff.x, diff.y, diff.z));
-
-  cube.receiveShadow = env.shadows;
-  cube.castShadow = env.shadows;
-
-  env.mesh.add(cube);
-
-  env.local.box = cube;
-
-  geometry.dispose();
-  material.dispose();
-
-  return cube;
-};
-
-g3d.Cuboid.update = async (args, env) => {
-  /**
-       * @type {THREE.Vector4}
-       */
-  var diff;
-  /**
-   * @type {THREE.Vector4}
-   */
-  var origin;
-  var p;
-
-  if (args.length === 2) {
-    var points = [
-      new THREE.Vector4(...(await interpretate(args[1], env)), 1),
-      new THREE.Vector4(...(await interpretate(args[0], env)), 1),
-    ];
-  
-    origin = points[0]
-      .clone()
-      .add(points[1])
-      .divideScalar(2);
-    diff = points[0].clone().add(points[1].clone().negate());
-  } else {
-    p = await interpretate(args[0], env);
-    origin = new THREE.Vector4(...p, 1);
-    diff = new THREE.Vector4(1, 1, 1, 1);
-  
-    //shift it
-    origin.add(diff.clone().divideScalar(2));
-  }
-
-
-  console.log(diff.x, diff.y, diff.z);
-
-  env.local.box.position.copy(origin);
-  env.local.box.geometry.copy(env.local.geometry);
-  env.local.box.geometry.applyMatrix4(new THREE.Matrix4().makeScale(diff.x, diff.y, diff.z));
-
-  //env.local.box.updateMatrix();
-
-
-  env.wake(true);
-
-}; 
-
-g3d.Cuboid.destroy = async (args, env) => {
-  env.local.box.geometry.dispose();
-};
-
-g3d.Cuboid.virtual = true;
-
-
-g3d.Center = (args, env) => {
-  return "Center";
-};
-
-g3d.Cylinder = async (args, env) => {
-  let radius = 1;
-  if (args.length > 1) radius = await interpretate(args[1], env);
-  /**
-   * @type {THREE.Vector3}}
-   */
-  let coordinates = await interpretate(args[0], env);
-  if (coordinates.length === 1) {
-    coordinates = coordinates[0];
-  }
-
-  coordinates[0] = new THREE.Vector3(...coordinates[0]);
-  coordinates[1] = new THREE.Vector3(...coordinates[1]);
-
-  const material = new env.material({
-    color: env.color,
-    transparent: env.opacity < 1.0,
-    roughness: env.roughness,
-    opacity: env.opacity,
-    metalness: env.metalness,
-    emissive: env.emissive,
-emissiveIntensity: env.emissiveIntensity,
-ior: env.ior,
-transmission: env.transmission,
-thinFilm: env.thinFilm,
-thickness: env.materialThickness,
-attenuationColor: env.attenuationColor,
-attenuationDistance: env.attenuationDistance,
-clearcoat: env.clearcoat,
-clearcoatRoughness: env.clearcoatRoughness,
-sheenColor: env.sheenColor,
-sheenRoughness: env.sheenRoughness,
-iridescence: env.iridescence,
-iridescenceIOR: env.iridescenceIOR,
-iridescenceThickness: env.iridescenceThickness,
-specularColor: env.specularColor,
-specularIntensity: env.specularIntensity,
-matte: env.matte    
-    
-    
-  });
-
-  console.log(coordinates);
-
-  // edge from X to Y
-  var direction = new THREE.Vector3().subVectors(coordinates[1], coordinates[0]);
-
-  console.log(direction);
-
-  // Make the geometry (of "direction" length)
-  var geometry = new THREE.CylinderGeometry(radius, radius, 1, 32, 4, false);
-  // shift it so one end rests on the origin
-  geometry.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 1 / 2.0, 0));
-  // rotate it the right way for lookAt to work
-  geometry.applyMatrix4(new THREE.Matrix4().makeRotationX(THREE.MathUtils.degToRad(90)));
-  // Make a mesh with the geometry
-
-  //env.local.geometry = geometry.clone();
-
-  //geometry.applyMatrix4(new THREE.Matrix4().makeScale(1, 1, direction.length()));
-
-
-  var mesh = new THREE.Mesh(geometry, material);
-  // Position it where we want
-  mesh.receiveShadow = env.shadows;
-  mesh.castShadow = env.shadows;
-
-  //env.local.bmatrix = mesh.matrix.clone();
-
-  mesh.position.copy(coordinates[0]);
-
-  env.local.g = mesh.geometry.clone();
-  mesh.geometry.applyMatrix4(new THREE.Matrix4().makeScale(1,1,direction.length()));
-  //mesh.scale.set( 1,1,direction.length() );
-
-  // And make it point to where we want
-  mesh.geometry.lookAt(direction); 
-
-  
-
-  env.local.cylinder = mesh;
-  //env.local.coordinates = coordinates;
-  //mesh.matrixAutoUpdate = false;
-
-  env.mesh.add(mesh);
-
-  //geometry.dispose();
-  //material.dispose();
-};
-
-g3d.Cylinder.update = async (args, env) => {
-  let coordinates = await interpretate(args[0], env);
-  if (coordinates.length === 1) {
-    coordinates = coordinates[0];
-  }
-
-  coordinates[0] = new THREE.Vector3(...coordinates[0]);
-  coordinates[1] = new THREE.Vector3(...coordinates[1]);   
-  
-  var direction = new THREE.Vector3().subVectors(coordinates[1], coordinates[0]);
-
-
-  env.local.cylinder.position.copy(coordinates[0]);
-
-  //env.local.cylinder.matrix.identity();
-  env.local.cylinder.geometry.copy(env.local.g);
-  env.local.cylinder.geometry.applyMatrix4(new THREE.Matrix4().makeScale(1,1,direction.length()));
-
-  //env.local.cylinder.applyMatrix4(new THREE.Matrix4().makeScale(1, 1, direction.length()));
-  //env.local.cylinder.scale.set( 1,1,direction.length() );
-  // And make it point to where we want
-  env.local.cylinder.geometry.lookAt(direction); 
-
-  env.wake(true);
-
-};
-
-g3d.Cylinder.destroy = async (args, env) => {
-  env.local.cylinder.geometry.dispose();
-  env.local.g.dispose();
-};
-
-g3d.Cylinder.virtual = true;
-
-g3d.Octahedron = async (args, env) => {
-  let position = new THREE.Vector3(0, 0, 0);
-  let scale = 1.0;
-  let rotation = new THREE.Euler(0, 0, 0);
-
-  for (const arg of args) {
-    const val = await interpretate(arg, env);
-    if (typeof val === "number") {
-      scale = val;
-    } else if (Array.isArray(val)) {
-      if (val.length === 3 && val.every(v => typeof v === "number")) {
-        position.set(...val);
-      } else if (val.length === 2 && val.every(v => typeof v === "number")) {
-        rotation.z = val[0];
-        rotation.y = val[1];
-      }
-    }
-  }
-
-  const geometry = new THREE.OctahedronGeometry(1);
-  const material = new env.material({
-    color: env.color,
-    transparent: env.opacity < 1.0,
-    roughness: env.roughness,
-    opacity: env.opacity,
-    metalness: env.metalness,
-    emissive: env.emissive,
-    emissiveIntensity: env.emissiveIntensity,  
-    ior: env.ior,
-    transmission: env.transmission,
-    thinFilm: env.thinFilm,
-    thickness: env.materialThickness,
-    attenuationColor: env.attenuationColor,
-    attenuationDistance: env.attenuationDistance,
-    clearcoat: env.clearcoat,
-    clearcoatRoughness: env.clearcoatRoughness,
-    sheenColor: env.sheenColor,
-    sheenRoughness: env.sheenRoughness,
-    iridescence: env.iridescence,
-    iridescenceIOR: env.iridescenceIOR,
-    iridescenceThickness: env.iridescenceThickness,
-    specularColor: env.specularColor,
-    specularIntensity: env.specularIntensity,
-    matte: env.matte
-    
-  });
-
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.copy(position);
-  mesh.scale.set(scale, scale, scale);
-  mesh.rotation.copy(rotation);
-  mesh.receiveShadow = env.shadows;
-  mesh.castShadow = env.shadows;
-
-  env.mesh.add(mesh);
-
-
-  geometry.dispose();
-  material.dispose();
-  return mesh;
-};
-
-g3d.Tetrahedron = async (args, env) => {
-  let position = new THREE.Vector3(0, 0, 0);
-  let scale = 1.0;
-  let rotation = new THREE.Euler(0, 0, 0);
-
-  for (const arg of args) {
-    const val = await interpretate(arg, env);
-    if (typeof val === "number") {
-      scale = val;
-    } else if (Array.isArray(val)) {
-      if (val.length === 3 && val.every(v => typeof v === "number")) {
-        position.set(...val);
-      } else if (val.length === 2 && val.every(v => typeof v === "number")) {
-        rotation.z = val[0];
-        rotation.y = val[1];
-      }
-    }
-  }
-
-  const geometry = new THREE.TetrahedronGeometry(1);
-  const material = new env.material({
-    color: env.color,
-    transparent: env.opacity < 1.0,
-    roughness: env.roughness,
-    opacity: env.opacity,
-    metalness: env.metalness,
-    emissive: env.emissive,
-    emissiveIntensity: env.emissiveIntensity,  
-    ior: env.ior,
-    transmission: env.transmission,
-    thinFilm: env.thinFilm,
-    thickness: env.materialThickness,
-    attenuationColor: env.attenuationColor,
-    attenuationDistance: env.attenuationDistance,
-    clearcoat: env.clearcoat,
-    clearcoatRoughness: env.clearcoatRoughness,
-    sheenColor: env.sheenColor,
-    sheenRoughness: env.sheenRoughness,
-    iridescence: env.iridescence,
-    iridescenceIOR: env.iridescenceIOR,
-    iridescenceThickness: env.iridescenceThickness,
-    specularColor: env.specularColor,
-    specularIntensity: env.specularIntensity,
-    matte: env.matte
-    
-  });
-
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.copy(position);
-  mesh.scale.set(scale, scale, scale);
-  mesh.rotation.copy(rotation);
-  mesh.receiveShadow = env.shadows;
-  mesh.castShadow = env.shadows;
-
-  env.mesh.add(mesh);
-
-
-  geometry.dispose();
-  material.dispose();
-  return mesh;
-};
-
-g3d.Icosahedron = async (args, env) => {
-  let position = new THREE.Vector3(0, 0, 0);
-  let scale = 1.0;
-  let rotation = new THREE.Euler(0, 0, 0);
-
-  for (const arg of args) {
-    const val = await interpretate(arg, env);
-    if (typeof val === "number") {
-      scale = val;
-    } else if (Array.isArray(val)) {
-      if (val.length === 3 && val.every(v => typeof v === "number")) {
-        position.set(...val);
-      } else if (val.length === 2 && val.every(v => typeof v === "number")) {
-        rotation.z = val[0];
-        rotation.y = val[1];
-      }
-    }
-  }
-
-  const geometry = new THREE.IcosahedronGeometry(1);
-  const material = new env.material({
-    color: env.color,
-    transparent: env.opacity < 1.0,
-    roughness: env.roughness,
-    opacity: env.opacity,
-    metalness: env.metalness,
-    emissive: env.emissive,
-    emissiveIntensity: env.emissiveIntensity,  
-    ior: env.ior,
-    transmission: env.transmission,
-    thinFilm: env.thinFilm,
-    thickness: env.materialThickness,
-    attenuationColor: env.attenuationColor,
-    attenuationDistance: env.attenuationDistance,
-    clearcoat: env.clearcoat,
-    clearcoatRoughness: env.clearcoatRoughness,
-    sheenColor: env.sheenColor,
-    sheenRoughness: env.sheenRoughness,
-    iridescence: env.iridescence,
-    iridescenceIOR: env.iridescenceIOR,
-    iridescenceThickness: env.iridescenceThickness,
-    specularColor: env.specularColor,
-    specularIntensity: env.specularIntensity,
-    matte: env.matte
-    
-  });
-
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.copy(position);
-  mesh.scale.set(scale, scale, scale);
-  mesh.rotation.copy(rotation);
-  mesh.receiveShadow = env.shadows;
-  mesh.castShadow = env.shadows;
-
-  env.mesh.add(mesh);
-
-  geometry.dispose();
-  material.dispose();
-  return mesh;
-};
-
-g3d.Translate = async (args, env) => {
-  let group = new THREE.Group();
-
-  let p = await interpretate(args[1], env);
-  if (p instanceof NumericArrayObject) { // convert back automatically
-    p = p.normal();
-  }
-
-  //Backup of params
-  let copy = Object.assign({}, env);
-  copy.mesh = group;
-  await interpretate(args[0], copy);
-
-  group.translateX(p[0]);
-  group.translateY(p[1]);
-  group.translateZ(p[2]);
-
-  env.local.mesh = group;
-
-  env.mesh.add(group);
-};
-
-g3d.Translate.update = async (args, env) => {
-  env.wake(true);
-  let p = await interpretate(args[1], env);
-  if (p instanceof NumericArrayObject) { // convert back automatically
-    p = p.normal();
-  }
-  const group = env.local.mesh;
-
-  if (env.Lerp) {
-
-    if (!env.local.lerp) {
-      console.log('creating worker for lerp of movements..');
-      const worker = {
-        alpha: 0.05,
-        target: new THREE.Vector3(...p),
-        eval: () => {
-          group.position.lerp(worker.target, 0.05);
-        }
-      };
-
-      env.local.lerp = worker;  
-
-      env.Handlers.push(worker);
-    }
-
-    env.local.lerp.target.fromArray(p);
-    return;
-  }
-
-  group.position.set(p[0], p[1], p[2]);
-};
-
-g3d.Translate.virtual = true;  
-
-g3d.Translate.destroy = (args, env) => {
-  env.local.mesh.removeFromParent();
-};
-
-g3d.LookAt = async (args, env) => {
-  const group = new THREE.Group();
-  const dir = await interpretate(args[1], env);
-
-
-
-  await interpretate(args[0], {...env, mesh:group});
-
-  let bbox = new THREE.Box3().setFromObject(group);
-  let center = bbox.max.clone().add(bbox.min).divideScalar(2);
-
-  console.log('center: ');
-  console.log(center);
-
-  let translate = new THREE.Matrix4().makeTranslation(
-    -center.x,
-    -center.y,
-    -center.z,
-  );
-
-  group.applyMatrix4(translate);
-
-  group.lookAt(...dir);
-  group.rotation.x = MathUtils.PI/2;
-
-  translate = new THREE.Matrix4().makeTranslation(
-    center.x,
-    center.y,
-    center.z,
-  );
-
-  group.applyMatrix4(translate);
-
-  env.local.group = group;
-
-  env.mesh.add(group);
-};
-
-g3d.LookAt.update = async (args, env) => {
-  env.wake(true);
-  const dir = await interpretate(args[1], env);
-  env.local.group.lookAt(...dir);
-};  
-
-g3d.LookAt.virtual = true;
-
-
-const decodeTransformation = (arrays, env) => {
-
-  /*console.log(p);
-  var centering = false;
-  var centrans = [];
-
-  if (p.length === 1) {
-    p = p[0];
-  }
-  if (p.length === 1) {
-    p = p[0];
-  } else if (p.length === 2) {
-    console.log(p);
-    if (p[1] === "Center") {
-      centering = true;
-    } else {
-      console.log("NON CENTERING ISSUE!!!");
-      console.log(p);
-      centrans = p[1];
-      console.log("???");
-    }
-    //return;
-    p = p[0];
-  }
-
-  if (p.length === 3) {
-    if (typeof p[0] === "number") {
-      var dir = p;
-      var matrix = new THREE.Matrix4().makeTranslation(...dir, 1);
-    } else {
-      //make it like Matrix4
-      p.forEach((el) => {
-        el.push(0);
-      });
-      p.push([0, 0, 0, 1]);
-
-      var matrix = new THREE.Matrix4();
-      console.log("Apply matrix to group::");
-      matrix.set(...aflatten(p));
-    }
-  } else {
-    console.log(p);
-    console.error("Unexpected length matrix: :: " + p);
-  }
-
-  //Backup of params
-  var copy = Object.assign({}, env);
-  copy.mesh = group;
-  await interpretate(args[0], copy);
-  console.log('MATRIX');
-  console.log(matrix);
-
-  if (centering || centrans.length > 0) {
-    console.log("::CENTER::");
-    var bbox = new THREE.Box3().setFromObject(group);
-    console.log(bbox);
-    var center = bbox.max.clone().add(bbox.min).divideScalar(2);
-    if (centrans.length > 0) {
-      console.log("CENTRANS");
-      center = center.fromArray(centrans);
-    }
-    console.log(center);
-
-    var translate = new THREE.Matrix4().makeTranslation(
-      -center.x,
-      -center.y,
-      -center.z,
-    );
-    group.applyMatrix4(translate);
-    group.applyMatrix4(matrix);
-    translate = new THREE.Matrix4().makeTranslation(
-      center.x,
-      center.y,
-      center.z
-    );
-    group.applyMatrix4(translate);
-  } else {
-    group.applyMatrix4(matrix);
-  }*/
-  let matrix = [];
-
-  if (!env.local.type) {
-    if (arrays.length == 2) {
-      console.warn('apply matrix3x3 + translation');
-      //translation matrix + normal 3x3
-      env.local.type = 'complex';
-    } else {
-      if (!Array.isArray(arrays[0])) {
-        //most likely this is Translate
-        console.warn('apply translation');
-        env.local.type = 'translation';
-
-      } else {
-        env.local.type = 'normal';
-        console.warn('apply matrix 3x3');
-      }
-    }
-  }
-
-  switch(env.local.type) {
-    case 'normal':
-      //make it like Matrix4
-
-      
-
-      matrix = arrays.map((el) => [...el, 0]);
-      matrix.push([0, 0, 0, 1]);
-      matrix = new THREE.Matrix4().set(...aflatten(matrix));
-    break;
-
-    case 'translation':
-
-      matrix = new THREE.Matrix4().makeTranslation(...arrays);
-    break;
-
-    case 'complex':
-      matrix = [...arrays[0]];
-      const v = [...arrays[1]];
-
-      matrix[0].push(v[0]);
-      matrix[1].push(v[1]);
-      matrix[2].push(v[2]);
-
-      matrix.push([0, 0, 0, 1]);
-      matrix = new THREE.Matrix4().set(...aflatten(matrix));
-    break;
-
-    default:
-      throw 'undefined type of matrix or vector';
-  }
-
-  return matrix;
-};
-
-g3d.Rotate = async (args, env) => {
-  let angle = await interpretate(args[1], env);
-  let dir = [0,0,1];
-
-  if (args.length > 2) dir = await interpretate(args[2], env);
-  if (dir instanceof NumericArrayObject) { // convert back automatically
-    dir = dir.normal();
-  }     
-
-  const group = new THREE.Group();
-  await interpretate(args[0], {...env, mesh: group});
-
-  dir = new THREE.Vector3(...dir);
-  group.rotateOnWorldAxis(dir, angle);
-  env.mesh.add(group);
-
-  env.local.group = group;
-  env.local.angle = angle;
-  env.local.dir = dir;
-
-  return group;
-};
-
-g3d.Rotate.update = async (args, env) => {
-  let angle = await interpretate(args[1], env);
-  const deltAngle = angle - env.local.angle;
-  env.local.angle = angle;
-
-
-  if (args.length > 2) {
-    let dir = await interpretate(args[2], env);
-    if (dir instanceof NumericArrayObject) { // convert back automatically
-      dir = dir.normal();
-    }      
-    env.local.dir.fromArray(dir);
-    env.local.group.rotateOnWorldAxis(env.local.dir, deltAngle);
-  } else {
-    env.local.group.rotateOnWorldAxis(env.local.dir, deltAngle);
-  }
-
-  env.wake();
-};
-
-g3d.Rotate.virtual = true;
-
-g3d.Rotate.destroy = (args, env) => {
-
-};
-
-g3d.Scale = async (args, env) => {
-  let scale = await interpretate(args[1], env);
-  let center = args.length > 2 ? await interpretate(args[2], env) : [0, 0, 0];
-  if (scale instanceof NumericArrayObject) scale = scale.normal();
-  if (!Array.isArray(scale)) scale = [scale, scale, scale];
-  if (center instanceof NumericArrayObject) center = center.normal();
-
-  // Ensure scale is [x, y, z]
-  if (scale.length === 2) scale = [scale[0], scale[1], 1];
-  if (scale.length === 1) scale = [scale[0], scale[0], scale[0]];
-
-  const group = new THREE.Group();
-  await interpretate(args[0], { ...env, mesh: group });
-
-  // Build transformation: T(center) * S(scale) * T(-center)
-  const t1 = new THREE.Matrix4().makeTranslation(-center[0], -center[1], -center[2]);
-  const s = new THREE.Matrix4().makeScale(scale[0], scale[1], scale[2]);
-  const t2 = new THREE.Matrix4().makeTranslation(center[0], center[1], center[2]);
-  const m = new THREE.Matrix4().multiplyMatrices(t2, s).multiply(t1);
-  group.applyMatrix4(m);
-
-  env.mesh.add(group);
-  env.local.group = group;
-  env.local.scale = scale.slice();
-  env.local.center = center.slice();
-  return group;
-};
-
-g3d.Scale.update = async (args, env) => {
-  // args: [object, scale, center?]
-  let scale = await interpretate(args[1], env);
-  let center = args.length > 2 ? await interpretate(args[2], env) : [0, 0, 0];
-  if (scale instanceof NumericArrayObject) scale = scale.normal();
-  if (!Array.isArray(scale)) scale = [scale, scale, scale];
-  if (center instanceof NumericArrayObject) center = center.normal();
-
-  // Ensure scale is [x, y, z]
-  if (scale.length === 2) scale = [scale[0], scale[1], 1];
-  if (scale.length === 1) scale = [scale[0], scale[0], scale[0]];
-
-  // Compute previous scale and center
-  const prevScale = env.local.scale || [1, 1, 1];
-  const prevCenter = env.local.center || [0, 0, 0];
-
-  // Remove previous scaling by applying inverse
-  const t1 = new THREE.Matrix4().makeTranslation(-prevCenter[0], -prevCenter[1], -prevCenter[2]);
-  const sInv = new THREE.Matrix4().makeScale(1 / prevScale[0], 1 / prevScale[1], 1 / prevScale[2]);
-  const t2 = new THREE.Matrix4().makeTranslation(prevCenter[0], prevCenter[1], prevCenter[2]);
-  const mInv = new THREE.Matrix4().multiplyMatrices(t2, sInv).multiply(t1);
-  env.local.group.applyMatrix4(mInv);
-
-  // Apply new scaling
-  const t1n = new THREE.Matrix4().makeTranslation(-center[0], -center[1], -center[2]);
-  const sn = new THREE.Matrix4().makeScale(scale[0], scale[1], scale[2]);
-  const t2n = new THREE.Matrix4().makeTranslation(center[0], center[1], center[2]);
-  const mn = new THREE.Matrix4().multiplyMatrices(t2n, sn).multiply(t1n);
-  env.local.group.applyMatrix4(mn);
-
-  env.local.scale = scale.slice();
-  env.local.center = center.slice();
-  env.wake && env.wake();
-};
-
-g3d.Scale.virtual = true;
-
-g3d.Scale.destroy = (args, env) => {
-
-};
-
-g3d.GeometricTransformation = async (args, env) => {  
-  let data = await interpretate(args[1], env);
-
-  if (data instanceof NumericArrayObject) { // convert back automatically
-    data = data.normal();
-  }  
-
-  if (data.length > 3) {
-    //list of matrixes
-    console.warn('multiple matrixes');
-    env.local.entities = [];
-
-    for (const m of data) {
-      const group = new THREE.Group();
-      const matrix = decodeTransformation(m, env);
-
-      await interpretate(args[0], {...env, mesh: group});
-
-      group.matrixAutoUpdate = false;
-      
-      const object = {};
-
-      object.quaternion = new THREE.Quaternion();
-      object.position = new THREE.Vector3();
-      object.scale = new THREE.Vector3();    
-  
-      matrix.decompose(object.position, object.quaternion, object.scale);
-  
-      group.quaternion.copy( object.quaternion );
-      group.position.copy( object.position );
-      group.scale.copy( object.scale );
-  
-      group.updateMatrix();
-  
-      object.group = group;
-  
-      env.mesh.add(group);
-      env.local.entities.push(object);
-    }
-
-
-    return env.local.entities[0];
-
-  } else {
-    console.warn('single matrix');
-
-    const group = new THREE.Group();
-    const matrix = decodeTransformation(data, env);
-
-    await interpretate(args[0], {...env, mesh: group});
-
-    group.matrixAutoUpdate = false;
-
-    env.local.quaternion = new THREE.Quaternion();
-    env.local.position = new THREE.Vector3();
-    env.local.scale = new THREE.Vector3();    
-
-    matrix.decompose(env.local.position, env.local.quaternion, env.local.scale);
-
-    group.quaternion.copy( env.local.quaternion );
-    group.position.copy( env.local.position );
-    group.scale.copy( env.local.scale );
-
-    group.updateMatrix();
-
-    env.local.group = group;
-
-    env.mesh.add(group);
-
-    return group;
-  }
-  
-};
-
-g3d.GeometricTransformation.update = async (args, env) => {
-  env.wake(true);
-  let data = await interpretate(args[1], env);
-  if (data instanceof NumericArrayObject) { // convert back automatically
-    data = data.normal();
-  }
-  
-
-  if (env.local.entities) {
-    //list of matrixes
-    console.log('multiple matrixes');
-
-    for (let i =0; i<env.local.entities.length; ++i) {
-      const group = env.local.entities[i].group;
-
-      const matrix = decodeTransformation(data[i], env);
-
-      //await interpretate(args[0], {...env, mesh: group});
-
-      
-
-
-      const quaternion = new THREE.Quaternion();
-      const position = new THREE.Vector3();
-      const scale = new THREE.Vector3();    
-  
-      matrix.decompose(position, quaternion, scale);
-  
-      group.quaternion.copy( quaternion );
-      group.position.copy( position );
-      group.scale.copy( scale );
-  
-      group.updateMatrix();
-  
-      //object.group = group;
-  
-      //env.mesh.add(group);
-      //env.local.entities.push(object);
-    }
-
-
-    return env.local.entities[0];
-
-  } else {
-    console.log('single matrix');
-
-    const group = env.local.group;
-    const matrix = decodeTransformation(data, env);
-
-
-
-    env.local.quaternion = new THREE.Quaternion();
-    env.local.position = new THREE.Vector3();
-    env.local.scale = new THREE.Vector3();    
-
-    matrix.decompose(env.local.position, env.local.quaternion, env.local.scale);
-
-    group.quaternion.copy( env.local.quaternion );
-    group.position.copy( env.local.position );
-    group.scale.copy( env.local.scale );
-
-    group.updateMatrix();
-
-
-    return group;
-  }
-  
-};  
-
-g3d.GeometricTransformation.destroy = (args, env) => {
-  console.warn('Nothing to dispose!');
-};
-
-g3d.Entity = () => {
-  console.log('Entity is not supported inside Graphics3D');
-};
-
-g3d.GeometricTransformation.virtual = true;
-
-g3d.GraphicsComplex = async (args, env) => {
-  
-  var copy = Object.assign({}, env);
-  const options = await core._getRules(args, {...env, hold: true});
-
-  let pts = (await interpretate(args[0], copy));
-  let vertices;
-  
-  if (pts instanceof NumericArrayObject) { // convert back automatically
-    vertices = new Float32Array(pts.buffer);
-  } else {
-    pts = pts.flat();
-    vertices = new Float32Array( pts );
-  }
-  
-  
-  
-
-  //local storage
-  copy.vertices = {
-    //geometry: new THREE.BufferGeometry(),
-    //coordinates: vertices,
-    position: new THREE.BufferAttribute( vertices, 3 ),
-    colored: false,
-    onResize: [],
-    handlers: []
+  core.PlotInteractivity = () => 'PlotInteractivity';
+
+  core['Charting`DateTicksFunction'] = () => 'DateTicksFunction';
+  core['Charting`ScaledTicks'] = (args, env) => {return({type:'ScaledTicks', args:args})};
+  core['Charting`ScaledFrameTicks'] = (args, env) => {return({type:'ScaledFrameTicks', args:args})};
+  core['DateListPlot'] = () => {};
+
+  core['Graphics`DPR'] = () => {
+    return window.devicePixelRatio;
   };
 
-  env.local.vertices = copy.vertices;
+  core['Graphics`CaptureImage64'] = async (args, env) => {
+    const canvas = env.element;
+    const p = new Deferred();
 
-  //copy.vertices.geometry.setAttribute( 'position',  );
+    const rect = canvas.getBoundingClientRect();
 
-  let fences = [];
-  env.local.fence = () => {
-      for (const p of fences) p.resolve();
-      fences = [];
+    electronAPI.requestScreenshot({x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height)}, (r) => {
+      p.resolve(r.slice('data:image/png;base64,'.length));
+    });
+
+    return p.promise;
   };
-
-  if ('VertexFence' in options) {
-    copy.fence = () => {
-      const d = new Deferred();
-      fences.push(d);
-      return d.promise;
-    };
-  }  
-
-  if ('VertexColors' in options) {
-    let colors = await interpretate(options["VertexColors"], env);
-    copy.vertices.colored = true;
-
-    if (colors instanceof NumericArrayObject) {
-      copy.vertices.colors = new THREE.BufferAttribute( new Float32Array( colors.buffer ), 3 );
-    } else {
-      if (colors[0]?.isColor) {
-        colors = colors.map((c) => [c.r, c.g, c.b]);
-      } 
-      copy.vertices.colors = new THREE.BufferAttribute( new Float32Array( colors.flat() ), 3 );
-    }
-    
-  }
-
-  if ('VertexNormals' in options) {
-    const normals = await interpretate(options["VertexNormals"], env);
-
-    
-
-    if (normals instanceof NumericArrayObject) {
-      copy.vertices.normals = new THREE.BufferAttribute( new Float32Array( normals.buffer ), 3 );
-    } else {
-      copy.vertices.normals = new THREE.BufferAttribute( new Float32Array( normals.flat() ), 3 );
-    }
-  }
-
-  const group = new THREE.Group();
-  env.local.group = group;
-
-  copy.context = [g3dComplex, g3d];
-
-  await interpretate(args[1], copy);
-
-  env.mesh.add(group);
-  //copy.geometry.dispose();
-};
-
-g3d.Reflectivity = () => {
-  console.warn('not implemented');
-};
-
-g3d.GraphicsComplex.update = async (args, env) => {
-  env.wake(true);
-
-  let pts = (await interpretate(args[0], env));
-  let vertices;
-
-  if (pts instanceof NumericArrayObject) { // convert back automatically
-    vertices = new Float32Array( pts.buffer );
-    //console.warn(pts.dims);
-  } else {
-    vertices = new Float32Array( pts.flat() );
-    //console.warn(pts.length);
-  }
-
-  //env.local.vertices.coordinates = vertices;
-  if (env.local.vertices.position.count * 3 < vertices.length) {
-    console.warn(`Buffer attributes will be resized x 2! Old: ${env.local.vertices.position.count * 3} Required ${vertices.length}`);
-    
-    env.local.vertices.position = new THREE.BufferAttribute( new Float32Array(vertices.length * 2), 3 );
-    env.local.vertices.position.setUsage(THREE.StreamDrawUsage); //Optimizaton for WebGL
-    env.local.vertices.position.needsUpdate = true;
-
-    if (env.local.vertices.normals) {
-      env.local.vertices.normals = new THREE.BufferAttribute( new Float32Array(vertices.length * 2), 3 );
-      env.local.vertices.normals.setUsage(THREE.StreamDrawUsage); //Optimizaton for WebGL
-      env.local.vertices.normals.needsUpdate = true;
-    }
-
-    if (env.local.vertices.colors) {
-      env.local.vertices.colors = new THREE.BufferAttribute( new Float32Array(vertices.length * 2), 3 );
-      env.local.vertices.colors.setUsage(THREE.StreamDrawUsage); //Optimizaton for WebGL
-      env.local.vertices.colors.needsUpdate = true;
-    }    
-
-    env.local.vertices.onResize.forEach((el) => el(env.local.vertices));
-  }
-
-  env.local.vertices.position.set( vertices);
-  env.local.vertices.position.needsUpdate = true;
-
-
-
-  let options = false;
-
-  if (env.local.vertices.normals) {
-    //console.warn('Update normals');
-    if (!options) options = await core._getRules(args, {...env, hold: true});
-    const normals = await interpretate(options["VertexNormals"], env);
-
-    if (normals instanceof NumericArrayObject) {
-      env.local.vertices.normals.set(new Float32Array( normals.buffer ));
-    } else {
-      env.local.vertices.normals.set(new Float32Array( normals.flat() ));
-    }
-
-    env.local.vertices.normals.needsUpdate = true;
-  }
-
-  if (env.local.vertices.colored) {
-    if (!options) options = await core._getRules(args, {...env, hold: true});
-    const colors = await interpretate(options["VertexColors"], env);
-
-
-
-    if (colors instanceof NumericArrayObject) {
-      env.local.vertices.colors.set(new Float32Array( colors.buffer ));
-    } else {
-      env.local.vertices.colors.set(new Float32Array( colors.flat() ));
-    }
-    
-    env.local.vertices.colors.needsUpdate = true;
-  }
-
-  for (let i=0; i<env.local.vertices.handlers.length; ++i) {
-    env.local.vertices.handlers[i]();
-  }
-
-  env.local.fence();
-};  
-
-g3d.GraphicsComplex.destroy = async (args, env) => {
-  //env.local.vertices.position.dispose();
-  //if (env.local.vertices.colored) env.local.vertices.colors.dispose();
-};  
-
-g3d.GraphicsComplex.virtual = true;
-
-g3dComplex.Cylinder = async (args, env) => {
-  let radius = 1;
-  if (args.length > 1) radius = await interpretate(args[1], env);
-
-  let coordinates = await interpretate(args[0], env);
-  if (coordinates.length === 1) {
-    coordinates = coordinates[0];
-  }
-
-  const ref = env.vertices.position.array;
-  let index = 3*(coordinates[0]-1);
-  coordinates[0] = new THREE.Vector3(ref[index], ref[index+1], ref[index+2]);
-      index = 3*(coordinates[1]-1);
-  coordinates[1] = new THREE.Vector3(ref[index], ref[index+1], ref[index+2]);
-
-  const material = new env.material({
-    color: env.color,
-    transparent: env.opacity < 1.0,
-    roughness: env.roughness,
-    opacity: env.opacity,
-    metalness: env.metalness,
-    emissive: env.emissive,
-emissiveIntensity: env.emissiveIntensity,
-ior: env.ior,
-transmission: env.transmission,
-thinFilm: env.thinFilm,
-thickness: env.materialThickness,
-attenuationColor: env.attenuationColor,
-attenuationDistance: env.attenuationDistance,
-clearcoat: env.clearcoat,
-clearcoatRoughness: env.clearcoatRoughness,
-sheenColor: env.sheenColor,
-sheenRoughness: env.sheenRoughness,
-iridescence: env.iridescence,
-iridescenceIOR: env.iridescenceIOR,
-iridescenceThickness: env.iridescenceThickness,
-specularColor: env.specularColor,
-specularIntensity: env.specularIntensity,
-matte: env.matte    
-    
-    
-  });
-
-  console.log(coordinates);
-
-  // edge from X to Y
-  var direction = new THREE.Vector3().subVectors(coordinates[1], coordinates[0]);
-
-  console.log(direction);
-
-  // Make the geometry (of "direction" length)
-  var geometry = new THREE.CylinderGeometry(radius, radius, 1, 32, 4, false);
-  // shift it so one end rests on the origin
-  geometry.applyMatrix4(new THREE.Matrix4().makeTranslation(0, 1 / 2.0, 0));
-  // rotate it the right way for lookAt to work
-  geometry.applyMatrix4(new THREE.Matrix4().makeRotationX(THREE.MathUtils.degToRad(90)));
-  // Make a mesh with the geometry
-
-  //env.local.geometry = geometry.clone();
-
-  //geometry.applyMatrix4(new THREE.Matrix4().makeScale(1, 1, direction.length()));
-
-
-  var mesh = new THREE.Mesh(geometry, material);
-  // Position it where we want
-  mesh.receiveShadow = env.shadows;
-  mesh.castShadow = env.shadows;
-
-  //env.local.bmatrix = mesh.matrix.clone();
-
-  mesh.position.copy(coordinates[0]);
-
-  mesh.geometry.clone();
-  mesh.geometry.applyMatrix4(new THREE.Matrix4().makeScale(1,1,direction.length()));
-  //mesh.scale.set( 1,1,direction.length() );
-
-  // And make it point to where we want
-  mesh.geometry.lookAt(direction); 
-
-
-  env.mesh.add(mesh);
-
-  //geometry.dispose();
-  //material.dispose();
-};
-
-g3dComplex.Sphere = async (args, env) => {
-  var radius = 1;
-  if (args.length > 1) radius = await interpretate(args[1], env);
-
-  const material = new env.material({
-    color: env.color,
-    roughness: env.roughness,
-    opacity: env.opacity,
-    transparent: env.opacity < 1.0,
-    metalness: env.metalness,
-    emissive: env.emissive,
-    emissiveIntensity: env.emissiveIntensity,
-    ior: env.ior,
-    transmission: env.transmission,
-    thinFilm: env.thinFilm,
-thickness: env.materialThickness,
-    attenuationColor: env.attenuationColor,
-    attenuationDistance: env.attenuationDistance,
-    clearcoat: env.clearcoat,
-    clearcoatRoughness: env.clearcoatRoughness,
-    sheenColor: env.sheenColor,
-    sheenRoughness: env.sheenRoughness,
-    iridescence: env.iridescence,
-    iridescenceIOR: env.iridescenceIOR,
-    iridescenceThickness: env.iridescenceThickness,
-    specularColor: env.specularColor,
-    specularIntensity: env.specularIntensity,
-    matte: env.matte
-  });
-
-  function addSphere(cr) {
-    const origin = new THREE.Vector3(...cr);
-    const geometry = new THREE.SphereGeometry(radius, 40, 40);
-    const sphere = new THREE.Mesh(geometry, material);
-
-    sphere.position.set(origin.x, origin.y, origin.z);
-    sphere.castShadow = env.shadows;
-    sphere.receiveShadow = env.shadows;
-
-    env.mesh.add(sphere);
-    geometry.dispose();
-    return sphere;
-  }
-
-  let list = await interpretate(args[0], env);
-
-  if (list instanceof NumericArrayObject) { // convert back automatically
-    list = list.normal();
-  }
-
-  const ref = env.vertices.position.array;
-
-  if (Array.isArray(list)) {
-    env.local.object = [];
-
-    for (let i=0; i<list.length; ++i) {
-      const index = (list[i]-1) * 3;
-      env.local.object.push(addSphere([ref[index], ref[index+1], ref[index+2]]));
-    }
-  } else {
-    
-    const index = (list-1) * 3;
-    env.local.object = [addSphere([ref[index], ref[index+1], ref[index+2]])];
-  } 
-
-
-  material.dispose();
-
-  return env.local.object;
-};
-
-var earcut;
-
-g3dComplex.Polygon = async (args, env) => {
-
-  var geometry;
-  let material;
-
-  geometry = new THREE.BufferGeometry();
-
-  env.local.geometry = geometry;
-
-  geometry.setAttribute('position', env.vertices.position);
-
-  env.vertices.onResize.push((v) => g3dComplex.Polygon.reassign(v, env.local));
-
-  let a = await interpretate(args[0], env);
-  let indexes;
-
-  
-  
-
-  if (a instanceof NumericArrayObject) {
-    //throw 'indexed geometry with NumericArray is not yet supported';
-    //single polygon
-    
-
-    switch(a.dims.length) {
-      case 1: //single
-        console.warn('Odd case of polygons data...');
-        geometry.setIndex( a.normal().map((e)=>e-1) );
-      break;
-
-      case 2: //multiple
-        switch(a.dims[a.dims.length-1]) {
-          case 3: //triangles
-            indexes = new THREE.BufferAttribute( new Uint16Array(a.buffer.map((e)=>e-1)), 1 );
-          break;
-
-          case 4: {
-            const originalLength = a.buffer.length;
-            const oldBuffer = a.buffer;
-            const newLength = originalLength  * 2;
-            const newBuffer = new Uint16Array(newLength);
-            
-            let i=0;
-            let j=0;
-            
-            for (; i<originalLength; i+=4) {
-              newBuffer[j] = oldBuffer[i]-1;
-              newBuffer[j+1] = oldBuffer[i+1]-1;
-              newBuffer[j+2] = oldBuffer[i+2]-1;
-              j+=3;
-              newBuffer[j] = oldBuffer[i]-1;
-              newBuffer[j+1] = oldBuffer[i+2]-1;
-              newBuffer[j+2] = oldBuffer[i+3]-1;
-              j+=3;
-            }
-
-            indexes = new THREE.BufferAttribute( newBuffer, 1 );
-          }
-          break;
-
-          case 5: {
-            const originalLength = a.buffer.length;
-            const oldBuffer = a.buffer;
-            const newLength = originalLength  * 3;
-            const newBuffer = new Uint16Array(newLength);
-            
-            let i=0;
-            let j=0;
-
-            
-            for (; i<originalLength; i+=5) {
-              newBuffer[j] = oldBuffer[i]-1;
-              newBuffer[j+1] = oldBuffer[i+1]-1;
-              newBuffer[j+2] = oldBuffer[i+4]-1;
-              j+=3;
-              newBuffer[j] = oldBuffer[i+1]-1;
-              newBuffer[j+1] = oldBuffer[i+2]-1;
-              newBuffer[j+2] = oldBuffer[i+3]-1;
-              j+=3;
-              newBuffer[j] = oldBuffer[i+1]-1;
-              newBuffer[j+1] = oldBuffer[i+3]-1;
-              newBuffer[j+2] = oldBuffer[i+4]-1;   
-              j+=3;           
-            }
-
-            indexes = new THREE.BufferAttribute( newBuffer, 1 );
-          }
-          break;
-
-          case 6: {
-          
-            const originalLength = a.buffer.length;
-            const oldBuffer = a.buffer;
-            const newLength = originalLength  * 4;
-            const newBuffer = new Uint16Array(newLength);
-            
-            let i=0;
-            let j=0;
-
-            
-            for (; i<originalLength; i+=6) {
-              newBuffer[j] = oldBuffer[i]-1;
-              newBuffer[j+1] = oldBuffer[i+1]-1;
-              newBuffer[j+2] = oldBuffer[i+5]-1;
-              j+=3;
-              newBuffer[j] = oldBuffer[i+1]-1;
-              newBuffer[j+1] = oldBuffer[i+2]-1;
-              newBuffer[j+2] = oldBuffer[i+5]-1;
-              j+=3;
-              newBuffer[j] = oldBuffer[i+5]-1;
-              newBuffer[j+1] = oldBuffer[i+2]-1;
-              newBuffer[j+2] = oldBuffer[i+4]-1;    
-              j+=3;   
-              newBuffer[j] = oldBuffer[i+2]-1;
-              newBuffer[j+1] = oldBuffer[i+3]-1;
-              newBuffer[j+2] = oldBuffer[i+4]-1;    
-              j+=3;                      
-            }
-
-            indexes = new THREE.BufferAttribute( newBuffer, 1 );
-
-          }
-          break;
-
-          default:
-            throw 'cannot build such complex polygon'
-        }
-      break;
-
-      default:
-        console.warn('Unknown case:' + a.dims);
-    }
-
-
-  } else {
-
-    const opts = await core._getRules(args, env);
-
-    if ((args.length - Object.keys(opts).length) > 1) {
-
-    let b = await interpretate(args[1], env);
-    
-
-    if (typeof b == 'number') { //non indexed geometry case
-
-      geometry.setDrawRange( a-1, b );
-      env.local.indexOffset = a-1;
-      env.local.range = b;
-      env.local.nonindexed = true;
-      
-
-    } else {
-      console.warn(args);
-      console.error('Unknow case for Polygon');
-      return;
-    }
-
-    } else {
-
-      
-    
-      if (a[0].length === 3 && a[a.length-1].length === 3) {
-        //geometry.setIndex(  );
-        
-        if (env.vertices.position.array.length > 65535) {
-          indexes = new THREE.BufferAttribute( new Uint32Array(a.flat().map((e)=>e-1)), 1 );
-        } else {
-          indexes = new THREE.BufferAttribute( new Uint16Array(a.flat().map((e)=>e-1)), 1 );
-        }
-        
-      } else {
-
-
-        
-      
-    //more complicatec case, need to covert all polygons into triangles
-    let extendedIndexes = [];
-
-    //console.log(a);
-
-    if (Array.isArray(a[0])) {
-   
-    for (let i=0; i<a.length; ++i) {
-      const b = a[i];
-    
- 
-      switch (b.length) {
-        
-        case 3:
-          extendedIndexes.push(b[0],b[1],b[2]);
-          break;
-
-        case 4:
-          //throw b;
-          extendedIndexes.push(b[0],b[1],b[2]);
-          extendedIndexes.push(b[0],b[2],b[3]);
-          break;
-        /**
-         *  0 1
-         * 4   2
-         *   3
-         */
-        case 5:
-          extendedIndexes.push(b[0], b[1], b[4]);
-          extendedIndexes.push(b[1], b[2], b[3]);
-          extendedIndexes.push(b[1], b[3], b[4]);
-          break;
-        /**
-         * 0  1
-         *5     2
-         * 4   3
-         */
-        case 6:
-          extendedIndexes.push(b[0], b[1], b[5]);
-          extendedIndexes.push(b[1], b[2], b[5]);
-          extendedIndexes.push(b[5], b[2], b[4]);
-          extendedIndexes.push(b[2], b[3], b[4]);
-          break;
-        default:
-
-
-          const fallbackVertices = env.vertices.position.array;
-
-
-
-         
-          if (!earcut) earcut = (await import('./earcut-caf22acd.js')).default;
-
-
-          const explicitVertices = [];
-
-          for (let k=0; k<b.length; ++k) {
-            const index = (b[k]-1)*3;
-            explicitVertices.push(fallbackVertices[index], fallbackVertices[index+1], fallbackVertices[index+2]);
-          }
-
-          
-
-  
-
-          extendedIndexes.push(earcut(explicitVertices, null, 3).map((index) => b[index]));
-
-        
-          break;
-      }
-    }   
-   
-  } else {
-
-     switch (a.length) {
-        
-        case 3:
-          extendedIndexes.push(...a);
-          break;
-
-        case 4:
-          //throw b;
-          extendedIndexes.push(a[0],a[1],a[2]);
-          extendedIndexes.push(a[0],a[2],a[3]);
-          break;
-        /**
-         *  0 1
-         * 4   2
-         *   3
-         */
-        case 5:
-          extendedIndexes.push(a[0], a[1], a[4]);
-          extendedIndexes.push(a[1], a[2], a[3]);
-          extendedIndexes.push(a[1], a[3], a[4]);
-          break;
-        /**
-         * 0  1
-         *5     2
-         * 4   3
-         */
-        case 6:
-          extendedIndexes.push(a[0], a[1], a[5]);
-          extendedIndexes.push(a[1], a[2], a[5]);
-          extendedIndexes.push(a[5], a[2], a[4]);
-          extendedIndexes.push(a[2], a[3], a[4]);
-          break;
-        default:
-
-
-          const fallbackVertices = env.vertices.position.array;
-
-
-
-         
-          if (!earcut) earcut = (await import('./earcut-caf22acd.js')).default;
-          console.warn('earcut');
-
-          const explicitVertices = [];
-
-          for (let k=0; k<a.length; ++k) {
-            const index = (a[k]-1)*3;
-            explicitVertices.push(fallbackVertices[index], fallbackVertices[index+1], fallbackVertices[index+2]);
-          }
-
-          
-
-  
-
-          extendedIndexes.push(earcut(explicitVertices, null, 3).map((index) => a[index]));
-
-        
-          break;
-      }
-    
-  }
-    console.log('Set Index');
-
-
-
-    extendedIndexes = extendedIndexes.flat();
-    env.local.range = extendedIndexes.length;
-
-
-    if (env.vertices.position.array.length > 65535) {
-      indexes = new THREE.Uint32BufferAttribute( new Uint32Array(extendedIndexes.map((e)=>e-1)), 1 );
-    } else {
-      indexes = new THREE.Uint16BufferAttribute( new Uint16Array(extendedIndexes.map((e)=>e-1)), 1 );
-    }
-    
-    //geometry.setIndex(  );
-    
-    
-      }
-    }
-  }
-
-  if (indexes) {
-    geometry.setIndex(indexes);
-    indexes.needsUpdate = true;  
-  }
-
-  env.local.indexes = indexes;
-
-  //handler for future recomputations (in a case of update)
-  if (env?.vertices?.normals) {
-
-    env.local.geometry.setAttribute('normal', env.vertices.normals);
-    env.local.normals = true;
-
-  } else {
-    env.vertices.handlers.push(() => {
-      env.local.geometry.computeVertexNormals();
-    });
-
-    env.local.geometry.computeVertexNormals();
-  }
-
-  //check if colored (Material BUG) !!!
-  if (env?.vertices?.colored) {
-    //geometry.setAttribute()
-    geometry.setAttribute( 'color', env.vertices.colors );
-
-    material = new env.material({
-      vertexColors: true,
-      transparent: env.opacity < 1,
-      opacity: env.opacity,
-      roughness: env.roughness,
-      metalness: env.metalness,
-      emissive: env.emissive,
-      emissiveIntensity: env.emissiveIntensity, 
-      ior: env.ior,
-      transmission: env.transmission,
-      thinFilm: env.thinFilm,
-thickness: env.materialThickness,
-      attenuationColor: env.attenuationColor,
-      attenuationDistance: env.attenuationDistance,
-      clearcoat: env.clearcoat,
-      clearcoatRoughness: env.clearcoatRoughness,
-      sheenColor: env.sheenColor,
-      sheenRoughness: env.sheenRoughness,
-      iridescence: env.iridescence,
-      iridescenceIOR: env.iridescenceIOR,
-      iridescenceThickness: env.iridescenceThickness,
-      specularColor: env.specularColor,
-      specularIntensity: env.specularIntensity,
-      matte: env.matte,
-      side: THREE.DoubleSide                     
-    });
-  } else {
-    material = new env.material({
-      color: env.color,
-      transparent: env.opacity < 1,
-      opacity: env.opacity,
-      roughness: env.roughness,
-      metalness: env.metalness,
-      emissive: env.emissive,
-      emissiveIntensity: env.emissiveIntensity,
-      ior: env.ior,
-      transmission: env.transmission,
-      thinFilm: env.thinFilm,
-thickness: env.materialThickness,
-      attenuationColor: env.attenuationColor,
-      attenuationDistance: env.attenuationDistance,
-      clearcoat: env.clearcoat,
-      clearcoatRoughness: env.clearcoatRoughness,
-      sheenColor: env.sheenColor,
-      sheenRoughness: env.sheenRoughness,
-      iridescence: env.iridescence,
-      iridescenceIOR: env.iridescenceIOR,
-      iridescenceThickness: env.iridescenceThickness,
-      specularColor: env.specularColor,
-      specularIntensity: env.specularIntensity,
-      matte: env.matte,
-      side: THREE.DoubleSide   
-    });         
-  }
-
-    //console.log(env.opacity);
-    material.side = THREE.DoubleSide;
-
-    const poly = new THREE.Mesh(geometry, material);
-
-    poly.receiveShadow = env.shadows;
-    poly.castShadow = true;
-  
-    //poly.frustumCulled = false;
-    env.mesh.add(poly);
-    env.local.material = material;
-    env.local.poly = poly;
-
-    
-  
-    return poly;
-
-};
-
-g3dComplex.Polygon.reassign = (v, local) => {
-      console.warn('Reassign geometry of Polygon');
-      //
-      const g = local.geometry;
-
-      g.setAttribute('position', v.position);
-      if (v.colored)
-        g.setAttribute( 'color', v.colors );
-      
-      if (local.normals)
-        g.setAttribute('normal', v.normals);
-
-      //g.setIndex(local.indexes);
-
-      if (local.nonindexed) {
-        g.setDrawRange(local.indexOffset, local.range);
-        return;
-      }
-
-      //g.setDrawRange(0, local.range);
-
-};
-
-g3dComplex.Polygon.update = async (args, env) => {
-  
-  if (env.fence) await env.fence();
  
 
-
-  if (env.local.nonindexed) {
-    const a = await interpretate(args[0], env);
-    const b = await interpretate(args[1], env);
-
-    env.local.indexOffset = a-1;
-    env.local.range = b;
-
-    /*if (env.vertices.position.count*3  < b*3) {
-      console.warn(`Polygon: nonindexed buffer attributes will be resized x 2! Old: ${env.vertices.position.count * 3} Required ${b*3}`);
-      env.vertices.position = new THREE.BufferAttribute( new Float32Array(b * 2 * 3), 3 );
-      env.vertices.position.needsUpdate = true;
-      env.vertices.onResize.forEach((el) => el(env.vertices));
-    } else {
-
-    }  */
-    if (env.vertices.position.count*3  < b*3) ; else {
-      env.local.geometry.setDrawRange( a-1, b );
-    }
-
-    //console.warn(env.vertices);
-    env.local.geometry.computeBoundingBox();
-    env.local.geometry.computeBoundingSphere();
-
-    
-    env.wake(true);
-    return;
-  }
-
-    //normal indexed geometry
-    //let indexes = 
-    //throw 'indexed geometry is not yet supported';
- 
-    let a = await interpretate(args[0], env);
-    let newBuffer;
-   
-    if (a instanceof NumericArrayObject) {
-
-    
-      switch(a.dims[a.dims.length-1]) {
-        case 3: //triangles
-          newBuffer = new Uint16Array(a.buffer.map((e)=>e-1));
-        break;
-
-        case 4: {
-          const originalLength = a.buffer.length;
-          const oldBuffer = a.buffer;
-          const newLength = originalLength  * 2;
-          newBuffer = new Uint16Array(newLength);
-          
-          let i=0;
-          let j=0;
-          
-          for (; i<originalLength; i+=4) {
-            newBuffer[j] = oldBuffer[i]-1;
-            newBuffer[j+1] = oldBuffer[i+1]-1;
-            newBuffer[j+2] = oldBuffer[i+2]-1;
-            j+=3;
-            newBuffer[j] = oldBuffer[i]-1;
-            newBuffer[j+1] = oldBuffer[i+2]-1;
-            newBuffer[j+2] = oldBuffer[i+3]-1;
-            j+=3;
-          }
-        }
-        break;
-
-        case 5: {
-          const originalLength = a.buffer.length;
-          const oldBuffer = a.buffer;
-          const newLength = originalLength  * 3;
-          newBuffer = new Uint16Array(newLength);
-          
-          let i=0;
-          let j=0;
-
-          
-          for (; i<originalLength; i+=5) {
-            newBuffer[j] = oldBuffer[i]-1;
-            newBuffer[j+1] = oldBuffer[i+1]-1;
-            newBuffer[j+2] = oldBuffer[i+4]-1;
-            j+=3;
-            newBuffer[j] = oldBuffer[i+1]-1;
-            newBuffer[j+1] = oldBuffer[i+2]-1;
-            newBuffer[j+2] = oldBuffer[i+3]-1;
-            j+=3;
-            newBuffer[j] = oldBuffer[i+1]-1;
-            newBuffer[j+1] = oldBuffer[i+3]-1;
-            newBuffer[j+2] = oldBuffer[i+4]-1;   
-            j+=3;           
-          }
-
-        }
-        break;
-
-        case 6: {
-        
-          const originalLength = a.buffer.length;
-          const oldBuffer = a.buffer;
-          const newLength = originalLength  * 4;
-          newBuffer = new Uint16Array(newLength);
-          
-          let i=0;
-          let j=0;
-
-          
-          for (; i<originalLength; i+=6) {
-            newBuffer[j] = oldBuffer[i]-1;
-            newBuffer[j+1] = oldBuffer[i+1]-1;
-            newBuffer[j+2] = oldBuffer[i+5]-1;
-            j+=3;
-            newBuffer[j] = oldBuffer[i+1]-1;
-            newBuffer[j+1] = oldBuffer[i+2]-1;
-            newBuffer[j+2] = oldBuffer[i+5]-1;
-            j+=3;
-            newBuffer[j] = oldBuffer[i+5]-1;
-            newBuffer[j+1] = oldBuffer[i+2]-1;
-            newBuffer[j+2] = oldBuffer[i+4]-1;    
-            j+=3;   
-            newBuffer[j] = oldBuffer[i+2]-1;
-            newBuffer[j+1] = oldBuffer[i+3]-1;
-            newBuffer[j+2] = oldBuffer[i+4]-1;    
-            j+=3;                      
-          }
-
-        }
-        break;
-
-        default:
-          throw 'cannot build such complex polygon'
-      }
-
-      
-    } else { 
-      if (!a[0][0]) a = [a];
-
-      switch(a[0].length) {
-        case 3: //triangles
-          newBuffer = new Uint16Array(a.flat(Infinity).map((e)=>e-1));
-        break;
-
-        case 4: {
-          a = a.flat(Infinity);
-          const originalLength = a.length;
-          const oldBuffer = a;
-          const newLength = originalLength  * 2;
-          newBuffer = new Uint16Array(newLength);
-          
-          let i=0;
-          let j=0;
-          
-          for (; i<originalLength; i+=4) {
-            newBuffer[j] = oldBuffer[i]-1;
-            newBuffer[j+1] = oldBuffer[i+1]-1;
-            newBuffer[j+2] = oldBuffer[i+2]-1;
-            j+=3;
-            newBuffer[j] = oldBuffer[i]-1;
-            newBuffer[j+1] = oldBuffer[i+2]-1;
-            newBuffer[j+2] = oldBuffer[i+3]-1;
-            j+=3;
-          }
-        }
-        break;
-
-        case 5: {
-          a = a.flat(Infinity);
-          const originalLength = a.length;
-          const oldBuffer = a;
-          const newLength = originalLength  * 3;
-          newBuffer = new Uint16Array(newLength);
-          
-          let i=0;
-          let j=0;
-
-          
-          for (; i<originalLength; i+=5) {
-            newBuffer[j] = oldBuffer[i]-1;
-            newBuffer[j+1] = oldBuffer[i+1]-1;
-            newBuffer[j+2] = oldBuffer[i+4]-1;
-            j+=3;
-            newBuffer[j] = oldBuffer[i+1]-1;
-            newBuffer[j+1] = oldBuffer[i+2]-1;
-            newBuffer[j+2] = oldBuffer[i+3]-1;
-            j+=3;
-            newBuffer[j] = oldBuffer[i+1]-1;
-            newBuffer[j+1] = oldBuffer[i+3]-1;
-            newBuffer[j+2] = oldBuffer[i+4]-1;   
-            j+=3;           
-          }
-
-        }
-        break;
-
-        case 6: {
-          a = a.flat(Infinity);
-          const originalLength = a.length;
-          const oldBuffer = a;
-          const newLength = originalLength  * 4;
-          newBuffer = new Uint16Array(newLength);
-          
-          let i=0;
-          let j=0;
-
-          
-          for (; i<originalLength; i+=6) {
-            newBuffer[j] = oldBuffer[i]-1;
-            newBuffer[j+1] = oldBuffer[i+1]-1;
-            newBuffer[j+2] = oldBuffer[i+5]-1;
-            j+=3;
-            newBuffer[j] = oldBuffer[i+1]-1;
-            newBuffer[j+1] = oldBuffer[i+2]-1;
-            newBuffer[j+2] = oldBuffer[i+5]-1;
-            j+=3;
-            newBuffer[j] = oldBuffer[i+5]-1;
-            newBuffer[j+1] = oldBuffer[i+2]-1;
-            newBuffer[j+2] = oldBuffer[i+4]-1;    
-            j+=3;   
-            newBuffer[j] = oldBuffer[i+2]-1;
-            newBuffer[j+1] = oldBuffer[i+3]-1;
-            newBuffer[j+2] = oldBuffer[i+4]-1;    
-            j+=3;                      
-          }
-
-        }
-        break;
-
-        default:
-          throw 'cannot build such complex polygon'
-      }
-         
-    }
-
-      
-
-      env.local.range = newBuffer.length;
-
-
-      if (env.local.indexes.count < newBuffer.length) {
-        console.warn('Buffer attribute will be resized x2!');
-
-  
-        // pick 32‑bit if >65 535 points
-        const use32 = newBuffer.length > 30000;
-        const ArrayCtor = use32 ? Uint32Array : Uint16Array;
-        const AttrCtor  = THREE.BufferAttribute;
-      
-        // allocate double the required size
-        const newArr = new ArrayCtor(newBuffer.length * 2);
-        newArr.set(newBuffer);
-
-        const newIdx = new AttrCtor(newArr, 1);
-
-      
-        newIdx.setUsage(THREE.StreamDrawUsage);
-        
-
-
-        newIdx.needsUpdate = true;
-      
-        // swap it onto the geometry
-        env.local.indexes = newIdx;
-   
-        //dispose and recreate geometry
-        /*env.local.geometry.dispose();
-
-        const g = new THREE.BufferGeometry();
-        env.local.geometry = g;
-        g.setAttribute('position', env.vertices.position);
-
-        if (env.vertices.colored)
-          g.setAttribute( 'color', env.vertices.colors );
-
-        if (env.local.normals) {
-          g.setAttribute('normal', env.vertices.normals);
-        } else {
-          g.computeVertexNormals();
-        }
-
-        g.setIndex(newIdx);
-        
-        env.local.poly.geometry  = g;
-        */
-        env.local.geometry.setIndex(newIdx);
-
-        env.local.geometry.setDrawRange(0, newBuffer.length);
-
-      } else {
-        // write your new indices into the existing buffer
-        env.local.indexes.set(newBuffer);
-        env.local.indexes.needsUpdate = true;
-        env.local.geometry.setDrawRange(0, newBuffer.length);
-      }
-
-        
-      
-
-      
-      // adjust draw range to the exact size
-      
-
-
-    //if (!env.local.normals) env.local.geometry.computeVertexNormals();
-
-    
-    env.local.geometry.computeBoundingBox();
-    env.local.geometry.computeBoundingSphere();
-
-  
-  //just setDrawingRange
-  //do not process indexes!
-
-};
-
-g3dComplex.Polygon.destroy = (args, env) => {
-  //just setDrawingRange
-  //do not process indexes!
-  env.local.geometry.dispose();
-  env.local.material.dispose();
-
-};
-
-g3dComplex.Polygon.virtual = true;
-
-g3d.Polygon = async (args, env) => {
-  const vertices = await interpretate(args[0], env);
-
-  //check if multiple polygons (FIXME update)
-  if (Array.isArray(vertices)) {
-    if (Array.isArray(vertices[0][0])) {
-      env.local.vmulti = true;
-      for (const v of vertices) {
-        await interpretate(['Polygon', ['JSObject', v]], {...env});
-      }
-      return;
-    }
-  }
-
-  let range = vertices.length;
-  if (vertices instanceof NumericArrayObject) range = vertices.dims[0];
-
-  const indices  = Array.from({length: range}, (e, i)=> i+1);
-  const virtualStack = {};
-
-  env.local.indices = indices;
-  env.local.vertices = vertices;
-
-  //META-PROGRAMMING: convert on-fly to GraphicsComplex[..., Polygon[...]]
-  //Non Graphics-Complex polygon is a rare case in 3D graphics
-
-  await interpretate(['GraphicsComplex', ['__takeJSProperty', env.local, 'vertices'], ['Polygon', ['__takeJSProperty', env.local, 'indices']], ['Rule', "'VertexFence'", true]], {
-    ...env, global: {...env.global, stack: virtualStack}
-  });
-
-  env.local.virtualStack = virtualStack;
-
-  env.local.vpoly = Object.values(env.local.virtualStack).find((el)=>el.firstName == 'Polygon');
-  env.local.vcomplex = Object.values(env.local.virtualStack).find((el)=>el.firstName == 'GraphicsComplex');
-
-  //break the chain to avoid bubbling up
-  env.local.vpoly.parent = undefined;
-};
-
-g3d.__takeJSProperty = (args, env) => {
-  return args[0][args[1]];
-};
-
-g3d.__takeJSProperty.update = g3d.__takeJSProperty;
-g3d.__takeJSProperty.destroy = g3d.__takeJSProperty;
-
-g3d.Polygon.update = async (args, env) => {
-  if (env.local.vmulti) throw 'update of multiple polygons is not possible';
-  const vertices = await interpretate(args[0], env);
-
-  let range = vertices.length;
-  if (vertices instanceof NumericArrayObject) range = vertices.dims[0];
-
-  const indices  = Array.from({length: range}, (e, i)=> i+1);
-
-
-
-  env.local.indices = indices;
-  env.local.vertices = vertices;
-
-  //FIXME: Buffer resizing does not work properly with earcut.
-  //it always crashes with GL Vertex buffer is not big enough.
-  //I have no fucking idea why.
-  //It works absolutely fine with NumericArrayObject s
-  //and for Manipulate[PLot3D...].. it WORKS FINE. WHY DOES IT nOT WORK HERE?!?!?
-  env.local.vpoly.update();
-  await env.local.vcomplex.update();
-};
-
-g3d.Polygon.virtual = true; 
-
-g3d.Polygon.destroy = (args, env) => {
-  if (env.local.vmulti) return;
-  for (const o of Object.values(env.local.virtualStack)) o.dispose();
-};
-
-g3d.Dodecahedron = async (args, env) => {
-  let position = new THREE.Vector3(0, 0, 0);
-  let scale = 1.0;
-  let rotation = new THREE.Euler(0, 0, 0); // Z, Y, X order by default
-
-  for (const arg of args) {
-    const val = await interpretate(arg, env);
-
-    if (typeof val === "number") {
-      scale = val;
-    } else if (Array.isArray(val)) {
-      if (val.length === 3 && val.every(v => typeof v === "number")) {
-        position.set(...val);
-      } else if (val.length === 2 && val.every(v => typeof v === "number")) {
-        rotation.z = val[0];
-        rotation.y = val[1];
-      }
-    }
-  }
-
-  // Always use radius 1, scale manually later
-  const geometry = new THREE.DodecahedronGeometry(1);
-
-  const material = new env.material({
-    color: env.color,
-    transparent: true,
-    opacity: env.opacity,
-    depthWrite: true,
-    roughness: env.roughness,
-    metalness: env.metalness,
-    emissive: env.emissive,
-    emissiveIntensity: env.emissiveIntensity,
-    ior: env.ior,
-    transmission: env.transmission,
-    thinFilm: env.thinFilm,
-    thickness: env.materialThickness,
-    attenuationColor: env.attenuationColor,
-    attenuationDistance: env.attenuationDistance,
-    clearcoat: env.clearcoat,
-    clearcoatRoughness: env.clearcoatRoughness,
-    sheenColor: env.sheenColor,
-    sheenRoughness: env.sheenRoughness,
-    iridescence: env.iridescence,
-    iridescenceIOR: env.iridescenceIOR,
-    iridescenceThickness: env.iridescenceThickness,
-    specularColor: env.specularColor,
-    specularIntensity: env.specularIntensity,
-    matte: env.matte
-  });
-
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.copy(position);
-  mesh.scale.set(scale, scale, scale);
-  mesh.rotation.copy(rotation);
-
-  mesh.receiveShadow = env.shadows;
-  mesh.castShadow = env.shadows;
-
-  env.mesh.add(mesh);
-
-  geometry.dispose();
-  material.dispose();
-
-  return mesh;
-};
-
-g3d.Polyhedron = async (args, env) => {
-  if (args[1][1].length > 4) {
-    //non-optimised variant to work with 4 vertex per face
-    return await interpretate(["GraphicsComplex", args[0], ["Polygon", args[1]]], env);
-  } else {
-    //reguar one. gpu-fiendly
-    /**
-     * @type {number[]}
-     */
-    const indices = await interpretate(args[1], env)
-      .flat(4)
-      .map((i) => i - 1);
-    /**
-     * @type {number[]}
-     */
-    const vertices = await interpretate(args[0], env).flat(4);
-
-    const geometry = new THREE.PolyhedronGeometry(vertices, indices);
-
-    var material = new env.material({
-      color: env.color,
-      transparent: true,
-      opacity: env.opacity,
-      depthWrite: true,
-      roughness: env.roughness,
-      metalness: env.metalness,
-      emissive: env.emissive,
-emissiveIntensity: env.emissiveIntensity,
-ior: env.ior,
-transmission: env.transmission,
-thinFilm: env.thinFilm,
-thickness: env.materialThickness,
-attenuationColor: env.attenuationColor,
-attenuationDistance: env.attenuationDistance,
-clearcoat: env.clearcoat,
-clearcoatRoughness: env.clearcoatRoughness,
-sheenColor: env.sheenColor,
-sheenRoughness: env.sheenRoughness,
-iridescence: env.iridescence,
-iridescenceIOR: env.iridescenceIOR,
-iridescenceThickness: env.iridescenceThickness,
-specularColor: env.specularColor,
-specularIntensity: env.specularIntensity,
-matte: env.matte      
-      
-      
-    });
-
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.receiveShadow = env.shadows;
-    mesh.castShadow = env.shadows;
-    env.mesh.add(mesh);
-    geometry.dispose();
-    material.dispose();
-
-    return mesh;
-  }
-};
-
-
-
-g3d.Specularity = (args, env) => { };
-
-function latexLikeToHTML(raw) {
-  // 1) Escape any existing HTML to avoid injection
-  const esc = String(raw)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-
-  // 2) Convert subscripts:   base_(group|char)
-  const withSubs = esc.replace(
-    /(\S)_(\{([^{}]+)\}|([^\s{}]))/g,
-    (m, base, _whole, groupBody, singleChar) =>
-      base + "<sub>" + (groupBody ?? singleChar) + "</sub>"
-  );
-
-  // 3) Convert superscripts: base^(group|char)
-  const withSupers = withSubs.replace(
-    /(\S)\^(\{([^{}]+)\}|([^\s{}]))/g,
-    (m, base, _whole, groupBody, singleChar) =>
-      base + "<sup>" + (groupBody ?? singleChar) + "</sup>"
-  );
-
-  return withSupers;
-}
-
-g3d.Inset = async (args, env) => {
-  throw 'Not implemented';
-};
-
-g3d.Text = async (args, env) => { 
-  const text = document.createElement( 'span' );
-  text.className = 'g3d-label';
-
-  let label;
-
-  try {
-    label = await interpretate(args[0], env);
-  } catch(err) {
-    console.warn('Error interpreting input of Text. Could it be an undefined symbol?');
-    
-    const stext = document.createElement( 'span' );
-    let labelX = new CSS2D.CSS2DObject( stext );
-    stext.className = 'g3d-label';
-    labelX.position.copy( new THREE.Vector3(...(await interpretate(args[1], env)))  );
-    env.mesh.add(labelX);
-
-    await makeEditorView(args[0], {...env, element:stext});
-    return labelX;
-  }
-
-  if (env.fontweight) text.style.fontWeight = env.fontweight;
-  if (env.fontSize) text.style.fontSize = env.fontSize + 'px';
-  if (env.fontFamily) text.style.fontFamily = env.fontFamily ;
-  if (!env.colorInherit) text.style.color = env.color.getStyle();
-
-  //text.style.color = 'rgb(' + atom[ 3 ][ 0 ] + ',' + atom[ 3 ][ 1 ] + ',' + atom[ 3 ][ 2 ] + ')';
-  
-  let pos   = await interpretate(args[1], env);
-  if (pos instanceof NumericArrayObject) { // convert back automatically
-    pos = pos.normal();
-  }
-
-  text.innerHTML = latexLikeToHTML(String(label));
-
-  env.local.text = text;
-  
-
-  const labelObject = new CSS2D.CSS2DObject( text );
-  labelObject.position.copy( new THREE.Vector3(...pos) );
-  env.local.labelObject = labelObject;
-
-  env.mesh.add(labelObject);
-};
-
-g3d.Text.update = async (args, env) => { 
-  let pos   = await interpretate(args[1], env);
-
-  if (pos instanceof NumericArrayObject) { // convert back automatically
-    pos = pos.normal();
-  }
-
-  const label = await interpretate(args[0], env);
-
-  env.local.text.innerHTML = latexLikeToHTML(String(label));
-  env.local.labelObject.position.copy( new THREE.Vector3(...pos) );
-  env.wake();
-};
-
-g3d.Text.destroy = () => {
-
-};
-
-g3d.Text.virtual = true;
-
-
-
-    /*params.materialProperties.metalness = 0.0;
-    params.materialProperties.roughness = 0.23;
-    params.materialProperties.transmission = 1.0;
-    params.materialProperties.color = '#ffffff';*/
-
-    const materialProps = [
-      'color',
-      'emissive',
-      'emissiveIntensity',
-      'roughness',
-      'metalness',
-      'ior',
-      'transmission',
-      'thinFilm',
-      "materialThickness",
-      'attenuationColor',
-      'attenuationDistance',
-      'opacity',
-      'clearcoat',
-      'clearcoatRoughness',
-      'sheenColor',
-      'sheenRoughness',
-      'iridescence',
-      'iridescenceIOR',
-      'iridescenceThickness',
-      'specularColor',
-      'specularIntensity',
-      'matte',
-      'flatShading',
-      'castShadow',
-      'shadows',
-      'fontSize'
-  ];
-
-g3d.Directive = async (args, env) => { 
-  const opts = await core._getRules(args, {...env, hold:true});
-
-  if (args[0][0] == 'List') {
-    for (let i=1; i<args[0].length; ++i) {
-      await interpretate(args[0][i], env);
-    }
-  } else {
-    for (let i=0; i<args.length - Object.keys(opts).length; ++i) {
-      await interpretate(args[i], env);
-    }
-  }
-
-  const keys = Object.keys(opts);
-  for (let i=0; i<keys.length; ++i) {
-    const okey = keys[i];
-    const key = okey.charAt(0).toLocaleLowerCase() + okey.slice(1);
-
-    if (materialProps.includes(key)) {
-      env[key] = await interpretate(opts[okey], {...env});
-    }
-  }
-
-};
-
-g3d.PlaneGeometry = () => { };
-
-g3dComplex.Arrow = async (args, env) => {
-  if (args.length > 1)
-    env.radius = (await interpretate(args[1], env)) * 0.7;
-
-  if (args[0][0] == 'Tube') {
-    const points = await interpretate(args[0][1], env);
-
-    if (Array.isArray(points[0])) {
-      points.forEach((p) => {
-        const r = env.radius || 1.0;
-        const radiuses = p.map(() =>  r);
-        radiuses[radiuses.length-1] = 0.4*r; //mimic an arrow, in fact there is no arrows
-      
-        interpretate(['Tube', ['JSObject', p], ['JSObject', radiuses]], {...env, radius: radiuses});
-      });
-    } else {
-      const r = env.radius || 1.0;
-      const radiuses = points.map(() => r);
-      radiuses[radiuses.length-1] = r*0.4; //mimic an arrow, in fact there is no arrows
-      
-      interpretate(['Tube', ['JSObject', points], ['JSObject', radiuses]], {...env, radius: radiuses});
-    }
-  }
-};
-
-
-
-g3dComplex.Line = async (args, env) => {
-    
-
-    //vertices = env.vertices;
-    let geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', env.vertices.position);
-    env.local.geometry = geometry;
-
-    env.vertices.onResize.push((v) => g3dComplex.Line.reassign(v, env.local));
-
-    let a = await interpretate(args[0], env);
-
-    if (a instanceof NumericArrayObject) {
-      a = a.buffer;
-    }
-
-    let indexes;
-
-    if (env.vertices.position.array.length > 65535) {
-      indexes = new THREE.Uint32BufferAttribute( new Uint32Array(a.map((e)=>e-1)), 1 );
-    } else {
-      indexes = new THREE.BufferAttribute( new Uint16Array(a.map((e)=>e-1)), 1 );
-    }
-
-    env.local.indexes = indexes;    
-
-
-    geometry.setIndex(indexes);
-    env.local.range = a.length;
-
-    //geometry.setAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
-
-    let material;
-    
-    if (env?.vertices?.colored) {
-      geometry.setAttribute( 'color', env.vertices.colors );
-      material = new THREE.LineBasicMaterial({
-        linewidth: env.thickness,
-        color: env.color,
-        opacity: env.opacity,
-        vertexColors:true,
-        transparent: env.opacity < 1.0 ? true : false
-      });
-    } else {
-      material = new THREE.LineBasicMaterial({
-        linewidth: env.thickness,
-        color: env.color,
-        opacity: env.opacity,
-        transparent: env.opacity < 1.0 ? true : false
-      });
-    }
-    const line = new THREE.Line(geometry, material);
-
-    env.local.line = line;
-
-    env.mesh.add(line);
-    env.local.material = material;
-
-    return line;
-};
-
-g3dComplex.Line.virtual = true;
-
-g3dComplex.Line.update = async (args, env) => {
-  // 1) get new index data (zero‑based)
-  if (env.fence) await env.fence();
-
-  let newBuffer = await interpretate(args[0], env);
-  if (newBuffer instanceof NumericArrayObject) {
-    newBuffer = newBuffer.buffer;
-  }
-  newBuffer = newBuffer.map(el => el - 1);
-  env.local.range = newBuffer.length;
-
-  const geom = env.local.geometry;
-  const oldIdx = env.local.indexes;
-
-  // 2) do we need to grow the attribute?
-  if (oldIdx.count < newBuffer.length) {
-    console.warn("Resizing index buffer for Line…");
-
-    // decide between 16‑bit and 32‑bit
-    const use32 = newBuffer.length > 30000;
-    const ArrayCtor  = use32 ? Uint32Array  : Uint16Array;
-    const AttrCtor   = use32 ? THREE.Uint32BufferAttribute : THREE.Uint16BufferAttribute;
-
-    // allocate double the length
-    const newCount = newBuffer.length * 2;
-    const newArr   = new ArrayCtor(newCount);
-    const newIdx   = new AttrCtor(newArr, 1);
-
-    newIdx.setUsage(THREE.StreamDrawUsage);
-    newIdx.set(newBuffer);      // copy your data in
-    newIdx.needsUpdate = true;
-
-    // swap it onto the geometry
-    geom.setIndex(newIdx);
-
-    // remember for next time
-    env.local.indexes = newIdx;
-
-  } else {
-    // 3) no resize needed, just overwrite existing buffer
-    oldIdx.set(newBuffer);
-    oldIdx.needsUpdate = true;
-  }
-
-  // 4) always update draw range
-  geom.setDrawRange(0, env.local.range);
-
-  // 5) trigger a render
-  env.wake(true);
-};
-
-g3dComplex.Line.destroy = (args, env) => {
-  env.local.geometry.dispose();
-  env.local.material.dispose();
-};
-
-g3dComplex.Line.reassign = (v, local) => {
-      console.warn('Reassign geometry of Line');
-      //
-      const g = local.geometry;
-
-      g.setAttribute('position', v.position);
-      if (v.colored)
-        g.setAttribute( 'color', v.colors );
-
-      g.setIndex(local.indexes);
-      g.setDrawRange(0, local.range);
-
-      
-      //if (local.geometry) local.geometry.dispose();
-      //local.geometry = g;
-      //local.line.geometry = g;
-};
-
-g3d.Line = async (args, env) => {
-  
-  var geometry;
-  //let vertices;
-
-
-    
-    const points = await interpretate(args[0], env);
-
-    
-
-    
-    if (points instanceof NumericArrayObject) { // convert back automatically
-      geometry = new THREE.BufferGeometry();
-      geometry.setAttribute( 'position', new THREE.BufferAttribute( new Float32Array(points.buffer), 3 ) );
-    } else {
-      if (points.length == 0) return;
-
-      if (Array.isArray(points[0][0])) {
-        console.log('Multiple');
-
-        const material = new THREE.LineBasicMaterial({
-          linewidth: env.thickness,
-          color: env.color,
-          opacity: env.opacity,
-          transparent: env.opacity < 1.0 ? true : false
-        });        
-
-        for (const p of points) {
-          geometry = new THREE.BufferGeometry();
-          geometry.setAttribute( 'position', new THREE.BufferAttribute( new Float32Array(p.flat()), 3 ) );
-
-
-          const line = new THREE.Line(geometry, material);
-        
-          if (!env.local.lines) env.local.lines = [];
-          env.local.lines.push(line);
-
-          
-        
-          env.mesh.add(line);          
-        }
-
-        material.dispose();
-        //3D will
-
-        return;
-
-      } else {
-        geometry = new THREE.BufferGeometry();
-        geometry.setAttribute( 'position', new THREE.BufferAttribute( new Float32Array(points.flat()), 3 ) );
-      }
-      
-    }
-    
-
-
-    const material = new THREE.LineBasicMaterial({
-      linewidth: env.thickness,
-      color: env.color,
-      opacity: env.opacity,
-      transparent: env.opacity < 1.0 ? true : false
-    });
-    const line = new THREE.Line(geometry, material);
-
-    env.local.line = line;
-
-    env.mesh.add(line);
-    env.local.line.geometry.computeBoundingBox();
-
-    return line;
-
-    //geometry.dispose();
-    //material.dispose();
-};
-
-g3d.Line.update = async (args, env) => {
-  if (env.local.lines) throw 'update of multiple lines is not supported!';
-
-  let points = await interpretate(args[0], env);
-  if (points instanceof NumericArrayObject) { // convert back automatically
-    points = points.normal();
-  }
-
-  const positionAttribute = env.local.line.geometry.getAttribute( 'position' );
-
-  positionAttribute.needsUpdate = true;
-
-  for ( let i = 0; i < positionAttribute.count; i ++ ) {
-    positionAttribute.setXYZ( i, ...(points[i]));
-  }
-
-  env.local.line.geometry.computeBoundingBox();
-  env.local.line.geometry.computeBoundingSphere();
-
-  env.wake(true);
-};
-
-g3d.Line.destroy = async (args, env) => {
-  if (env.local.line) env.local.line.geometry.dispose();
-  if (env.local.lines) env.local.lines.forEach((l) => l.geometry.dispose());
-};
-
-g3d.Line.virtual = true;
-
-let GUI;
-
-g3d.ImageSize = () => "ImageSize";
-g3d.Background = () => "Background";
-g3d.AspectRatio = () => "AspectRatio";
-g3d.Lighting = () => "Lighting";
-g3d.Default = () => "Default";
-g3d.None = () => false;
-g3d.Lightmap = () => "Lightmap";
-g3d.Automatic = () => "Automatic"; 
-
-g3d.AnimationFrameListener = async (args, env) => {
-  await interpretate(args[0], env);
-
-  const options = await core._getRules(args, {...env, hold:true});
-  env.local.event = await interpretate(options.Event, env);
-  
-  const worker = {
-    state: true,
-    eval: () => {
-      if (!env.local.worker.state) return;
-      server.kernel.io.poke(env.local.event);
-      env.local.worker.state = false;
-    }
-  };
-
-  env.local.worker = worker;  
-  env.Handlers.push(worker);
-};
-
-g3d.AnimationFrameListener.update = async (args, env) => {
-  env.local.worker.state = true;
-};
-
-g3d.AnimationFrameListener.destroy = async (args, env) => {
-  console.warn('AnimationFrameListener does not exist anymore');
-  env.local.worker.eval = () => {};
-};
-
-g3d.AnimationFrameListener.virtual = true;
-
-let Water = false;
-let Sky   = false;
-
-g3d.Camera = (args, env) => {
-  console.warn('temporary disabled');
-  return;
-};
-
-
-
-g3d.LightProbe = (args, env) => {
-  //THREE.js light probe irradiance
-};
-
-g3d.DefaultLighting = (args, env) => {
-  console.warn('temporary disabled');
-  return;
-
-};
-
-g3d.SkyAndWater = async (args, env) => {
-  console.warn('temporary disabled');
-  return;
-};
-
-g3d.Sky = async (args, env) => {
-  console.warn('temporary disabled');
-  return;
-};
-
-const makeEditorView = async (data, env = { global: {} }) => {
-    //check by hash if there such object, if not. Ask server to create one with EditorView and store.
-    const hash = String(interpretate.hash(data));
-    let obj;
-    let storage;
-
-    if (!(hash in ObjectHashMap)) {
-      obj = new ObjectStorage(hash);
-
-      try {
-        storage = await obj.get();
-      } catch(err) {
-        console.warn('Creating FE object by id '+hash);
-        await server.kernel.io.fetch('CoffeeLiqueur`Extensions`Graphics3D`Private`MakeExpressionBox', [JSON.stringify(data), hash]);
-        storage = await obj.get();
-      }
-      
-    } else {
-      obj = ObjectHashMap[hash];
-    }
-
-    if (!storage) storage = await obj.get();
-
-    console.log("g3d: creating an object");
-    console.log('frontend executable');
-
-
-    const copy = env;
-    
-    const instance = new ExecutableObject('g3d-embeded-'+uuidv4(), copy, storage, true);
-    instance.assignScope(copy);
-    obj.assign(instance);
-
-    await instance.execute();
-    return instance;
-  };
-
-
-g3d['CoffeeLiqueur`Extensions`Graphics3D`Tools`WaterShader'] = async (args, env) => {
   
   
-  if (!Water) {
-    await interpretate.shared.THREEWater.load();
-    Water = interpretate.shared.THREEWater.Water;
-    //Water         = (await import('three/examples/jsm/objects/Water.js')).Water;
-  }
+  let d3 = false;
+  let interpolatePath = false;
 
-  let options = await core._getRules(args, env);
-  console.log('options:');
+  let g2d = {};
+  g2d.name = "WebObjects/Graphics";
 
+  const g2dComplex = {};
+  g2dComplex.name = "GraphicsComplex 2D";
 
-  console.log(options);
-  options.dims = options.Size || [10000, 10000];
 
-  let water;
-  // Water
-
-  const waterGeometry = new THREE.PlaneGeometry(...options.dims);
-
-  water = new Water(
-    waterGeometry,
-    {
-      textureWidth: 512,
-      textureHeight: 512,
-      waterNormals: new THREE.TextureLoader().load( 'https://cdn.statically.io/gh/JerryI/Mathematica-ThreeJS-graphics-engine/master/assets/waternormals.jpg', function ( texture ) {
-
-        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-
-      } ),
-      sunDirection: new THREE.Vector3(1,1,1),
-      sunColor: 0xffffff,
-      waterColor: 0x001e0f,
-      distortionScale: 3.7,
-      fog: true
-    }
-  );
-
-  water.rotation.x = - Math.PI / 2;
-  
-  env.local.water = water;
-
-  env.global.scene.add( water );
-  
-  const sun = env.local.sun || (new THREE.Vector3(1,1,1));
-  water.material.uniforms[ 'sunDirection' ].value.copy( sun ).normalize();
-
-  //every frame
-  env.local.handlers.push(
-    function() {
-      env.local.water.material.uniforms[ 'time' ].value += 1.0 / 60.0;
-    }
-  );
-};  
-
-
-g3d.Large = (args, env) => {
-  return 1.0;
-};
-
-g3d.Medium = (args, env) => {
-  return 0.7;
-};
-
-g3d.Small = (args, env) => {
-  return 0.4;
-};
-
-function isMobile() {
-    // 1) Best when available (Chromium etc.)
-    if (navigator.userAgentData?.mobile != null) {
-      return navigator.userAgentData.mobile;
-    }
-
-    // 2) Capability-based heuristic
-    const coarse = window.matchMedia?.("(pointer: coarse)").matches;
-    const smallScreen = window.matchMedia?.("(max-width: 768px)").matches;
-    const touch = navigator.maxTouchPoints > 0;
-
-    // Common practical rule: coarse pointer + (touch or small screen)
-    if (coarse && (touch || smallScreen)) return true;
-
-    // 3) Last-resort UA fallback (older browsers)
-    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  }
-
-const setImageSize = async (options, env) => {
-let ImageSize;
-
-if (options.ImageSize) {
-  ImageSize = await interpretate(options.ImageSize, env);
-  if (typeof ImageSize == 'number') {
-    if (ImageSize < 10) {
-      ImageSize = core.DefaultWidth * 2 * ImageSize;
-    }
-  } else {
-    if (!(ImageSize instanceof Array)) {
-      ImageSize = core.DefaultWidth;
-    }
-  }
-
-  if (!(ImageSize instanceof Array)) ImageSize = [ImageSize, ImageSize*0.618034];
-} else if (env.imageSize) {
-  if (Array.isArray(env.imageSize)) {
-    ImageSize = env.imageSize;
-  } else {
-    ImageSize = [env.imageSize, env.imageSize*0.618034];
-  }
-} else {
-  ImageSize = [core.DefaultWidth, core.DefaultWidth*0.618034];
-}
-
-    const mobileDetected = isMobile();
-    if (mobileDetected) {
-      console.warn('Mobile device detected!');
-      const k = 2.0 / devicePixelRatio;
-      ImageSize[0] = ImageSize[0] * k;
-      if (ImageSize[0] > 250) ImageSize[0] = 250;
-      ImageSize[1] = ImageSize[1] * k;
-    }
-
-return ImageSize;
-};
-
-let RTX = false;
-
-const addDefaultLighting = (scene, RTX, pathtracing) => {
-if (pathtracing) {
-  /*const rectLight = new RTX.ShapedAreaLight( 0xffffff, 1.0,  10.0, 10.0 );
-  rectLight.position.set( 5, 5, 0 );
-  rectLight.lookAt( 0, 0, 0 );
-  scene.add( rectLight )*/
-  const texture = new RTX.GradientEquirectTexture();
-  texture.topColor.set( 0xffffff );
-  texture.bottomColor.set( 0x666666 );
-  texture.update();
-  scene.defaultEnvTexture = texture;
-  scene.environment = texture;
-  scene.background = texture;
-
-  return;
-}
-
-const light = new THREE.PointLight(0xffffff, 2, 10);
-light.position.set(0, 10, 0);
-scene.add(light);
-var hemiLight = new THREE.HemisphereLight( 0xffffbb, 0x080820, 2 );
-scene.add( hemiLight );
-};
-
-g3d.PointLight = async (args, env) => {
-const copy = {...env};
-//const options = await core._getRules(args, {...env, hold: true});
-
-//console.log(options);
-//const keys = Object.keys(options);
-
-let position = [0, 0, 10];
-let color = 0xffffff; 
-
-const options = await core._getRules(args, env);
-const olength = Object.keys(options).length;
-env.local.olength = olength;
-
-if (args.length - olength > 0) color = await interpretate(args[0], copy); 
-
-if (args.length - olength > 1) {
-
-  position = await interpretate(args[1], env);
-
-  if (position instanceof NumericArrayObject) {
-    position = position.normal();
-  }
-  //position = [position[0], position[1], position[2]];
-}
-
-
-let intensity = 100; if (args.length - olength > 2) intensity = await interpretate(args[2], env);
-if (typeof intensity != 'number') intensity = 100;
-let distance = 0; //if (args.length > 3) distance = await interpretate(args[3], env);
-let decay = 2; //if (args.length  > 4) decay = await interpretate(args[4], env);
-
-if (typeof options.Intensity == 'number') {
-  intensity = options.Intensity; 
-}
-if (typeof options.Distance == 'number') {
-  distance = options.Distance; 
-}
-if (typeof options.Decay == 'number') {
-  decay = options.Decay; 
-}
-
-const light = new THREE.PointLight(color, intensity, distance, decay);
-light.castShadow = env.shadows;
-light.position.set(...position);
-light.shadow.bias = -0.01;
-
-if (typeof options.ShadowBias == 'number') {
-  light.shadow.bias = options.ShadowBias; 
-}
-
-env.local.light = light;
-env.mesh.add(light);
-
-return light;
-};
-
-g3d.PointLight.update = async (args, env) => {
-env.wake(false, true);
-const olength = env.local.olength;
-
-if (args.length-olength > 1) {
-  let pos = await interpretate(args[1], env);
-
-  if (pos instanceof NumericArrayObject) {
-    pos = pos.normal();
-  }
-  //pos = [pos[0], pos[1], pos[2]];
-
-  if (env.Lerp) {
-      if (!env.local.lerp) {
-        
-        console.log('creating worker for lerp of movements..');
-        const worker = {
-          alpha: 0.05,
-          target: new THREE.Vector3(...pos),
-          eval: () => {
-            env.local.light.position.lerp(worker.target, 0.05);
-          }
-        };
-
-        env.local.lerp = worker;  
-
-        env.Handlers.push(worker);
-      }
-
-      env.local.lerp.target.fromArray(pos);
-      return;
-  } 
-
-  env.local.light.position.set(...pos);
-}  
-};
-
-g3d.PointLight.destroy = async (args, env) => {
-console.log('PointLight destroyed');
-};
-
-
-
-g3d.PointLight.virtual = true;
-
-g3d.SpotLight = async (args, env) => {
-const copy = {...env};
-
-const options = await core._getRules(args, env);
-const olength = Object.keys(options).length;
-env.local.olength = olength;
-//console.log(options);
-//const keys = Object.keys(options);
-
-let color = 0xffffff; if (args.length-olength > 0) color = await interpretate(args[0], copy);
-
-let position = [10, 100, 10];
-let target = [0,0,0];
-
-
-
-if (args.length-olength > 1) {
-  position = await interpretate(args[1], env);
-  if (position instanceof NumericArrayObject) {
-    position = position.normal();
-  }
-
-  if (position.length == 2) {
-    target = position[1];
-    //target = [target[0], target[2], -target[1]];
-    position = position[0];
-  }
-  //position = [position[0], position[2], -position[1]];
-}
-
-let angle = Math.PI/3; if (args.length-olength > 2) angle = await interpretate(args[2], env);
-
-let intensity = 100; //if (args.length > 3) intensity = await interpretate(args[3], env);
-
-if (typeof options.Intensity == 'number') {
-  intensity = options.Intensity; 
-}
-
-
-
-let distance = 0; //if (args.length > 4) distance = await interpretate(args[4], env);
-
-if (typeof options.Distance == 'number') {
-  distance = options.Distance; 
-}
-
-let penumbra = 0; //if (args.length > 5) penumbra = await interpretate(args[5], env);
-
-if (typeof options.Penumbra == 'number') {
-  penumbra = options.Penumbra; 
-}
-
-
-let decay = 2; //if (args.length > 6) decay = await interpretate(args[6], env);
-
-if (typeof options.Decay == 'number') {
-  decay = options.Decay; 
-}
-
-
-const spotLight = new THREE.SpotLight( color, intensity, distance, angle, penumbra, decay );
-spotLight.position.set(...position);
-spotLight.target.position.set(...target);
-
-spotLight.castShadow = env.shadows;
-spotLight.shadow.bias = -0.01;
-
-if (typeof options.ShadowBias == 'number') {
-  spotLight.shadow.bias = options.ShadowBias; 
-}
-
-spotLight.shadow.mapSize.height = 1024;
-spotLight.shadow.mapSize.width = 1024;
-
-if (typeof options.ShadowMapSize == 'number') {
-  spotLight.shadow.mapSize.height = options.ShadowMapSize; 
-  spotLight.shadow.mapSize.width = options.ShadowMapSize; 
-}
-
-env.local.spotLight = spotLight;
-env.mesh.add(spotLight);
-env.mesh.add(spotLight.target);
-
-return spotLight;
-};
-
-g3d.SpotLight.update = async (args, env) => {
-env.wake(false, true);
-const olength = env.local.olength;
-//const options = await core._getRules(args, {...env, hold: true}); 
-
-if (args.length-olength > 1) {
-  let position = await interpretate(args[1], env);
-  if (position instanceof NumericArrayObject) {
-    position = position.normal();
-  }
-  if (position.length == 2) {
-    let target = position[1];
-    //target = [target[0], target[2], target[1]];
-    position = position[0];
-    //position = [position[0], position[2], -position[1]];
-
-    if (env.Lerp) {
-      if (!env.local.lerp1) {
-        
-        console.log('creating worker for lerp of movements..');
-        const worker = {
-          alpha: 0.05,
-          target: new THREE.Vector3(...position),
-          eval: () => {
-            env.local.spotLight.position.lerp(worker.target, 0.05);
-          }
-        };
-
-        env.local.lerp1 = worker;  
-
-        env.Handlers.push(worker);
-      }
-
-      env.local.lerp1.target.fromArray(position);
-
-      if (!env.local.lerp2) {
-        
-        console.log('creating worker for lerp of movements..');
-        const worker = {
-          alpha: 0.05,
-          target: new THREE.Vector3(...target),
-          eval: () => {
-            env.local.spotLight.target.position.lerp(worker.target, 0.05);
-          }
-        };
-
-        env.local.lerp2 = worker;  
-
-        env.Handlers.push(worker);
-      }
-
-      env.local.lerp2.target.fromArray(target);  
-
-
-    } else {
-      env.local.spotLight.position.set(...position);
-      env.local.spotLight.target.position.set(...target);
-    }
-  } else {
-
-    //position = [position[0], position[2], -position[1]];
-
-    if (env.Lerp) {
-      if (!env.local.lerp1) {
-        
-        console.log('creating worker for lerp of movements..');
-        const worker = {
-          alpha: 0.05,
-          target: new THREE.Vector3(...position),
-          eval: () => {
-            env.local.spotLight.position.lerp(worker.target, 0.05);
-          }
-        };
-
-        env.local.lerp1 = worker;  
-
-        env.Handlers.push(worker);
-      }
-
-      env.local.lerp1.target.fromArray(position);
-
-            
-    } else {
-      env.local.spotLight.position.set(...position);
-    }
-  }
-  
-
-
-}
-
-};
-
-g3d.SpotLight.destroy = async (args, env) => {
-console.log('SpotLight destoyed');
-};
-
-g3d.SpotLight.virtual = true;
-
-g3d.Shadows = async (args, env) => {
-env.shadows = await interpretate(args[0], env);
-};
-
-
-
-g3d.HemisphereLight = async (args, env) => {
-const copy = {...env};
-
-const options = await core._getRules(args, env);
-
-if (args.length > 0) await interpretate(args[0], copy); else copy.color = 0xffffbb;
-const skyColor = copy.color;
-
-if (args.length > 1) await interpretate(args[1], copy); else copy.color = 0x080820;
-const groundColor = copy.color;
-
-let intensity = 1; if (args.length > 2) intensity = await interpretate(args[2], env);
-if (typeof options.Intensity == 'number') intensity = options.Intensity;
-
-const hemiLight = new THREE.HemisphereLight( skyColor, groundColor, intensity );
-env.global.scene.add( hemiLight );
-};
-
-g3d.MeshMaterial = async (args, env) => {
-const mat = await interpretate(args[0], env);
-env.material = mat;
-};
-
-g3d.MeshPhysicalMaterial = () => THREE.MeshPhysicalMaterial;
-g3d.MeshLambertMaterial = () => THREE.MeshLambertMaterial;
-g3d.MeshPhongMaterial = () => THREE.MeshPhongMaterial;
-g3d.MeshToonMaterial = () => THREE.MeshToonMaterial;
-
-g3d.MeshFogMaterial = async (args, env) => {
-  let density = 0.01;
-  if (args.length > 0) {
-    density = await interpretate(args[0], env);
-  }
-  function virt () {
-    const fogMaterial = new RTX.FogVolumeMaterial();
-    fogMaterial.density = density;
-    return fogMaterial;
-  }
-  return virt;
-};
-
-let TransformControls = false;
-
-g3d.EventListener = async (args, env) => {
-  const rules = await interpretate(args[1], env);
-
-  const copy = {...env};
-
-  let object = await interpretate(args[0], env);
-  if (Array.isArray(object)) object = object[0];
-
-  if (!TransformControls) {
-    await interpretate.shared.THREETransformControls.load();
-    TransformControls = interpretate.shared.THREETransformControls.TransformControls;
-    //TransformControls = (await import('three/addons/controls/TransformControls.js')).TransformControls;
-  }
-  rules.forEach((rule)=>{
-    g3d.EventListener[rule.lhs](rule.rhs, object, copy);
-  });
-
-  return null;
-};
-
-g3d.EventListener.transform = (uid, object, env) => {
-  console.log(env);
-  console.warn('Controls transform is enabled');
-  const control = new TransformControls(env.camera, env.global.domElement);
-
-  const gizmo = control.getHelper();
-
-  const orbit = env.controlObject.o;
-
-  control.attach(object); 
-
-  env.global.scene.add(gizmo); 
-
-  const updateData = throttle((x,y,z) => {
-    server.kernel.emitt(uid, `<|"position"->{${x.toFixed(4)}, ${y.toFixed(4)}, ${z.toFixed(4)}}|>`, 'transform');
-  });
-
-  control.addEventListener( 'change', function(event) {
-    updateData(object.position.x,object.position.y,object.position.z);
-  } );
-
-  control.addEventListener( 'dragging-changed', function ( event ) {
-    console.log('changed');
-    orbit.enabled = !event.value;
-  } );
-};
-
-g3d.EventListener.drag = (uid, object, env) => {
-  console.log(env);
-  console.warn('Controls transform is enabled');
-  const control = new TransformControls(env.camera, env.global.domElement);
-
-  const gizmo = control.getHelper();
-
-  const orbit = env.controlObject.o;
-
-  control.attach(object); 
-
-  env.global.scene.add(gizmo); 
-
-  const updateData = throttle((x,y,z) => {
-    server.kernel.io.fire(uid, [x,y,z], 'drag');
-  });
-
-  control.addEventListener( 'change', function(event) {
-    updateData(object.position.x,object.position.y,object.position.z);
-  } );
-
-  control.addEventListener( 'dragging-changed', function ( event ) {
-    console.log('changed');
-    orbit.enabled = !event.value;
-  } );
-};
-
-let RGBELoader;
-let OrbitControls;
-let VariableTube;
-
-let CSS2D = undefined;
-
-const blobToBase64 = blob => {
-  const reader = new FileReader();
-  reader.readAsDataURL(blob);
-  return new Promise(resolve => {
-    reader.onloadend = () => {
-      resolve(reader.result);
-    };
-  });
-};
-
-g3d['Graphics3D`Serialize'] = async (args, env) => {
-  const opts = await core._getRules(args, env);
-  let dom = env.element;
-
-  if (opts.TemporalDOM) {
-    dom = document.createElement('div');
-    dom.style.pointerEvents = 'none';
-    dom.style.opacity = 0;
-    dom.style.position = 'absolute';
-
-    document.body.appendChild(dom);
-  }
-
-  await interpretate(args[0], {...env, element: dom});
-
-  const promise = new Deferred();
-  console.log(env.global);
-
-  env.global.renderer.domElement.toBlob(function(blob){
-    promise.resolve(blob);
-  }, 'image/png', 1.0);
-
-  const blob = await promise.promise;
-
-  Object.values(env.global.stack).forEach((el) => {
-    el.dispose();
-  });
-
-  if (opts.TemporalDOM) {
-    dom.remove();
-  }
-
-  const encoded = await blobToBase64(blob);
- 
-  return encoded;  
-};
-
-
-
-g3d['Graphics3D`toDataURL'] = async (args, env) => {
-  const promise = new Deferred();
-  console.log(env.global);
-
-  env.local.animateOnce();
-  env.local.renderer.domElement.toBlob(function(blob){
-    promise.resolve(blob);
-  }, 'image/png', 1.0);
-
-  const blob = await promise.promise;
-  const encoded = await blobToBase64(blob);
- 
-  return encoded;  
-};
-
-g3d['CoffeeLiqueur`Extensions`Graphics3D`Tools`toDataURL'] = g3d['Graphics3D`toDataURL'];
-g3d['CoffeeLiqueur`Extensions`Graphics3D`Tools`Serialize'] = g3d['Graphics3D`Serialize'];
-
-g3d.Top = () => [0,0,1000];
-g3d.Bottom = () => [0,0,-1000];
-
-g3d.Right = () => [1000,0,0];
-g3d.Left = () => [-1000,0,0];
-
-g3d.Front = () => [0,1000,0];
-g3d.Back = () => [0,-1000,0];
-
-g3d.Bold = () => 'Bold';
-g3d.Bold.update = g3d.Bold;
-g3d.Italic = () => 'Italic';
-g3d.Italic.update = g3d.Italic;
-g3d.FontSize = () => 'FontSize';
-g3d.FontSize.update = g3d.FontSize;
-g3d.FontFamily = () => 'FontFamily';
-g3d.FontFamily.update = g3d.FontFamily;
-
-async function processLabel(ref0, env) {
+async function processLabel(ref0, gX, env, textFallback, nodeFallback) {
           let ref = ref0;
           let labelFallback = false;
-          let offset = [0,0,0];
+          let offset = [0,0];
+
+          console.warn(ref);
 
           if (ref == 'None') {
-            const text = document.createElement( 'span' );
-            let labelX = new CSS2D.CSS2DObject( text );
-            text.className = 'g3d-label';
-            return {offset: offset, element: labelX};
+            return;
           }
 
 
@@ -4936,16 +129,13 @@ async function processLabel(ref0, env) {
            }
           }
 
-          
-          const text = document.createElement( 'span' );
-          let labelX = new CSS2D.CSS2DObject( text );
-          text.className = 'g3d-label';
 
           
           if (!labelFallback) {
             try {
-              const content = await interpretate(ref, {...env});
-              text.innerHTML = latexLikeToHTML(String(content));
+              const content = await interpretate(ref, env);
+              textFallback(content, offset);
+              return;
 
             } catch(err) {
               console.warn('Err:', err);
@@ -4957,1788 +147,7261 @@ async function processLabel(ref0, env) {
 
           if (labelFallback) {
             console.warn('x-label: fallback to EditorView');
-            await makeEditorView(ref, {...env, element:text});
+
+            const node = await interpretate(['Inset', ref, ['JSObject', [env.xAxis.invert(0),env.yAxis.invert(0)]]], {...env, context:g2d, svg:gX});
+            nodeFallback(node, offset);
+            
           }
 
-
-          return {offset: offset, element: labelX};
 }
 
-core.Graphics3D = async (args, env) => {  
-//Lazy loading
+  g2d.Pane = async (args, env) => {
+    throw args;
+  };
 
-await interpretate.shared.THREE.load();
+  interpretate.contextExpand(g2d);
 
-if (!THREE) {
-  THREE = interpretate.shared.THREE.THREE;
-  OrbitControls = interpretate.shared.THREE.OrbitControls;
-  RGBELoader = interpretate.shared.THREE.RGBELoader;
-  CSS2D = interpretate.shared.THREE.CSS2D;
-  VariableTube = await import('./index-2643bfa9.js');
-  VariableTube = VariableTube.VariableTube;
-}
-
-
-
-MathUtils     = THREE.MathUtils;
-
-let sleeping = false;
-let timeStamp = performance.now();
-
-/**
- * @type {Object}
- */  
-let options = await core._getRules(args, {...env, context: g3d, hold:true});
+ //polyfill for symbols
+ ["FaceForm", "ImageSizeAction", "ImageSizeRaw", "Selectable", "ViewMatrix", "CurrentValue", "FontColor", "Tiny", "VertexColors", "Antialiasing","Small", "Plot", "ListCurvePathPlot",  "ListLinePlot", "ListPlot", "Automatic", "Controls","All","TickLabels","FrameTicksStyle", "AlignmentPoint","AspectRatio","Axes","AxesLabel","AxesOrigin","AxesStyle","Background","BaselinePosition","BaseStyle","ColorOutput","ContentSelectable","CoordinatesToolOptions","DisplayFunction","Epilog","FormatType","Frame","FrameLabel","FrameStyle","FrameTicks","FrameTicksStyle","GridLines","GridLinesStyle","ImageMargins","ImagePadding","ImageSize","Full","LabelStyle","Method","PlotLabel","PlotRange","PlotRangeClipping","PlotRangePadding","PlotRegion","PreserveImageOptions","Prolog","RotateLabel","Ticks","TicksStyle", "TransitionDuration"].map((name)=>{
+  g2d[name] = () => name;
+  //g2d[name].destroy = () => name;
+  g2d[name].update = () => name;
+  
+  });
 
 
-if (Object.keys(options).length === 0 && args.length > 1) {
-  options = await core._getRules(args[1], {...env, context: g3d, hold:true});
-}
+  g2d.Spacer = () => {};
 
-console.warn(options);  
+  core.GoldenRatio = () => 1.6180;
 
+  g2d["Graphics`Canvas"] = async (args, env) => {
+    //const copy = {...env};
+    //modify local axes to transform correctly the coordinates of scaled container
+    let t = {k: 1, x:0, y:0};
+    env.onZoom.push((tranform) => {
+      t = tranform;
+    });
 
-let noGrid = true;
+    const copy = {xAxis: env.xAxis, yAxis: env.yAxis};
 
-let plotRange;
+    env.xAxis = (x) => {
+      return 0;
+    };
 
-let viewPoint = [- 40, 20, 30];
+    env.yAxis = (y) => {
+      return 0;
+    };
 
-if (options.ViewPoint) {
-  const r = await interpretate(options.ViewPoint, {...env, context: g3d});
-  if (Array.isArray(r)) {
-    if (typeof r[0] == 'number' && typeof r[1] == 'number' && typeof r[2] == 'number') {
-      viewPoint = [r[0], r[2], r[1]];
+    env.xAxis.invert = (x) => {
+      const X = (x - t.x - env.panZoomEntites.left) / t.k;
+      return copy.xAxis.invert(X);
+    };
+
+    env.yAxis.invert = (y) => {
+      const Y = (y - t.y - env.panZoomEntites.top) / t.k;
+      return copy.yAxis.invert(Y);
+    };
+
+    return env.panZoomEntites.canvas
+  };
+
+  g2d.HoldForm = async (args, env) => await interpretate(args[0], env);
+  g2d.HoldForm.update = async (args, env) => await interpretate(args[0], env);
+  //g2d.HoldForm.destroy = async (args, env) => await interpretate(args[0], env)
+
+  g2d.SVGGroup = async (args, env) => {
+    const group = env.svg.append("g");
+
+    group.attr('opacity', env.opacity);
+
+    const reset = {...env};
+    reset.svg = group;
+
+    reset.offset = {x: 0, y: 0};
+    reset.color = 'rgb(68, 68, 68)';
+    reset.stroke = undefined;
+    reset.opacity = 1;
+    reset.fontsize = 10;
+    reset.fontfamily = 'sans-serif';
+    reset.strokeWidth = 1.5;
+    reset.pointSize = 0.023;
+    reset.arrowHead = 1.0;
+
+    delete reset.opacityRefs;
+    delete reset.colorRefs;
+
+    env.local.group = group;
+    await interpretate(args[0], reset);
+
+    if (env.opacityRefs) {
+      env.opacityRefs[env.root.uid] = env.root;
     }
+
+    return group;
+  };
+
+  g2d.SVGGroup.virtual = true; 
+  
+  g2d.SVGGroup.update = async (args, env) => {
+    //update?..
+  };  
+
+  g2d.SVGGroup.updateOpacity = (args, env) => {
+    env.local.group.attr("opacity", env.opacity);    
+  }; 
+
+  g2d.SVGGroup.destroy = (args, env) => {
+    if (env.opacityRefs) {
+      delete env.opacityRefs[env.root.uid];
+    }    
+    env.local.group.remove();
+  }; 
+
+  g2d.Scale = async (args, env) => {
+    const scaling = await interpretate(args[1], env);
+    const group = env.svg.append("g");
+
+    let aligment;
+    if (args.length > 2) {
+      aligment = await interpretate(args[2], env);
+    }
+   // if (arrdims(pos) > 1) throw 'List arguments for Translate is not supported for now!';
+    
+    env.local.group = group;
+
+    await interpretate(args[0], {...env, svg: group});
+
+    let centre = group.node().getBBox();
+    
+    if (aligment) {
+      centre.x = (env.xAxis(aligment[0]));
+      centre.y = (env.yAxis(aligment[1]));
+    } else {
+      centre.x = (centre.x + centre.width / 2);
+      centre.y = (centre.y + centre.height / 2);
+    }
+
+    env.local.aligment = aligment;
+
+    let scale = undefined;
+    if (typeof scaling === 'number') {
+      scale = `translate(${centre.x}, ${centre.y}) scale(${scaling}) translate(${-centre.x}, ${-centre.y})`;
+    } else if (Array.isArray(scaling)) {
+      scale = `translate(${centre.x}, ${centre.y}) scale(${scaling[0]}, ${scaling[1]}) translate(${-centre.x}, ${-centre.y})`;
+    }
+
+    env.local.scale = scale;
+
+    if (scale) group.attr("transform", scale);
+
+    return group;
+  };
+
+  g2d.Scale.update = async (args, env) => {
+    let scaling = await interpretate(args[1], env);
+
+    if (scaling instanceof NumericArrayObject) { // convert back automatically
+      scaling = scaling.normal();
+    }    
+
+    let aligment = env.local.aligment;
+   // if (arrdims(pos) > 1) throw 'List arguments for Translate is not supported for now!';
+    
+    const group = env.local.group;
+
+
+    let centre;
+    centre = group.node().getBBox();
+    
+    if (aligment) {
+      centre.x = (env.xAxis(aligment[0]));
+      centre.y = (env.yAxis(aligment[1]));
+    } else {
+      centre.x = (centre.x + centre.width / 2);
+      centre.y = (centre.y + centre.height / 2);
+    }
+
+    let scale = undefined;
+    if (typeof scaling === 'number') {
+      scale = `translate(${centre.x}, ${centre.y}) scale(${scaling}) translate(${-centre.x}, ${-centre.y})`;
+    } else if (Array.isArray(scaling)) {
+      scale = `translate(${centre.x}, ${centre.y}) scale(${scaling[0]}, ${scaling[1]}) translate(${-centre.x}, ${-centre.y})`;
+    }
+
+     
+
+    var interpol_rotate = d3.interpolateString(env.local.scale, scale);
+
+    env.local.group.maybeTransitionTween(env.transitionType, env.transitionDuration, 'transform' , function(d,i,a){ return interpol_rotate } );
+  
+    env.local.scale = scale;   
+
+    return env.local.group;
+  };
+
+  //g2d.Translate.destroy = async (args, env) => {
+   // const pos = await interpretate(args[1], env);
+   // const obj = await interpretate(args[0], env);
+  //}  
+
+  g2d.Scale.virtual = true;  
+
+  g2d.Scale.destroy = (args, env) => {
+    console.log('nothing to destroy');
+    //delete env.local.area;
+  };
+  //g2d.Scale.destroy = async (args, env) => await interpretate(args[0], env)  
+
+  g2d.NamespaceBox = async (args, env) => await interpretate(args[1], env);
+  g2d.DynamicModuleBox = async (args, env) => await interpretate(args[1], env);
+  g2d.TagBox = async (args, env) => await interpretate(args[0], env);  
+  g2d.DynamicModule = async (args, env) => await interpretate(args[1], env);
+  g2d["Charting`DelayedClickEffect"] = async (args, env) => await interpretate(args[0], env);
+
+  g2d.ColorProfileData = () => {};
+
+  g2d.ParametricPlot = () => {};
+
+  g2d.TransitionDuration = () => "TransitionDuration";
+  g2d.TransitionType = () => "TransitionType";
+
+  var assignTransition = (env) => {
+    if ('transitiontype' in env) {
+      switch (env.transitiontype) {
+        case 'Linear':
+          env.transitionType = d3.easeLinear;
+        break;
+        case 'CubicInOut':
+          env.transitionType = d3.easeCubicInOut;
+        break;
+        default:
+          env.transitionType = false;
+      }
+    }
+
+    if (env.transitionduration) {
+      env.transitionDuration = env.transitionduration;
+    }
+  };
+
+  const makeEditorView = async (data, env = { global: {} }) => {
+    //check by hash if there such object, if not. Ask server to create one with EditorView and store.
+    const hash = String(interpretate.hash(data));
+    let obj;
+    let storage;
+
+    if (!(hash in ObjectHashMap)) {
+      obj = new ObjectStorage(hash);
+
+      try {
+        storage = await obj.get();
+      } catch(err) {
+        console.warn('Creating FE object by id '+hash);
+        await server.kernel.io.fetch('CoffeeLiqueur`Extensions`Graphics`Private`MakeExpressionBox', [JSON.stringify(data), hash]);
+        storage = await obj.get();
+      }
+      
+    } else {
+      obj = ObjectHashMap[hash];
+    }
+
+    if (!storage) storage = await obj.get();
+
+    console.log("g2d: creating an object");
+    console.log('frontend executable');
+
+
+    const copy = env;
+    
+    const instance = new ExecutableObject('g2d-embeded-'+uuidv4(), copy, storage, true);
+    instance.assignScope(copy);
+    obj.assign(instance);
+
+    await instance.execute();
+    return instance;
+  };
+
+  g2d.Offset = async (args, env) => {
+    if (args.length < 2) {
+      const data = await interpretate(args[0], env);
+      return [env.xAxis.invert(data[0])-env.xAxis.invert(0), env.yAxis.invert(data[1])-env.yAxis.invert(0)]
+    }
+
+    const list = await interpretate(args[1], env);
+
+    /*env.offset = {
+      x: env.xAxis(list[0]) - env.xAxis(0),
+      y: env.yAxis(list[1]) - env.yAxis(0)
+    };*/
+
+    const offset = {
+      x: list[0],
+      y: list[1]
+    };
+
+    const data = await interpretate(args[0], {...env, offset:offset});
+    if (Array.isArray(data)) {
+      const res = [env.xAxis.invert(data[0]) - env.xAxis.invert(0) + offset.x, env.xAxis.invert(data[1]) + offset.y - env.xAxis.invert(0)];
+      return res;
+    }
+
+    return data;
+  };
+
+  //g2d.Offset.destroy = g2d.Offset
+  g2d.Offset.update = g2d.Offset;
+
+  g2d.Dashing = async (args, env) => {
+    const d = await interpretate(args[0], env);
+    if (Array.isArray(d)) {
+      if (d[0] == 0) {
+        env.dasharray = [2,2];
+        return;
+      }
+    } 
+    env.dasharray = [2,0,0,0,2];
+  };
+
+  g2d.AbsoluteDashing = async (args, env) => {
+    const arr = await interpretate(args[0], env);
+    env.dasharray = arr;
+  };
+
+  let assignProto;
+  
+  assignProto = () => {
+    d3.selection.prototype.maybeTransition = function(type, duration) {
+      return type ? this.transition().ease(type).duration(duration) : this;
+    };
+
+    d3.selection.prototype.maybeTransitionTween = function(type, duration, d, func) {
+
+      return type ? this.transition()
+      .ease(type)
+      .duration(duration).attrTween(d, func) : this.attr(d, func.apply(this.node(), this.data())(1.0));
+    };
+
+    assignProto = () => {};
+  };
+
+  function niceNumber(x) {
+    if (typeof x === 'string') return x;
+    if (typeof x !== 'number' || !isFinite(x)) return String(x);
+    if (Number.isInteger(x)) return String(x);
+  
+    // Fixed with 2 decimals (trimmed)
+    const fixed = trimFixed(x.toFixed(2));
+  
+    // Build a few scientific candidates with different fractional digits,
+    // convert them to ×10ⁿ form, and pick the shortest.
+    const sciCandidates = [];
+    for (let frac = 0; frac <= 4; frac++) {
+      const expStr = x.toExponential(frac);     // e.g. "1.23e+4"
+      const sci = exponentialToSuperscript(expStr); // e.g. "1.23×10⁴"
+      sciCandidates.push(sci);
+    }
+    const sciShortest = shortest(sciCandidates);
+  
+    return sciShortest.length < fixed.length ? sciShortest : fixed;
   }
-}
-
-if (options.Axes) {
-  console.warn(options.PlotRange);
-  plotRange = await interpretate(options.PlotRange, env);
-  noGrid = false;
-}
-
-
-
-const defaultMatrix = new THREE.Matrix4().set(
-  1, 0, 0, 0,//
-  0, 1, 0, 0,//
-  0, 0, 1, 0,//
-  0, 0, 0, 1);
-
-
-let PathRendering = false;
-if ('RTX' in options) {
-  PathRendering = true;
-  if (!RTX) {
-    await interpretate.shared.THREERTX.load();
-    RTX = interpretate.shared.THREERTX.RTX;
+  
+  // --- helpers ---
+  
+  function trimFixed(s) {
+    // Normalize "-0.00" -> "0"
+    if (/^-?0(?:\.0+)?$/.test(s)) return "0";
+    // Remove trailing zeros and possible trailing dot
+    s = s.replace(/(\.\d*?[1-9])0+$/, '$1'); // "1.2300" -> "1.23"
+    s = s.replace(/\.0+$/, '');              // "1.00"   -> "1"
+    return s;
   }
-  //RTX = (await import('three-gpu-pathtracer/build/index.module.js'));
-} else if (options.Renderer) {
-  const renderer = await interpretate(options.Renderer, env);
-  if (renderer == 'PathTracing') {
-    PathRendering = true;
-    if (!RTX) {
-      await interpretate.shared.THREERTX.load();
-      RTX = interpretate.shared.THREERTX.RTX;
+  
+  function exponentialToSuperscript(expStr) {
+    // Parse "mantissa e exponent"
+    // Examples: "1.2300e+04", "-3.0e-05"
+    const m = /^(-?\d+(?:\.\d+)?)[eE]([+\-]?\d+)$/.exec(expStr);
+    if (!m) return expStr; // fallback (shouldn't happen)
+    let mantissa = m[1];
+    let exponent = m[2];
+  
+    // Trim mantissa trailing zeros and dot
+    mantissa = mantissa.replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, '');
+    // Normalize "-0" -> "0"
+    if (/^-?0(?:\.0+)?$/.test(mantissa)) mantissa = "0";
+  
+    // Normalize exponent: remove leading zeros, keep sign
+    let sign = exponent.startsWith('-') ? '-' : (exponent.startsWith('+') ? '+' : '');
+    let absExp = exponent.replace(/^[+\-]?0+/, '');
+    if (absExp === '') absExp = '0';
+  
+    const superscript = toSuperscript(sign + absExp);
+  
+    // Compose "mantissa×10ⁿ"
+    return `${mantissa}×10${superscript}`;
+  }
+  
+  const SUP = {
+    '0':'⁰','1':'¹','2':'²','3':'³','4':'⁴',
+    '5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹',
+    '+':'⁺','-':'⁻'
+  };
+  
+  function toSuperscript(s) {
+    return [...s].map(c => SUP[c] ?? c).join('');
+  }
+  
+  function shortest(arr) {
+    return arr.reduce((a, b) => (b.length < a.length ? b : a));
+  }
+
+  function isMobile() {
+    // 1) Best when available (Chromium etc.)
+    if (navigator.userAgentData?.mobile != null) {
+      return navigator.userAgentData.mobile;
+    }
+
+    // 2) Capability-based heuristic
+    const coarse = window.matchMedia?.("(pointer: coarse)").matches;
+    const smallScreen = window.matchMedia?.("(max-width: 768px)").matches;
+    const touch = navigator.maxTouchPoints > 0;
+
+    // Common practical rule: coarse pointer + (touch or small screen)
+    if (coarse && (touch || smallScreen)) return true;
+
+    // 3) Last-resort UA fallback (older browsers)
+    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+
+
+  g2d.Complex = async (args, env) => {
+    console.warn('Complex numbers are only supported as decoration');
+    //[TODO] process ticks in the same way as Text with textContextSym
+    const re = await interpretate(args[0], env);
+    const im = await interpretate(args[1], env);
+    if (re == 0) {
+      if (im == 1) return 'i';
+      if (im == -1) return '-i';
+      if (im < 0) return '- i '+niceNumber(Math.abs(im));
+      return 'i '+niceNumber(im);
+    }
+
+    if (im == 1) {
+      return niceNumber(re) + ' + i';
+    }
+    if (im == -1) {
+      return niceNumber(re) + ' - i';
+    }
+
+    if (im < 0) return niceNumber(re) + ' - i' + niceNumber(Math.abs(im));
+    return niceNumber(re) + ' + i' + niceNumber(im);
+  };
+  
+  g2d.Graphics = async (args, env) => {
+
+    await interpretate.shared.d3.load();
+    if (!d3) d3 = interpretate.shared.d3.d3;
+    if (!interpolatePath) interpolatePath = interpretate.shared.d3['d3-interpolate-path'].interpolatePath;
+
+    g2d.interpolatePath = interpolatePath;
+    g2d.d3 = d3;
+
+    assignProto();
+
+
+    /**
+     * @type {Object}
+     */  
+    
+    let options = await core._getRulesReversed(args, {...env, context: g2d, hold:true});
+   
+
+    if (Object.keys(options).length == 0 && args.length > 1) {
+      if (args[1][0] === 'List') {
+        const opts = args[1].slice(1);
+        if (opts[0][0] === 'List') {
+          //console.warn(opts[0][1]);
+          options = await core._getRulesReversed(opts[0].slice(1), {...env, context: g2d, hold:true});
+        } else {
+          options = await core._getRulesReversed(opts, {...env, context: g2d, hold:true});
+        }
+      } else {
+        options = await core._getRulesReversed(await interpretate(args[1], {...env, context: g2d, hold:true}), {...env, context: g2d, hold:true});
+      }
+      
+ 
+    }
+
+
+    
+    console.log(options);
+
+
+    let label = options.PlotLabel;
+
+    /**
+     * @type {HTMLElement}
+     */
+    var container = env.element;
+
+    /**
+     * @type {[Number, Number]}
+     */
+    let ImageSize = await interpretate(options.ImageSize, {...env, context: g2d});
+    if (typeof ImageSize === 'number') {
+      if (ImageSize < 1) {
+        ImageSize = 10000.0 * ImageSize / 2.0;
+      }
+    } else if (typeof ImageSize === 'string'){
+      ImageSize = core.DefaultWidth;
     }   
-    //RTX = (await import('three-gpu-pathtracer/build/index.module.js'));
-  }
-}
-
-if (!GUI && PathRendering) {
-  GUI           = (await import('./dat.gui.module-0f47b92e.js')).GUI;  
-}
-
-
-
-
-  /**
-   * @type {Object}
-   */   
-  env.local.handlers = [];
-  env.local.prolog   = [];
-
-  const Handlers = [];
-
-/**
- * @type {HTMLElement}
- */
-const container = env.element;
-
-/**
- * @type {[Number, Number]}
- */
-const ImageSize = await setImageSize(options, env); 
-
-const params = 	{
-  topColor: 0xffffff,
-  bottomColor: 0x666666,
-  multipleImportanceSampling: false,
-  stableNoise: false,
-  denoiseEnabled: true,
-  denoiseSigma: 2.5,
-  denoiseThreshold: 0.1,
-  denoiseKSigma: 1.0,
-  environmentIntensity: 1,
-  environmentRotation: 0,
-  environmentBlur: 0.0,
-  backgroundBlur: 0.0,
-  bounces: 5,
-  sleepAfter: 1000,
-  runInfinitely: false,
-  fadeDuration: 300,
-  stopAfterNFrames: 60,
-  samplesPerFrame: 1,
-  acesToneMapping: true,
-  resolutionScale: 1.0,
-  transparentTraversals: 20,
-  filterGlossyFactor: 0.5,
-  tiles: 1,
-  renderDelay: 100,
-  minSamples: 5,
-  backgroundAlpha: 0,
-  checkerboardTransparency: true,
-  cameraProjection: 'Orthographic',
-  enablePathTracing: true
-};
-
-if (options.MultipleImportanceSampling) {
-  params.multipleImportanceSampling = await interpretate(options.MultipleImportanceSampling, env);
-}
-
-if ('EnablePathTracing' in options) {
-  params.enablePathTracing = await interpretate(options.EnablePathTracing, env);
-}
-
-if ('AcesToneMapping' in options) {
-  params.acesToneMapping = await interpretate(options.AcesToneMapping, env);
-}
-
-if (options.Bounces) {
-  params.bounces = await interpretate(options.Bounces, env);
-}
-
-if ('FadeDuration' in options) {
-  params.fadeDuration = await interpretate(options.FadeDuration, env);
-}
-
-
-
-if ('RenderDelay' in options) {
-  params.renderDelay = await interpretate(options.RenderDelay, env);
-}
-
-if ('MinSamples' in options) {
-  params.minSamples = await interpretate(options.MinSamples, env);
-}
-
-if ('EnvironmentIntensity' in options) {
-  params.environmentIntensity = await interpretate(options.EnvironmentIntensity, env);
-}
-
-if ('SamplesPerFrame' in options) {
-  params.samplesPerFrame = await interpretate(options.SamplesPerFrame, env);
-}
-
-
-
-if (options.ViewProjection) { 
-  params.cameraProjection = await interpretate(options.ViewProjection, env);
-}
-
-if (options.Background) {
-  const backgroundColor = await interpretate(options.Background, {...env, context:g3d});
-  options.Background = backgroundColor;
-  if (backgroundColor?.isColor == true) {
-    params.backgroundAlpha = 1.0;
-  }
-  
-}
-
-if (!PathRendering) params.resolutionScale = 1.0;
-
-if (PathRendering) {
-  params.sleepAfter = 10000;
-}
-
-if (options.SleepAfter) {
-  params.sleepAfter = await interpretate(options.SleepAfter, env);
-}
-//Setting GUI
-let gui;
-let guiContainer;
-
-if (PathRendering) {
-  gui = new GUI({ autoPlace: false, name: '...', closed:true });
-
-  guiContainer = document.createElement('div');
-  guiContainer.classList.add('graphics3d-controller');
-  guiContainer.appendChild(gui.domElement);
-
-  env.local.animateOnce = animateOnce;
-
-  function takeScheenshot() {
-    animateOnce();
-    renderer.domElement.toBlob(function(blob){
-      var a = document.createElement('a');
-      var url = URL.createObjectURL(blob);
-      a.href = url;
-      a.download = 'screenshot.png';
-      a.click();
-    }, 'image/png', 1.0);
-  }
-
-  const button = { Save:function(){ takeScheenshot(); }};
-  gui.add(button, 'Save');
-}
-
-
-
-
-//Setting up renderer
-let renderer, domElement, controls, ptRenderer, activeCamera;
-let perspectiveCamera, orthoCamera;
-let envMap, scene;
-
-let orthoWidth = 5;
-
-if (options.OrthographicCameraWidth) {
-    orthoWidth = await interpretate(options.OrthographicCameraWidth, env);
-}
-
-renderer = new THREE.WebGLRenderer( { antialias: true } );
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.outputEncoding = THREE.sRGBEncoding;
-renderer.setClearColor( 0, 0 );
-container.appendChild( renderer.domElement );
-env.local.rendererContainer = renderer.domElement;
-
-domElement = renderer.domElement;
-
-env.local.domElement = domElement;
-env.local.renderer = renderer;
-
-//fix for translate-50% layout
-const layoutOffset = {x:0, y:0};
-if (container.classList.contains('slide-frontend-object')) {
-  layoutOffset.x = -1.0;
-}
-
-//if (CSS2D) {
-  const labelRenderer = new CSS2D.CSS2DRenderer({globalOffset: layoutOffset});
-  labelRenderer.setSize( ImageSize[0], ImageSize[1] );
-  labelRenderer.domElement.style.position = 'absolute';
-  labelRenderer.domElement.style.top = '0px';
-  labelRenderer.domElement.style.bottom = '0px';
-  labelRenderer.domElement.style.marginTop = 'auto';
-  labelRenderer.domElement.style.marginBottom = 'auto';
- // labelRenderer.domElement.style.pointerEvents = 'none';
-  container.appendChild( labelRenderer.domElement );
-  env.local.labelContainer = labelRenderer.domElement;
-
-  domElement = labelRenderer.domElement;
-//}
-
-
-if (ImageSize[0] > 250 && ImageSize[1] > 150 && PathRendering) {
-  env.local.guiContainer = guiContainer;
-  container.appendChild( guiContainer );
-}
-
-const aspect = ImageSize[0]/ImageSize[1];
-
-if (PathRendering) {
-  perspectiveCamera = new RTX.PhysicalCamera( 75, aspect, 0.025, 500 );
-  perspectiveCamera.position.set( - 4, 2, 3 );
-} else {
-  perspectiveCamera = new THREE.PerspectiveCamera( 75, aspect, 0.025, 500 );
-  if (options.PerspectiveCameraZoom) {
-    perspectiveCamera.zoom = await interpretate(options.PerspectiveCameraZoom, env);
-  }
-  renderer.shadowMap.enabled = true;
-}
-
-let wakeFunction;
-
-if (PathRendering) {
-  wakeFunction = (updateScene, updateLighting) => {
-    timeStamp = performance.now();
-    env.local.updateSceneNext = updateScene == true;
-    env.local.updateLightingNext = updateLighting == true;
-
-    if (!sleeping) return;
-    env.local.wakeThreadUp(); 
-  };
-
-} else {
-  wakeFunction = () => {
-    timeStamp = performance.now();
-    if (!sleeping) return;
-    env.local.wakeThreadUp(); 
-  };
-}
-
-
-
-const orthoHeight = orthoWidth / aspect;
-orthoCamera = new THREE.OrthographicCamera( orthoWidth / - 2, orthoWidth / 2, orthoHeight / 2, orthoHeight / - 2, 0, 2000 );
-orthoCamera.position.set( ...viewPoint );
-
-activeCamera = orthoCamera;
-
-scene = new THREE.Scene();
-
-if (PathRendering) {
-  //equirectCamera = new RTX.EquirectCamera();
-  //equirectCamera.position.set( - 4, 2, 3 );
-
-  //ptRenderer = new RTX.PathTracingRenderer( renderer );
-  ptRenderer = new RTX.WebGLPathTracer( renderer );
-  //ptRenderer.enablePathTracing = params.enablePathTracing;
-  ptRenderer.minSamples = params.minSamples;
-  ptRenderer.renderDelay = params.renderDelay;
-  ptRenderer.fadeDuration = params.fadeDuration;
-  ptRenderer.multipleImportanceSampling = params.multipleImportanceSampling;
-  //ptRenderer.setScene( scene, activeCamera ); 
-} 
-
-let controlObject = {
-  init: (camera, dom) => {
-    controlObject.o = new OrbitControls( camera, domElement );
-    controlObject.o.addEventListener('change', wakeFunction);
-    controlObject.o.target.set( 0, 1, 0 );
-    controlObject.o.update();
-  },
-
-  dispose: () => {
     
-  }
-};
-
-
-
-if (options.Controls) {
-
-  if ((await interpretate(options.Controls, env)) === 'PointerLockControls') {
-    await interpretate.shared.THREEPointerLockControls.load();
-    const o = interpretate.shared.THREEPointerLockControls.PointerLockControls;
-    //const o = (await import('three/addons/controls/PointerLockControls.js')).PointerLockControls;
     
-  
+    if (!ImageSize) {
+      if (env.imageSize) {
+        if (Array.isArray(env.imageSize)) {
+          ImageSize = env.imageSize;
+        } else {
+          ImageSize = [env.imageSize, env.imageSize*0.618034];
+        }
+      } else {
+        ImageSize = core.DefaultWidth;
+      }
+    }
 
-    controlObject = {
+    let rawImage = false;
 
-      init: (camera, dom) => {
-        controlObject.o = new o( camera, dom );
-        scene.add( controlObject.o.getObject() );
-        controlObject.o.addEventListener('change', wakeFunction);
+    const mobileDetected = isMobile();
+    if (mobileDetected) {
+      console.warn('Mobile device detected!');
+      const k = 2.0 / devicePixelRatio;
+      if (typeof ImageSize == 'number') {
+        ImageSize = ImageSize * k;
+        if (ImageSize > 250) ImageSize = 250;
+      } else if (typeof ImageSize[0] == 'number') {
+        ImageSize[0] = ImageSize[0] * k;
+        if (ImageSize[0] > 250) ImageSize[0] = 250;
+        ImageSize[1] = ImageSize[1] * k;
+      }
 
-        controlObject.onKeyDown = function ( event ) {
-          // Prevent all default behavior immediately
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          
-          // Skip if key is already being held (prevent repeat)
-          if (event.repeat) return false;
-          
-          wakeFunction();
-          switch ( event.code ) {
-            
+    }
 
-            case 'ArrowUp':
-            case 'KeyW':
-              controlObject.moveForward = true;
-              break;
-            case 'ArrowLeft':
-            case 'KeyA':
-              controlObject.moveLeft = true;
-              break;
-            case 'ArrowDown':
-            case 'KeyS':
-              controlObject.moveBackward = true;
-              break;
-            case 'ArrowRight':
-            case 'KeyD':
-              controlObject.moveRight = true;
-              break;
-            case 'Space':
-              if ( controlObject.canJump === true ) controlObject.velocity.y += 20;
-              controlObject.canJump = false;
-              break;
+    if (options.ImageSizeRaw) {
+      const size = await interpretate(options.ImageSizeRaw, env);
+
+      if (Array.isArray(size)) {
+        if (typeof size[0] == 'number' && typeof size[1] == 'number') {
+          ImageSize = size.map((s) => s / window.devicePixelRatio);
+          rawImage = true;
+        }
+      } else {
+        if (typeof size == 'number') {
+          ImageSize = [size / window.devicePixelRatio, size*0.618034 / window.devicePixelRatio];
+          rawImage = true;
+        }
+      }
+
+    }
+
+    let tinyGraph = false;
+    let deviceFactor = devicePixelRatio;
+
+    if (mobileDetected) {
+      deviceFactor = 2.0;
+    }
+
+    if (ImageSize instanceof Array) {
+      if (ImageSize[0] < 100*deviceFactor && !(options.PaddingIsImportant)) {
+        tinyGraph = true;
+      }
+    } else {
+      if (ImageSize < 100*deviceFactor && !(options.PaddingIsImportant)) {
+        tinyGraph = true;
+      }
+    }
+
+
+
+
+    //simplified version
+    let axis = [false, false];
+    let invertedTicks = false;
+    let ticklengths = [5,5,5,5];
+    let tickLabels = [true, false, true, false];
+    let ticks = undefined;
+    let framed = false;
+    let axesstyle = undefined;
+    let ticksstyle = undefined;
+
+    if (options.Frame && !tinyGraph) {
+      options.Frame = await interpretate(options.Frame, env);
+      if (options.Frame === true) {
+        framed = true;
+      } else {
+        if (options.Frame[0][0] === true) framed = true;
+        if (options.Frame[0] === true) framed = true;  
+        if (options.Frame[1]) {
+          if (options.Frame[1][0] === true) {
+            //framed = false; //TODO: FIXME Dirty HACK for TimeLinePlot to work
+            axis = [true, false];
           }
-          return false;
-        };
+        }
+      }
+    }
 
-        controlObject.onKeyUp = function ( event ) {
-          // Prevent all default behavior immediately
-          event.preventDefault();
-          event.stopImmediatePropagation();
-          
-          wakeFunction();
-          switch ( event.code ) {
-            case 'ArrowUp':
-            case 'KeyW':
-              controlObject.moveForward = false;
-              break;
-            case 'ArrowLeft':
-            case 'KeyA':
-              controlObject.moveLeft = false;
-              break;
-            case 'ArrowDown':
-            case 'KeyS':
-              controlObject.moveBackward = false;
-              break;
-            case 'ArrowRight':
-            case 'KeyD':
-              controlObject.moveRight = false;
-              break;
-          }
-          return false;              
-        };
+    
+    
+    if (options.Axes && !tinyGraph) {
+      options.Axes = await interpretate(options.Axes, env);
+      if (options.Axes === true) {
+        axis = [true, true];
+      } else if (Array.isArray(options.Axes)) { //TODO: FIXME Dirty HACK for TimeLinePlot to work
+        
+        //if (!options.Frame || (axis[0] && axis[1]))
+          axis = options.Axes;
 
-        //env.local.handlers.push(controlObject.handler);
-        // Add movement handler for player movement
-        env.local.handlers.push(function playerMovementHandler() {
-          if (!controlObject.o || !controlObject.o.isLocked) return;
-          const now = performance.now();
-          const delta = (now - (controlObject.prevTime || now)) / 1000;
-          controlObject.prevTime = now;
-          // Damping
-          controlObject.velocity.x *= 0.9;
-          controlObject.velocity.z *= 0.9;
-          // Gravity
-          controlObject.velocity.y -= 9.8 * 4 * delta; // 10x gravity for game feel
-          // Direction
-          controlObject.direction.z = Number(controlObject.moveForward) - Number(controlObject.moveBackward);
-          controlObject.direction.x = Number(controlObject.moveRight) - Number(controlObject.moveLeft);
-          controlObject.direction.normalize();
-          // Acceleration
-          if (controlObject.moveForward || controlObject.moveBackward) controlObject.velocity.z -= controlObject.direction.z * 100.0 * delta;
-          if (controlObject.moveLeft || controlObject.moveRight) controlObject.velocity.x -= controlObject.direction.x * 100.0 * delta;
-          // Move
-          controlObject.o.moveRight(-controlObject.velocity.x * delta);
-          controlObject.o.moveForward(-controlObject.velocity.z * delta);
-          controlObject.o.getObject().position.y += (controlObject.velocity.y * delta);
+      }
+    }  
+
+
+    if (framed) {
+      invertedTicks = true;
+      axis = [true, true, true, true];
+    }
+    
+    
+
+    
+
+  if (options.Ticks) {
+      options.Ticks = await interpretate(options.Ticks, {...env, context: g2d});
+
+      // keep your [left,right,bottom,top] convention
+      if (!Array.isArray(ticks)) ticks = [true, false, true, false];
+
+      // helpers
+      // helpers
+      const isTickPair = (e) => Array.isArray(e) && typeof e[0] === 'number';
+      const isTickPairList = (v) => Array.isArray(v) && Array.isArray(v[0]) && isTickPair(v[0]);
+        
+      const normalizeSide = (val) => {
+        if (Array.isArray(val)) return val.length === 0 ? false : val; // [] disables
+        return val;
+      };
+      
+      const expandAxis = (val) => {
+          // [] disables both mirrored sides
+          if (Array.isArray(val) && val.length === 0) return [false, false];
+      
+          // [[pos,label], ...] -> pass through + mirror
+          if (isTickPairList(val)) return [val, val];
+      
+          // plain array of positions or mixed -> pass through + mirror
+          if (Array.isArray(val)) return [val, val];
+      
+          // function/object(.type)/boolean/string -> mirror
+          if (typeof val === 'function') return [val, val];
+          if (val && typeof val === 'object' && val.type) return [val, val];
+          if (val === true || val === false) return [val, val];
+          if (typeof val === 'string' || typeof val === 'number') return [val, val];
+      
+          // fallback: disable
+          return [false, false];
+        };
+      
+      // --- primary shape: [left, bottom] ---
+      // NOTE: interleave -> [left, right, bottom, top] = [L, B, L, B]
+      if (Array.isArray(options.Ticks) && options.Ticks.length === 2) {
+        const [L, B] = options.Ticks;
+      
+        const left   = normalizeSide(L);
+        const bottom = normalizeSide(B);
+      
+        // allow [[number,string], ...] to pass through unchanged
+        const leftSpec   = isTickPairList(left)   ? left   : left;
+        const bottomSpec = isTickPairList(bottom) ? bottom : bottom;
+      
+        // interleave!
+        ticks[0] = leftSpec;      // left
+        ticks[1] = bottomSpec;    // right  (← where your labels should land)
+        ticks[2] = leftSpec;      // bottom
+        ticks[3] = bottomSpec;    // top
+      }
+
+
+      // --- other shapes still supported (kept for parity/back-compat) ---
+
+      // single value -> all sides
+      else if (Array.isArray(options.Ticks) && options.Ticks.length === 1) {
+        const v = options.Ticks[0];
+        const [a, b] = expandAxis(v);
+        ticks = [a, b, a, b];
+      }
+    
+      // explicit per-side [left,right,bottom,top]
+      else if (Array.isArray(options.Ticks) && options.Ticks.length >= 3) {
+        const cand = options.Ticks;
+        const setSide = (i, val) => {
+          if (Array.isArray(val)) ticks[i] = val.length === 0 ? false : val;
+          else if (val === false || val === null) ticks[i] = false;
+          else if (val !== undefined) ticks[i] = val;
+        };
+        setSide(0, cand[0]); // left
+        setSide(1, cand[1]); // right
+        setSide(2, cand[2]); // bottom
+        setSide(3, cand[3]); // top
+      }
+    
+      // boolean true/false for all
+      else if (options.Ticks === true) {
+        ticks = [true, true, true, true];
+      } else if (options.Ticks === false) {
+        ticks = [false, false, false, false];
+      }
+    
+      // function/object with .type -> all sides
+      else if (typeof options.Ticks === 'function' || (options.Ticks && typeof options.Ticks === 'object' && options.Ticks.type)) {
+        ticks = [options.Ticks, options.Ticks, options.Ticks, options.Ticks];
+      }
+    
+      // legacy shortcuts you already had
+      if (Array.isArray(options.Ticks)) {
+        if (options.Ticks[1]?.type && !options.Ticks[0]?.type) {
+          ticks = [true, options.Ticks[1], true, false];
+        }
+        if (options.Ticks[0]?.type && !options.Ticks[1]?.type) {
+          ticks = [options.Ticks[0], true, false, false];
+        }
+        if (options.Ticks[1]?.type && options.Ticks[0]?.type) {
+          ticks = [options.Ticks[0], options.Ticks[1], false, false];
+        }
+      }
+    }
+
+
+
+
+    
+
+    if (options.FrameTicks && framed && !tinyGraph) {
+      options.FrameTicks = await interpretate(options.FrameTicks, {...env, context: g2d});
+      //I HATE YOU WOLFRAM
+
+      ticks = [true, true, true, true];
+
+
+      //left,right,  bottom,top
+      if (Array.isArray(options.FrameTicks)) {
+        if (Array.isArray(options.FrameTicks[0])) {
           
-          // Collision detection - raycast downward to find ground
-          const playerPos = controlObject.o.getObject().position;
-          const raycaster = new THREE.Raycaster();
-          raycaster.set(playerPos, new THREE.Vector3(0, -1, 0));
-          
-          // Get all intersectable objects from the scene
-          const intersects = raycaster.intersectObjects(scene.children, true);
-          
-          let groundLevel = 0.3; // Default ground level
-          
-          // Find the highest intersectable surface below the player
-          for (let i = 0; i < intersects.length; i++) {
-            const intersect = intersects[i];
-            const intersectY = intersect.point.y;
+          if (Array.isArray(options.FrameTicks[0][0])) {
             
-            // Only consider surfaces below or very close to player
-            if (intersectY <= playerPos.y + 0.1) {
-              groundLevel = Math.max(groundLevel, intersectY + 0.3); // Player height offset
-              break; // Take the first (closest) intersection
+            if (Number.isInteger(options.FrameTicks[0][0][0]) || (typeof options.FrameTicks[0][0] === 'string') || Array.isArray(options.FrameTicks[0][0][0])) {
+              ticks[1] = options.FrameTicks[0][0];           
+              ticks[3] = options.FrameTicks[0][1];              
+              
+              //, options.FrameTicks[1][0], options.FrameTicks[0][1], options.FrameTicks[1][1]];
+            }
+          } else {
+            ticks[1] = options.FrameTicks[0][0];           
+            ticks[3] = options.FrameTicks[0][1];            
+          }
+ 
+
+        }
+
+        if (Array.isArray(options.FrameTicks[1])) {
+          //console.error(options.FrameTicks[1]);
+          if (Array.isArray(options.FrameTicks[1][0])) {
+            
+            if (Number.isInteger(options.FrameTicks[1][0][0]) || (typeof options.FrameTicks[1][0] === 'string') || Array.isArray(options.FrameTicks[1][0][0])) {
+              ticks[0] = options.FrameTicks[1][0];
+              ticks[2] = options.FrameTicks[1][1];              
+              
+              //, options.FrameTicks[1][0], options.FrameTicks[0][1], options.FrameTicks[1][1]];
+            }
+
+            if (options.FrameTicks[1][0].length == 0) ticks[0] = false;
+            if (options.FrameTicks[1][1].length == 0) ticks[2] = false;
+
+          } else  {
+            ticks[0] = options.FrameTicks[1][0];
+            ticks[2] = options.FrameTicks[1][1]; 
+          }
+
+
+        }        
+      }
+
+
+    }
+
+    
+
+    if (options.FrameTicks && !tinyGraph) {
+      if (options.FrameTicks[2])
+      if (options.FrameTicks[2][1]) {
+        let t = options.FrameTicks[2][1];
+        if (Array.isArray(t)) {
+          t = t[1];
+          if (Array.isArray(t)) {
+            if (t[0] == 'Charting`getDateTicks') {
+              framed = false;
+              axis = [true, false]; //A hack for timelineplot
             }
           }
-          
-          // Ground check with collision detection
-          if (playerPos.y <= groundLevel) {
-            controlObject.velocity.y = 0;
-            controlObject.o.getObject().position.y = groundLevel;
-            controlObject.canJump = true;
+        }
+      }
+    }
+
+
+
+    
+    
+    
+    if (options.TickDirection) {
+      const dir = await interpretate(options.TickDirection, env);
+      if (dir === "Inward") invertedTicks = true;
+      if (dir === "Outward") invertedTicks = false;
+    }
+
+    if (options.TickLengths) {
+      options.TickLengths = await interpretate(options.TickLengths, env);
+      if (!Array.isArray(options.TickLengths)) {
+        ticklengths = [options.TickLengths, options.TickLengths, options.TickLengths, options.TickLengths];
+      }
+    }
+
+    if (options.TickLabels && !tinyGraph) {
+      options.TickLabels = await interpretate(options.TickLabels, env);
+      if (!Array.isArray(options.TickLabels)) {
+        tickLabels = [false, false, false, false];
+      } else {
+        tickLabels = options.TickLabels.flat();
+      }      
+    }
+
+    //-----------------
+    let margin = {top: 0, right: 0, bottom: 10, left: 40};
+    let padding = {top: 0, right: 0, bottom: 15, left: 0};
+
+    if (axis[2]) {
+      margin.top = margin.bottom;
+      margin.left = margin.right;
+    }
+    if (options.AxesLabel) {
+      padding.bottom = 10;
+      margin.top = 30;
+      margin.right = 50;
+      padding.right = 50;
+    }
+
+    if (framed) {
+      padding.left = 40;
+      padding.left = 30;
+      margin.left = 30;
+      margin.right = 40;
+      margin.top = 30;
+      //padding.top = 10;
+
+      padding.bottom = 10;
+      margin.bottom = 35;
+    }
+
+    if (options.ImagePadding) {
+      console.log('padding: ');
+      console.log(options.ImagePadding);
+      options.ImagePadding = await interpretate(options.ImagePadding, env);
+      console.log(options.ImagePadding);
+
+      if (options.ImagePadding === 'None') {
+        margin.top = 0;
+        margin.bottom = 0;
+        margin.left = 0;
+        margin.right = 0;
+      } else if (Number.isInteger(options.ImagePadding)) {
+        margin.top = options.ImagePadding;
+        margin.bottom = options.ImagePadding;
+        margin.left = options.ImagePadding;
+        margin.right = options.ImagePadding;
+      } else if (Array.isArray(options.ImagePadding)) {
+        if (Array.isArray(options.ImagePadding[0])) {
+          if (Number.isInteger(options.ImagePadding[0][0])) margin.left = options.ImagePadding[0][0];
+          if (Number.isInteger(options.ImagePadding[0][1])) margin.right = options.ImagePadding[0][1];
+        }
+        if (Array.isArray(options.ImagePadding[1])) {
+          if (Number.isInteger(options.ImagePadding[1][0])) margin.bottom = options.ImagePadding[1][0];
+          if (Number.isInteger(options.ImagePadding[1][1])) margin.top = options.ImagePadding[1][1];
+        }
+      } else if (options.ImagePadding === "All") ; else if (options.ImagePadding === false) {
+        margin.top = 0;
+        margin.bottom = 0;
+        margin.left = 0;
+        margin.right = 0;        
+      }  else {
+        console.error('given ImagePadding is not supported!');
+      }
+    }
+
+    if (!options.Axes && !options.Frame && !options.ImagePadding && !options.AxesLabel) {
+      console.warn('Axes are absent, removing padding...');
+      margin.top = 0;
+      margin.bottom = 0;
+      margin.left = 0;
+      margin.right = 0;
+      padding.top = 0;
+      padding.bottom = 0;
+      padding.left = 0;
+      padding.right = 0;     
+    }
+
+
+
+    if (tinyGraph) {
+        console.warn('too small, removing padding...');
+        margin.top = 0;
+        margin.bottom = 0;
+        margin.left = 0;
+        margin.right = 0;
+        padding.top = 0;
+        padding.bottom = 0;
+        padding.left = 0;
+        padding.right = 0;  
+    }
+    
+
+
+    let aspectratio = await interpretate(options.AspectRatio, env) || env.aspectRatio || 1;
+
+    if (!(typeof aspectratio == 'number')) aspectratio = 1.0;
+
+    //if only the width is specified
+    if (!(ImageSize instanceof Array)) {
+      aspectratio = (aspectratio * (ImageSize - margin.left - margin.right) + margin.top + margin.bottom)/(ImageSize);
+      ImageSize = [ImageSize, ImageSize*aspectratio];
+    }
+
+
+
+    let width = ImageSize[0] - margin.left - margin.right;
+    let height = ImageSize[1] - margin.top - margin.bottom;
+
+    if (rawImage) {
+      width = ImageSize[0];
+      height = ImageSize[1];
+    }
+
+    if (width <0 || height < 0) {
+      //overflow - remove all!
+      margin.top = 0;
+      margin.bottom = 0;
+      margin.left = 0;
+      margin.right = 0;
+      padding = {top: 0, right: 0, bottom: 0, left: 0};
+      width = ImageSize[0];
+      height = ImageSize[1];
+    }
+
+    // append the svg object to the body of the page
+    let svg;
+    
+    
+    // if (env.inset) 
+    //   svg = env.inset.append("svg");
+    // else
+      svg = d3.select(container).append("svg");
+
+    if ('Background' in options) {
+      
+      options.Background = await interpretate(options.Background, {...env, context: g2d});
+  
+      if (options.Background) {
+        svg.node().style.backgroundColor = options.Background;
+        console.log('Background color:'+options.Background);
+      }
+    }
+
+    if ('ViewBox' in options) {
+
+      let boxsize = await interpretate(options.ViewBox, env);
+      if (!(boxsize instanceof Array)) boxsize = [0,0,boxsize, boxsize*aspectratio];
+      svg.attr("viewBox", boxsize);  
+      env.viewBox = boxsize;   
+
+    } else {
+      svg.attr("width", width + margin.left + margin.right + padding.left)
+         .attr("height", height + margin.top + margin.bottom + padding.bottom);
+
+
+      env.svgWidth = width + margin.left + margin.right + padding.left;
+      env.svgHeight = height + margin.top + margin.bottom + padding.bottom;
+      env.clipWidth = width;
+      env.clipHeight = height;
+    }
+
+    let svgDefs = svg.append('svg:defs');
+
+    let clipOffset = 0;
+    let clipMargin = 2; 
+    let clipRangeZoom = 1;
+    let clipRangeOffset = [0,0];
+
+    if (framed) {
+      clipOffset = 7;
+      clipMargin = 0;
+    }
+
+    //make it focusable
+    svg.attr('tabindex', '0');
+
+    const listenerSVG = svg;
+
+    
+    
+    svg = svg  
+    .append("g")
+      .attr("transform",
+            "translate(" + (margin.left + padding.left) + "," + margin.top + ")");
+
+    const clipId = "clp"+(Math.random().toFixed(4).toString().replace('.', ''));
+    svg.append("clipPath")
+    .attr("id", clipId)
+    .append("rect")
+    .attr("width", width - 2 * clipOffset + clipMargin)
+    .attr("height", height - 2 * clipOffset + clipMargin)
+    .attr("x", clipOffset - clipMargin)
+    .attr("y", clipOffset - clipMargin);
+    
+    let range = [[-1.15,1.15],[-1.15,1.15]];
+    let unknownRanges = true;
+
+    if (options.PlotRange || env.plotRange) {
+      const r = env.plotRange || (await interpretate(options.PlotRange, env));
+
+      if (Number.isFinite(r[0][0])) {
+        if (Number.isFinite(r[1][0])) {
+          range = r;
+          unknownRanges = false;
+        } else {
+          range[0] = r[0];
+          range[1] = [-1.15,1.15];
+        }
+      }
+    }
+
+    if (framed) {
+      clipRangeOffset = [10 * (range[0][1] - range[0][0])/width, 10 * (range[1][1] - range[1][0])/height];
+      //avoid clipping of the frame
+    }
+
+    
+
+    {
+    
+      const meanX = (range[0][0] + range[0][1])/2.0;
+      const meanY = (range[1][0] + range[1][1])/2.0;
+      
+      if (!rawImage) {
+        range = [
+          [meanX + (range[0][0] - meanX)*clipRangeZoom - clipRangeOffset[0], meanX + (range[0][1] - meanX)*clipRangeZoom + clipRangeOffset[0]],
+          [meanY + (range[1][0] - meanY)*clipRangeZoom - clipRangeOffset[1], meanY + (range[1][1] - meanY)*clipRangeZoom + clipRangeOffset[1]]
+        ];
+      }
+
+    }    
+
+    let transitionType = d3.easeLinear;
+
+    if (options.TransitionType) {
+      const type = await interpretate(options.TransitionType, {...env, context: g2d});
+      switch (type) {
+        case 'Linear':
+          transitionType = d3.easeLinear;
+        break;
+        case 'CubicInOut':
+          transitionType = d3.easeCubicInOut;
+        break;
+        default:
+          transitionType = undefined;
+      }
+    }
+
+    let niceTicks = false;
+    if (options.NicerTicks) niceTicks = true;
+
+    
+    console.log(range);
+
+
+    let gX = undefined;
+    let gY = undefined;
+
+    let gTX = undefined;
+    let gRY = undefined;
+    
+    let x = d3.scaleLinear()
+      .domain(range[0])
+      .range([ 0, width ]);
+
+    let xAxis = d3.axisBottom(x);
+    let txAxis = d3.axisTop(x);
+
+    console.log(axis);
+
+    
+    
+    if (ticks) {
+      if (!ticks[0]) {
+        xAxis = xAxis.tickValues([]);
+      } else {
+        if (typeof ticks[0] === 'string') {
+          switch(ticks[0]) {
+            case 'Nice':
+              niceTicks = true;
+              break;
+            case 'Automatic':
+              break;
+            
+            case 'None':
+              xAxis = xAxis.tickValues([]);
+              break;
+
+            case 'DateTicksFunction':
+                //convert to a proper format
+                x = d3.scaleTime()
+                .domain(range[0].map(e => e*1000 - 2208996000*1000))
+                .range([ 0, width ]);
+                txAxis = d3.axisTop(x);
+                xAxis = d3.axisBottom(x);
+                const temp = x;
+                x = (d) => temp(d*1000 - 2208996000*1000);
+                x.copy = temp.copy; 
+                x.range = temp.range; 
+                x.domain = temp.domain;
+                x.invert = temp.invert;
+              break;
           }
-        });
+        } else if (ticks[0]?.type) {
+     
+          switch(ticks[0].type) {
+            case 'ScaledTicks':
+               
+               x = d3.scaleLinear()
+               .domain(range[0]) // like [-3.926, 0]
+               .range([0, width]); 
 
-        const inst = document.createElement('div');
-        inst.style.width="100%";
-        inst.style.height="100%";
-        inst.style.top = "0";
-        inst.style.position = "absolute";
-        env.element.appendChild(inst);
+               //[TODO] covers only a few cases...
+               const mathFunction = eval('Math.'+ticks[0].args[0][2].toLowerCase());
 
-        // Only add key listeners to document when pointer lock is active
-        function addKeyListeners() {
-          document.addEventListener( 'keydown', controlObject.onKeyDown );
-          document.addEventListener( 'keyup', controlObject.onKeyUp );
-        }
-        function removeKeyListeners() {
-          document.removeEventListener( 'keydown', controlObject.onKeyDown );
-          document.removeEventListener( 'keyup', controlObject.onKeyUp );
-        }
+               const tickFormat = d => {
+                 const val = mathFunction(d);
+              
+                 // Use log10(val) to estimate "scale" for precision decision
+                 const absVal = Math.abs(val);
+              
+                 if (absVal < 0.01 || absVal > 1000) {
+                   // Use exponential notation for very small/large values
+                   return `${val.toExponential(1)}`;  // You can also use 1 decimal if preferred
+                 } else if (absVal < 1) {
+                   return val.toFixed(3); // e.g. 0.135
+                 } else if (absVal < 10) {
+                   return val.toFixed(2); // e.g. 2.72
+                 } else if (absVal < 100) {
+                   return val.toFixed(1); // e.g. 27.2
+                 } else {
+                   return val.toPrecision(3); // fallback for big values
+                 }
+               };
 
-        inst.addEventListener( 'click', function () {
-          controlObject.o.lock();
-        } );
+               xAxis = d3.axisBottom(x).tickFormat(tickFormat);
 
-        controlObject.o.addEventListener( 'lock', function () {
-          inst.style.display = 'none';
-          addKeyListeners();
-        } );
+            break;
+          }
+        } else if (ticks[0] === true) {
+          console.log('Default ticks');
+        } else if (Array.isArray(ticks[0][0])) {
+          
+          const labels = ticks[0].map((el) => el[1]);
+     
+          xAxis = xAxis.tickValues(ticks[0].map((el) => el[0])).tickFormat(function (d, i) {
+            return niceNumber(labels[i]);
+          });
+        } else {
+          xAxis = xAxis.tickValues(ticks[0]);
+        }  
+      }    
+    }
 
-        controlObject.o.addEventListener( 'unlock', function () {
-          inst.style.display = '';
-          removeKeyListeners();
-        } );
-      },
-
-      moveBackward: false,
-      moveForward: false,
-      moveLeft: false,
-      moveRight: false,
-      canJump: false,
-      velocity: new THREE.Vector3(),
-      direction: new THREE.Vector3(),
-
-      dispose: () =>{
-
-        document.removeEventListener( 'keydown', controlObject.onKeyDown );
-        document.removeEventListener( 'keyup', controlObject.onKeyUp );
+    if (ticks) {
+      
+      if (!ticks[2]) {
+        txAxis = txAxis.tickValues([]);
+      } else {
         
+        if (typeof ticks[2] === 'string') {
+          switch(ticks[2]) {
+            case 'Nice':
+              niceTicks = true;
+              break;            
+            case 'Automatic':
+              break;
+            
+            case 'None':
+              txAxis = txAxis.tickValues([]);
+              break;
+
+            case 'DateTicksFunction':
+                x = d3.scaleTime()
+                .domain(range[0].map(e => e*1000 - 2208996000*1000))
+                .range([ 0, width ]);
+                txAxis = d3.axisTop(x).ticks(4);
+                xAxis = d3.axisBottom(x).ticks(4);
+                const temp = x;
+                x = (d) => temp(d*1000 - 2208996000*1000);
+                x.copy = temp.copy; 
+                x.range = temp.range; 
+                x.domain = temp.domain;
+                x.invert = temp.invert;
+
+                
+              break;
+          }
+        }else if (ticks[2]?.type) {
+     
+          switch(ticks[2].type) {
+            case 'ScaledTicks':
+               
+               x = d3.scaleLinear()
+               .domain(range[0]) // like [-3.926, 0]
+               .range([0, width]); 
+
+               //[TODO] covers only a few cases...
+               const mathFunction = eval('Math.'+ticks[2].args[0][2].toLowerCase());
+
+               const tickFormat = d => {
+                 const val = mathFunction(d);
+              
+                 // Use log10(val) to estimate "scale" for precision decision
+                 const absVal = Math.abs(val);
+              
+                 if (absVal < 0.01 || absVal > 1000) {
+                   // Use exponential notation for very small/large values
+                   return `${val.toExponential(1)}`;  // You can also use 1 decimal if preferred
+                 } else if (absVal < 1) {
+                   return val.toFixed(3); // e.g. 0.135
+                 } else if (absVal < 10) {
+                   return val.toFixed(2); // e.g. 2.72
+                 } else if (absVal < 100) {
+                   return val.toFixed(1); // e.g. 27.2
+                 } else {
+                   return val.toPrecision(3); // fallback for big values
+                 }
+               };
+
+               txAxis = d3.axisTop(x).tickFormat(tickFormat);
+
+            break;
+          }
+        } else if (ticks[2] === true) {
+          console.log('Default ticks');
+        } else if (Array.isArray(ticks[2][0])) {
+   
+          
+          const labels = ticks[2].map((el) => el[1]);
+          txAxis = txAxis.tickValues(ticks[2].map((el) => el[0])).tickFormat(function (d, i) {
+            return niceNumber(labels[i]);
+          });
+        } else {
+          txAxis = txAxis.tickValues(ticks[2]);
+        }  
+      }    
+    }
+
+    let gridLines = false;
+    if (options.GridLines) {
+      if (options.GridLines[1]) {
+        gridLines = (options.GridLines[1] == 'Automatic');
+      }
+    }
+
+    //throw tickLabels;
+    // Define a custom locale where the "thousands" separator is a thin space
+    const customLocale = d3.formatLocale({
+      decimal: ".",          // decimal point
+      thousands: "\u202F",   // thin space (U+202F)
+      grouping: [3],         // group digits in 3s
+      currency: ["", ""],    // currency prefix/suffix (not needed here)
+    });
+
+    // Create a formatter from this locale
+    const format = customLocale.format(",");
+
+    if (!tickLabels[0]) xAxis = xAxis.tickFormat(x => ``); else if (niceTicks) xAxis = xAxis.tickFormat(format);
+    if (!tickLabels[1]) txAxis = txAxis.tickFormat(x => ``); else if (niceTicks) txAxis = txAxis.tickFormat(format);
+
+    if (invertedTicks) {
+      xAxis = xAxis.tickSizeInner(-ticklengths[0]).tickSizeOuter(0);
+      txAxis = txAxis.tickSizeInner(-ticklengths[2]).tickSizeOuter(0);
+    } else { 
+      xAxis = xAxis.tickSizeInner(ticklengths[0]).tickSizeOuter(0);
+      txAxis = txAxis.tickSizeInner(ticklengths[2]).tickSizeOuter(0); 
+    }
+
+ 
+    // Add Y axis
+    let y = d3.scaleLinear()
+    .domain(range[1])
+    .range([ height, 0 ]);
+
+    let yAxis = d3.axisLeft(y);
+    let ryAxis = d3.axisRight(y);   
+
+    if (ticks) {
+      if (!ticks[1]) {
+        yAxis = yAxis.tickValues([]);
+      } else {
+        if (typeof ticks[1] === 'string') {
+          switch(ticks[1]) {
+            case 'Nice':
+              niceTicks = true;
+              break;            
+            case 'Automatic':
+              break;
+            
+            case 'None':
+              yAxis = yAxis.tickValues([]);
+              break;
+
+            case 'DateTicksFunction':
+              y = d3.scaleTime()
+              .domain(range[1].map(e => e*1000 - 2208996000*1000))
+              .range([ 0, height ]);
+              ryAxis = d3.axisRight(y);
+              yAxis = d3.axisLeft(y);
+
+              const proxy = y;
+              y = (d) => proxy(d*1000 - 2208996000*1000);
+              y.copy = proxy.copy; 
+              y.range = proxy.range; 
+              y.domain = proxy.domain;
+              y.invert = proxy.invert;    
+                    
+              break;
+          }
+        }else if (ticks[1]?.type) {
+     
+          switch(ticks[1].type) {
+            case 'ScaledTicks':
+               
+               y = d3.scaleLinear()
+               .domain(range[1]) // like [-3.926, 0]
+               .range([height, 0]); 
+
+               //[TODO] covers only a few cases...
+               const mathFunction = eval('Math.'+ticks[1].args[0][2].toLowerCase());
+
+               const tickFormat = d => {
+                 const val = mathFunction(d);
+              
+                 // Use log10(val) to estimate "scale" for precision decision
+                 const absVal = Math.abs(val);
+              
+                 if (absVal < 0.01 || absVal > 1000) {
+                   // Use exponential notation for very small/large values
+                   return `${val.toExponential(1)}`;  // You can also use 1 decimal if preferred
+                 } else if (absVal < 1) {
+                   return val.toFixed(3); // e.g. 0.135
+                 } else if (absVal < 10) {
+                   return val.toFixed(2); // e.g. 2.72
+                 } else if (absVal < 100) {
+                   return val.toFixed(1); // e.g. 27.2
+                 } else {
+                   return val.toPrecision(3); // fallback for big values
+                 }
+               };
+
+             yAxis = d3.axisLeft(y).tickFormat(tickFormat);
+
+            break;
+          }
+        } else if (ticks[1] === true) {
+          console.log('Default ticks');
+        } else if (Array.isArray(ticks[1][0])) {
+          const labels = ticks[1].map((el) => el[1]);
+          yAxis = yAxis.tickValues(ticks[1].map((el) => el[0])).tickFormat(function (d, i) {
+            return niceNumber(labels[i]);
+          });
+        } else {
+          yAxis = yAxis.tickValues(ticks[1]);
+        }  
+      }    
+    }
+
+
+    if (ticks) {
+      if (!ticks[3]) {
+        ryAxis = ryAxis.tickValues([]);
+      } else {
+        if (typeof ticks[3] === 'string') {
+          switch(ticks[3]) {
+            case 'Nice':
+              niceTicks = true;
+              break;            
+            case 'Automatic':
+              break;
+            
+            case 'None':
+              ryAxis = ryAxis.tickValues([]);
+              break;
+
+            case 'DateTicksFunction':
+              y = d3.scaleTime()
+              .domain(range[1].map(e => e*1000 - 2208996000*1000))
+              .range([ 0, height ]);
+              ryAxis = d3.axisRight(y);
+              yAxis = d3.axisLeft(y);
+
+              const proxy = y;
+              y = (d) => proxy(d*1000 - 2208996000*1000);
+              y.copy = proxy.copy; 
+              y.range = proxy.range; 
+              y.domain = proxy.domain;
+              y.invert = proxy.invert; 
+              break;
+          }
+        }else if (ticks[3]?.type) {
+     
+          switch(ticks[3].type) {
+            case 'ScaledTicks':
+               
+               y = d3.scaleLinear()
+               .domain(range[1]) // like [-3.926, 0]
+               .range([height, 0]); 
+
+               //[TODO] covers only a few cases...
+               const mathFunction = eval('Math.'+ticks[1].args[0][2].toLowerCase());
+
+               const tickFormat = d => {
+                 const val = mathFunction(d);
+              
+                 // Use log10(val) to estimate "scale" for precision decision
+                 const absVal = Math.abs(val);
+              
+                 if (absVal < 0.01 || absVal > 1000) {
+                   // Use exponential notation for very small/large values
+                   return `${val.toExponential(1)}`;  // You can also use 1 decimal if preferred
+                 } else if (absVal < 1) {
+                   return val.toFixed(3); // e.g. 0.135
+                 } else if (absVal < 10) {
+                   return val.toFixed(2); // e.g. 2.72
+                 } else if (absVal < 100) {
+                   return val.toFixed(1); // e.g. 27.2
+                 } else {
+                   return val.toPrecision(3); // fallback for big values
+                 }
+               };
+
+               ryAxis = d3.axisRight(y).tickFormat(tickFormat);
+
+            break;
+          }
+        } else if (ticks[3] === true) {
+          console.log('Default ticks');
+        } else if (Array.isArray(ticks[3][0])) {
+          const labels = ticks[3].map((el) => el[1]);
+          ryAxis = ryAxis.tickValues(ticks[3].map((el) => el[0])).tickFormat(function (d, i) {
+            return niceNumber(labels[i]);
+          });
+        } else {
+          ryAxis = ryAxis.tickValues(ticks[3]);
+        }  
+      }    
+    }    
+
+
+    if (!tickLabels[2]) yAxis = yAxis.tickFormat(x => ``); else if (niceTicks) yAxis = yAxis.tickFormat(format);
+    if (!tickLabels[3]) ryAxis = ryAxis.tickFormat(x => ``); else if (niceTicks) ryAxis = ryAxis.tickFormat(format);    
+
+
+    
+    if (invertedTicks) {
+      yAxis = yAxis.tickSizeInner(-ticklengths[1]).tickSizeOuter(0);
+      ryAxis = ryAxis.tickSizeInner(-ticklengths[3]).tickSizeOuter(0);
+    } else {
+      yAxis = yAxis.tickSizeInner(ticklengths[1]).tickSizeOuter(0);
+      ryAxis = ryAxis.tickSizeInner(ticklengths[3]).tickSizeOuter(0);      
+    }
+
+
+    let xGrid;
+    let yGrid;
+    
+
+    if ((ticks || axis[0]) && gridLines) {
+      
+      if (axis[0]) {
+        xGrid = (x) => (g) => g
+        .selectAll('line')
+        .data(x.ticks())
+        .join('line')
+        .attr('x1', d => x(d))
+        .attr('x2', d => x(d))
+        .attr('y1', 0)
+        .attr('y2', height);
+      }
+
+      if (axis[1]) {
+        yGrid = (y) => (g) => g
+        .selectAll('line')
+        .data(y.ticks())
+        .join('line')
+        .attr('x1', 0)
+        .attr('x2', width)
+        .attr('y1', d => y(d))
+        .attr('y2', d => y(d));
+      }
+    }     
+
+    //throw ticks;
+
+    env.context = g2d;
+    env.svg = svg.append("g");
+
+    //added clip view
+
+    if ('PlotRangeClipping' in options) {
+      const clip = await interpretate(options.PlotRangeClipping, env);
+      if (clip) {
+        env.svg = env.svg.attr("clip-path", "url(#"+clipId+")").append('g');
+      } else {
+        env.svg = env.svg.append('g');
+      }
+    } else {
+      env.svg = env.svg.attr("clip-path", "url(#"+clipId+")").append('g');
+    }
+
+    
+    env.rootSVG = env.svg;
+
+    env.xAxis = x;
+    env.yAxis = y;     
+    env.defs = svgDefs;
+    env.xGrid = xGrid;
+    env.yGrid = yGrid;
+    env.numerical = true;
+    env.tostring = false;
+    env.offset = {x: 0, y: 0};
+    env.color = 'rgb(68, 68, 68)';
+    env.stroke = undefined;
+    env.opacity = 1;
+    env.fontsize = 10;
+    env.fontfamily = 'sans-serif';
+    env.strokeWidth = 1.5;
+    env.pointSize = 0.023;
+    env.arrowHead = 1.0;
+    env.onZoom = [];
+    env.transitionDuration = 50;
+    env.transitionType = transitionType;
+    env.plotRange = range;
+
+    
+
+    axesstyle = {...env};
+    ticksstyle = {...env};
+
+    if (options.AxesStyle) {
+      await interpretate(options.AxesStyle, axesstyle);
+    }
+
+    if (options.FrameStyle) {
+      console.warn('FrameStyle');
+      console.log(options.FrameStyle);
+      //console.log(JSON.stringify(axesstyle));
+      await interpretate(options.FrameStyle, axesstyle);
+      console.log(axesstyle);
+    }    
+
+    if (options.FrameTicksStyle) {
+      await interpretate(options.FrameTicksStyle, ticksstyle);
+    }
+
+    let gGX;
+    let gGY;
+
+    if (yGrid) gGY = svg.append('g').attr('stroke', '#0000002e').attr('stroke-dasharray', '4 2').call(yGrid(y));
+    if (xGrid) gGX = svg.append('g').attr('stroke', '#0000002e').attr('stroke-dasharray', '4 2').call(xGrid(x));
+
+    if (axis[0]) gX = svg.append("g").attr("transform", "translate(0," + height + ")").call(xAxis).attr('font-size', ticksstyle.fontsize).style('color', ticksstyle.color);
+    if (axis[2]) gTX = svg.append("g").attr("transform", "translate(0," + 0 + ")").call(txAxis).attr('font-size', ticksstyle.fontsize).style('color', ticksstyle.color);
+    
+    if (axis[1]) gY = svg.append("g").call(yAxis).attr('font-size', ticksstyle.fontsize).style('color', ticksstyle.color);
+    if (axis[3]) gRY = svg.append("g").attr("transform", "translate(" + width + ", 0)").call(ryAxis).attr('font-size', ticksstyle.fontsize).style('color', ticksstyle.color);
+
+
+
+    let labelStyle = {...axesstyle};
+
+    if (options.LabelStyle) {
+      await interpretate(options.LabelStyle, labelStyle);
+    }
+
+    if (label) {
+      let editorView = false;
+
+      if (Array.isArray(label)) {
+        if (label[0] == 'HoldForm') {
+          editorView = true;
+        }
+      }
+
+      try {
+        if (!editorView) label = await interpretate(label, labelStyle);
+      } catch(err) {
+        console.warn(err);
+        editorView = true;
+      }
+
+      if (editorView) {
+        console.warn('Fallback to Inset');
+        await interpretate(['Inset', options.PlotLabel, ['JSObject', [x.invert((width / 2) + labelStyle.offset.x), y.invert(0 - (margin.top / 2) + labelStyle.offset.y)]], 'Top'], {...env, context:g2d, svg:svg});
+      } else {
+        g2d.Text.PutText(svg.append("text")
+                .attr("x", (width / 2) + labelStyle.offset.x)             
+                .attr("y", 0 - (margin.top / 2) + labelStyle.offset.y)
+                .attr("text-anchor", "middle") 
+                .attr('fill', labelStyle.color)
+                .style("font-size", labelStyle.fontsize)  
+                .style("font-family", labelStyle.fontfamily),
+                label, labelStyle
+        );
+      }
+    }
+
+    if (options.AxesLabel && !framed) {
+      
+      options.AxesLabel = await interpretate(options.AxesLabel, {...env, hold:true});
+
+      if (Array.isArray(options.AxesLabel)) {
+        //let temp = {...env};
+        //let value = await interpretate(options.AxesLabel[0], temp);
+
+        if (gX && options.AxesLabel[0]) {
+
+          await processLabel(options.AxesLabel[0], gX, {...env}, (text, offsets) => {
+            g2d.Text.PutText(gX.append("text")
+              .attr("x", width + 15 + offsets[0])
+              .attr("y", margin.bottom + offsets[1])
+              .attr("font-size", axesstyle.fontsize)
+              .attr("fill", axesstyle.color)
+              .attr("text-anchor", "start")
+            , text, axesstyle); 
+          }, (node, offsets) => {
+              node
+              .attr("transform", `translate(${width + 15 + offsets[0]}, ${margin.bottom + offsets[1] - 10})`)
+              .attr("font-size", axesstyle.fontsize)
+              .attr("fill", axesstyle.color)
+              .attr("text-anchor", "start");
+          });
+          
+        }
+
+        if (gY && options.AxesLabel[1]) {
+          await processLabel(options.AxesLabel[1], gY, {...env}, (text, offsets) => {
+            g2d.Text.PutText(gY.append("text")
+              .attr("x", 0 + offsets[0])
+          .attr("y", -margin.top/2 + offsets[1])
+          .attr("font-size", axesstyle.fontsize)
+          .attr("fill", axesstyle.color)
+          .attr("text-anchor", "start")
+            , text, axesstyle); 
+          }, (node, offsets) => {
+              node
+              .attr("transform", `translate(${0 + offsets[0]}, ${-margin.top/2 + offsets[1]})`)
+          .attr("font-size", axesstyle.fontsize)
+          .attr("fill", axesstyle.color)
+          .attr("text-anchor", "start");
+          });
+
+        }        
+ 
+      }
+
+    }
+
+    if (options.FrameLabel && framed) {
+     
+      //throw(options.FrameLabel);
+
+      options.FrameLabel = await interpretate(options.FrameLabel, {...env, hold:true});
+
+
+
+
+      if (Array.isArray(options.FrameLabel)) {
+
+        let lb = options.FrameLabel[0];
+        let rt = options.FrameLabel[1];
+
+        let flip = false;
+
+
+        if (!Array.isArray(lb)) {
+          lb = ["List", lb, "None"];
+          flip = true;
+        } else if (lb[0] != "List") {
+          lb = ["List", lb, "None"];
+          flip = true;
+        } else if (Array.isArray(lb[2])) {
+          if (lb[2][0] == 'List') {
+            if (lb[2].length == 3) {
+              lb = ["List", lb, "None"];
+              flip = true;
+            }
+          } else if (lb[2][0] == 'HoldForm') {
+            if (Array.isArray(lb[2][1])) {
+              if (lb[2][1][0] == 'List') {
+                if (lb[2][1].length == 3) {
+                  lb = ["List", ['List', lb[1], lb[2][1]], "None"];
+                  flip = true;
+                }
+              }
+            }
+          }
+        }
+
+        if (!Array.isArray(rt)) {
+          rt = ["List", rt, "None"];
+          flip = true;
+        } else if (rt[0] != "List") {
+          rt = ["List", rt, "None"];
+          flip = true;
+        } else if (Array.isArray(rt[2])) {
+          if (rt[2][0] == 'List') {
+            if (rt[2].length == 3) {
+              rt = ["List", rt, "None"];
+              flip = true;
+            }
+          } else if (rt[2][0] == 'HoldForm') {
+            if (Array.isArray(rt[2][1])) {
+              if (rt[2][1][0] == 'List') {
+                if (rt[2][1].length == 3) {
+                  rt = ["List", ['List', rt[1], rt[2][1]], "None"];
+                  flip = true;
+                }
+              }
+            }
+          }
+        }
+
+        if (flip) { //flip axes if only plain list is provided
+          [rt, lb] = [lb, rt];
+        }
+      
+
+        if (lb[1] != 'None' && gY) {
+          let ref = lb[1];
+          //if (ref[0] == "List" && ref.length == 3) ref = [ref[1], ref[2]];
+
+    
+      
+
+          await processLabel(ref, gY, {...env}, (text, offsets) => {
+          g2d.Text.PutText(gY.append("text")
+          .attr("transform", "rotate(-90)")
+          .attr("y", -margin.left + offsets[0])
+          .attr("x", -height/2 + offsets[1])
+          .attr("font-size", axesstyle.fontsize)
+          .attr("fill", axesstyle.color)
+          .attr("text-anchor", "middle")
+          , text, axesstyle); 
+          }, (node, offsets) => {
+
+          node
+          .attr("transform", `rotate(-90) translate(${-height/2 + offsets[1]}, ${-margin.left + offsets[0]})`)
+          .attr("font-size", axesstyle.fontsize)
+          .attr("fill", axesstyle.color)
+          .attr("text-anchor", "middle");
+
+          });
+        } 
+
+        if (lb[2] != 'None' && gRY) {
+
+          let ref = lb[2];
+          //if (ref[0] == "List" && ref.length == 3) ref = [ref[1], ref[2]];
+
+          await processLabel(ref, gRY, {...env}, (text, offsets) => {
+          g2d.Text.PutText(gRY.append("text")
+          .attr("x", 0 + offsets[0])
+              .attr("y", margin.bottom + offsets[1])
+              .attr("font-size", axesstyle.fontsize)
+              .attr("fill", axesstyle.color)
+              .attr("text-anchor", "middle")
+          , text, axesstyle); 
+          }, (node, offsets) => {
+
+          node
+          .attr("transform", `translate(${offsets[0]}, ${ margin.bottom + offsets[1]})`)
+              .attr("font-size", axesstyle.fontsize)
+              .attr("fill", axesstyle.color)
+              .attr("text-anchor", "middle");
+
+          });
+
+
+        } 
+
+
+ 
+        
+        if (rt[2] != 'None' && gTX) {
+
+          let ref = rt[2];
+          //if (ref[0] == "List" && ref.length == 3) ref = [ref[1], ref[2]];
+
+          await processLabel(ref, gTX, {...env}, (text, offsets) => {
+          g2d.Text.PutText(gTX.append("text")
+          .attr("x", width/2 + offsets[0])
+          .attr("y", margin.bottom + offsets[1])
+          .attr("font-size", axesstyle.fontsize)
+          .attr("fill", axesstyle.color)
+          .attr("text-anchor", "middle")
+          , text, axesstyle); 
+          }, (node, offsets) => {
+
+          node
+          .attr("transform", `translate(${width/2 + offsets[0]}, ${ margin.bottom + offsets[1]})`)
+          .attr("font-size", axesstyle.fontsize)
+          .attr("fill", axesstyle.color)
+          .attr("text-anchor", "middle");
+
+          });
+        }
+    
+
+        if (rt[1] != 'None' && gX) {
+
+          let ref = rt[1];
+          //if (ref[0] == "List" && ref.length == 3) ref = [ref[1], ref[2]];
+
+          await processLabel(ref, gX, {...env}, (text, offsets) => {
+          g2d.Text.PutText(gX.append("text")
+          .attr("x", width/2 + offsets[0])
+          .attr("y", margin.bottom + offsets[1])
+          .attr("font-size", axesstyle.fontsize)
+          .attr("fill", axesstyle.color)
+          .attr("text-anchor", "middle")
+          , text, axesstyle); 
+          }, (node, offsets) => {
+
+          node
+          .attr("transform", `translate(${width/2 + offsets[0]}, ${ margin.bottom + offsets[1]})`)
+          .attr("font-size", axesstyle.fontsize)
+          .attr("fill", axesstyle.color)
+          .attr("text-anchor", "middle");
+
+          });
+
+
+        }   
+         
+        
+ 
+      }
+
+    } 
+    //since FE object insolates env already, there is no need to make a copy
+
+      
+      if (options.TransitionDuration) {
+        env.transitionDuration = await interpretate(options.TransitionDuration, env);
+      }
+
+      env.local.xAxis = x;
+      env.local.yAxis = y;
+
+      let GUIEnabled = false;
+
+      if (options.Controls || (typeof options.Controls === 'undefined') && !tinyGraph && !mobileDetected) {
+        //add pan and zoom
+        if (typeof options.Controls === 'undefined') {
+          GUIEnabled = true;
+          addPanZoom(listenerSVG, svg, env.svg, gX, gY, gTX, gRY, gGX, gGY, xAxis, yAxis, txAxis, ryAxis, xGrid, yGrid, x, y, env);
+        } else {
+          if (await interpretate(options.Controls, env)) {
+            GUIEnabled = true;
+            addPanZoom(listenerSVG, svg, env.svg, gX, gY, gTX, gRY, gGX, gGY, xAxis, yAxis, txAxis, ryAxis, xGrid, yGrid, x, y, env);
+          }
+        }
+      }
+
+
+      env.local.listenerSVG = listenerSVG;
+
+      env.panZoomEntites = {
+        canvas: listenerSVG,
+        svg: env.svg,
+        left: margin.left + padding.left,
+        top: margin.top,
+        gX: gX,
+        gY: gY,
+        gTX: gTX,
+        gRY: gRY,
+        gGX: gGX,
+        gGY: gGY,
+        xGrid: xGrid,
+        yGrid: yGrid,
+        xAxis: xAxis,
+        yAxis: yAxis,
+        txAxis: txAxis,
+        ryAxis: ryAxis,
+        x: x,
+        y: y
+      };
+
+      if (!env.inset && (width >= 160 && height >= 98) && GUIEnabled) ;
+
+      const instancesKeys = Object.keys(env.global.stack);
+
+      await interpretate(options.Prolog, env); 
+
+   
+      
+      await interpretate(args[0], env);
+      
+      interpretate(options.Epilog, env);
+
+      
+
+      if (unknownRanges) {
+        if (env.reRendered) {
+          console.error('Something is wrong with ranges. We could not determine them properly');
+          console.warn(env);
+          return;
+        }
+
+        //throw 'fuck';
+        svg.node().style.opacity = 0;
+        console.warn('d3.js autoscale! Requires double evaluation!!!');
+        //credits https://gist.github.com/mootari
+        //thank you, nice guy
+        
+        
+
+        const xsize = ImageSize[0] - (margin.left + margin.right);
+        const ysize = ImageSize[1] - (margin.top + margin.bottom);
+
+        let box = env.svg.node().getBBox();
+
+        console.log([xsize, ysize]);
+        console.log(box);
+
+        if (box.width == 0 || box.height == 0) {
+          for (let i = 0; i<12; ++i) {
+            console.warn('Element is too small... Waiting for CSS reflow');
+            console.log([box.width, box.height]);
+            await delay(300);
+            box = env.svg.node().getBBox();
+            if (!(box.width == 0 && box.height == 0)) break;
+          }
+          if (box.width == 0 && box.height == 0) {
+            svg.node().style.opacity = 1;
+            console.log(svg.node());
+            throw 'Plot range has zero size. Content is hidden probably'
+          }
+        }
+
+        const plotRange = [[x.invert(box.x), x.invert(box.x + box.width)], [y.invert(box.height+box.y), y.invert(box.height+box.y - box.height)]];
+
+        let aspectRatioEstiamted = (plotRange[1][1]-plotRange[1][0])/(plotRange[0][1]-plotRange[0][0]);
+        if (!isFinite(aspectRatioEstiamted) || aspectRatioEstiamted < 0 || aspectRatioEstiamted > 3 || aspectRatioEstiamted < 1.0/3.0) aspectRatioEstiamted = undefined;
+        console.warn('Kill all created instances');
+        const created = Object.keys(env.global.stack).filter((i) => !instancesKeys.some(o => o === i));
+
+        for (const i of created) {
+          env.global.stack[i].dispose();
+        }
+
+        svg.remove();
+        container.replaceChildren();
+
+        return await g2d.Graphics(args, {...env, plotRange: plotRange, reRendered:true, aspectRatio: aspectRatioEstiamted});
+
+        /*
+        const scale = Math.min(xsize / box.width, ysize / box.height);
+
+        console.log(scale);
+        
+        // Reset transform.
+        let transform = d3.zoomTransform(listenerSVG);
+        
+
+        
+        // Center [0, 0].
+        transform = transform.translate(xsize / 2, ysize / 2);
+        // Apply scale.
+        transform = transform.scale(scale);
+        // Center elements.
+        transform = transform.translate(-box.x - box.width / 2, -box.y - box.height / 2);
+
+        console.log(transform);
+       
+        
+        reScale(transform, svg, env.svg, gX, gY, gTX, gRY, xAxis, yAxis, txAxis, ryAxis, x, y, env);
+
+        if (env._zoom) {
+          env._zoom.transform(listenerSVG, transform);
+        }        */
+
+        
+      }
+
+      
+
+      return env;
+  };
+
+  g2d['Graphics`Serialize'] = async (args, env) => {
+    const opts = await core._getRules(args, env);
+    let dom = env.element;
+
+    if (opts.TemporalDOM) {
+      dom = document.createElement('div');
+      dom.style.pointerEvents = 'none';
+      dom.style.opacity = 0;
+      dom.style.position = 'absolute';
+
+      document.body.appendChild(dom);
+    }
+
+    const senv = await interpretate(args[0], {...env, element: dom});
+    const str = await serialize(senv.element.firstChild).text();
+
+    Object.values(env.global.stack).forEach((el) => {
+      el.dispose();
+    });
+
+    if (opts.TemporalDOM) {
+      dom.remove();
+    }
+
+    return str;
+  };
+
+  g2d.Graphics.update = (args, env) => { console.error('root update method for Graphics is not supported'); };
+  g2d.Graphics.destroy = (args, env) => { 
+    env.local.listenerSVG.remove(); 
+    //if (env.local.guiContainer) env.local.guiContainer.remove(); 
+    delete env.panZoomEntites;
+    //console.error('Nothing to destroy...'); 
+  };
+
+  g2d.JoinForm = (args, env) => {
+    env.joinform = interpretate(args[0], env);
+    console.warn('JoinForm is not implemented!');
+  };
+
+  const curve = {};
+  curve.BezierCurve = async (args, env) => {
+    let points = await interpretate(args[0], env);
+    var path = env.path; 
+
+    const x = env.xAxis;
+    const y = env.yAxis;
+
+    points = points.map((p) => [x(p[0]), y(p[1])]);
+
+    let indexLeft = points.length - 1;
+
+    if (env.startQ) {
+      path.moveTo(...points[0]);
+    
+      for (let i=1; i<points.length - 2; i+=3) {
+          indexLeft -= 3;
+          path.bezierCurveTo(...points[i], ...points[i+1], ...points[i+2]); 
+      }
+
+      env.startQ = false;
+    } else {
+      //path.moveTo(...points[0]);
+    
+      for (let i=0; i<points.length - 2; i+=3) {
+          indexLeft -= 3;
+          path.bezierCurveTo(...points[i], ...points[i+1], ...points[i+2]); 
+      }     
+    }
+
+
+    if (indexLeft > 0) {
+      path.quadraticCurveTo(...points[points.length - 2], ...points[points.length -1]);
+    }    
+  }; 
+
+  g2d.Legended = async (args, env) => {
+    throw 'Legended is not supported in the context of Graphics'
+  };
+
+  g2d.FaceForm = async (args, env) => {
+ 
+    const copy = {...env, hold: true};
+    const res = await interpretate(args[0], copy);
+
+    if (Array.isArray(res)) {
+      copy.hold = false;
+      for (const i of res) {
+        await interpretate(i, copy);
+      }
+    } 
+
+    env.thickness = copy.thickness;
+    env.width = copy.width;
+    env.opacity = copy.opacity;
+    env.color = copy.color;
+
+  };
+
+  curve.Line = async (args, env) => {
+    let points = await interpretate(args[0], env);
+    var path = env.path; 
+
+    const x = env.xAxis;
+    const y = env.yAxis;
+
+    points = points.map((p) => [x(p[0]), y(p[1])]);
+
+    if (env.startQ) {
+      path.moveTo(...points[0]);
+      for (let i =1; i<points.length; ++i)
+        path.lineTo(...points[i]);      
+
+      env.startQ = false;
+
+      return;
+    }
+
+    for (let i =0; i<points.length; ++i)
+      path.lineTo(...points[i]);
+
+  };
+
+  g2d.RegularPolygon = async (args, env) => {
+    let n = 3;
+    let radius = 1;
+    let [cx, cy] = [0,0];
+    let theta = Math.PI/2.0;
+    
+    if (args.length == 1) n = await interpretate(args[0], env);
+
+    if (args.length == 2) {
+      n = await interpretate(args[1], env);
+      radius = await interpretate(args[0], env);
+    }
+
+    if (args.length == 3) {
+      [cx, cy] = await interpretate(args[0], env);
+      n = await interpretate(args[2], env);
+      radius = await interpretate(args[1], env);
+    }
+
+    if (Array.isArray(radius)) {
+      theta += radius[1];
+      radius = radius[0];
+    }
+  
+    const line = d3.line()
+          .x(function(d) { return env.xAxis(d[0]) })
+          .y(function(d) { return env.yAxis(d[1]) });
+
+
+
+    
+    const angleStep = (2 * Math.PI) / n;
+
+          // Generate points
+          const points = d3.range(n).map(i => {
+            const angle = theta + i * angleStep; // rotate to start from top
+            return [
+              cx + radius * Math.cos(angle),
+              cy + radius * Math.sin(angle)
+            ];
+          });
+
+
+      const object = env.svg.append('path').datum(points)
+      .attr("d", line)
+      .attr("fill", env.color)
+      .attr('fill-opacity', env.opacity)
+      .attr('stroke-opacity', env.strokeOpacity || env.opacity)
+      .attr("vector-effect", "non-scaling-stroke")
+      .attr("stroke-width", env.strokeWidth)
+      .attr("stroke", env.stroke || env.color);
+
+      if (env.dasharray) {
+        object.attr('stroke-dasharray', env.dasharray.join());
       }  
+
+      env.local.polygon = object;
+      return object;    
+  };
+
+  g2d.JoinedCurve = async (args, env) => {
+    const path = d3.path();
+    await interpretate(args[0], {...env, path: path, context: [curve, g2d], startQ: true});
+    
+    return env.svg.append("path")
+    .attr("fill", "none")
+    .attr("vector-effect", "non-scaling-stroke")
+    .attr('opacity', env.opacity)
+    .attr("stroke", env.color)
+    .attr("stroke-width", env.strokeWidth)
+    .attr("d", path); 
+  };  
+
+  g2d.CapForm = () => {};
+
+  g2d.FilledCurve = async (args, env) => {
+    const path = d3.path();
+    await interpretate(args[0], {...env, path: path, context: [curve, g2d], startQ: true});
+    
+    return env.svg.append("path")
+    .attr("fill", env.color)
+    .attr("vector-effect", "non-scaling-stroke")
+    .attr('opacity', env.opacity)
+    .attr('fill-rule', 'evenodd')
+    .attr("stroke", 'none')
+    .attr("stroke-width", env.strokeWidth)
+    .attr("d", path); 
+  };
+
+  const delay = (ms) => {
+    return new Promise((res)=>{
+      setTimeout(res, ms);
+    })
+  };
+
+  g2d.Inset = async (args, env) => {
+    let pos = [0,0];
+    let size; 
+
+    const opts = await core._getRules(args, env);
+    const oLength = Object.keys(opts).length;
+    
+    if (args.length - oLength > 1) pos = await interpretate(args[1], env);
+    let opos;
+
+    if (pos instanceof NumericArrayObject) { // convert back automatically
+      pos = pos.normal();
+    }
+
+    if (args.length - oLength > 2) opos = await interpretate(args[2], env);
+    //if (args.length - oLength > 3) size = await interpretate(args[3], env);
+
+    
+
+
+    const group = env.svg.append('g');
+
+    const foreignObject = group.append('foreignObject');
+
+
+    //const foreignObject = foreignObject.append('xhtml:canvas').attr('xmlns', 'http://www.w3.org/1999/xhtml').node();
+    const stack = {};
+    env.local.stack = stack;
+
+    const copy = {global: {...env.global, stack: stack}, inset:true, element: foreignObject.node(), context: g2d};
+
+    if (args.length - oLength > 3) {
+      await interpretate(args[3], env);
+    }
+
+    if (opts.ImageSizeRaw) {
+      size = opts.ImageSizeRaw;
+    }
+
+    if (size) {
+      //if (typeof size === 'number') size = [size, size/1.6];
+      //size = [Math.abs(env.xAxis(size[0]) - env.xAxis(0)), Math.abs(env.yAxis(size[1]) - env.yAxis(0))];
+
+      foreignObject.attr('width', size[0]);
+      foreignObject.attr('height', size[1]);      
+      //copy.imageSize = size;
+    } 
+   
+    //const instance = new ExecutableObject('feinset-'+uuidv4(), copy, args[0]);
+    //instance.assignScope(copy);
+  
+    //await instance.execute();   
+
+    let fallback = false; //fallback to EditorView
+    if (args[0][0] == 'HoldForm') {
+      if (Array.isArray(args[0][1])) {
+        if (args[0][1][0] == 'Offload') ; else {
+          fallback = true;
+        }
+      } else {
+        fallback = true;
+      }
+    }
+ 
+    try {
+      if (!fallback) await interpretate(args[0], copy);
+    } catch(err) {
+      console.warn(err);
+      fallback = true;
+    }
+
+
+
+    if (fallback) {
+      await makeEditorView(args[0], copy);
+    }
+
+    const child = foreignObject.node();
+
+    await delay(60);
+
+    
+    
+    const h = child.offsetHeight || child.firstChild?.offsetHeight || child.firstChild?.height;
+
+    if (h < 10) {
+      for (let u=0; u<20; ++u) {
+        await delay(300);
+        if ((child.offsetHeight || child.firstChild?.offsetHeight || child.firstChild?.height) > 30) break;
+      }
+    }
+
+
+    let box = {width: child.offsetWidth || child.firstChild?.offsetWidth || child.firstChild?.width, height: child.offsetHeight || child.firstChild?.offsetHeight || child.firstChild?.height};
+    
+
+    if (box.width instanceof SVGAnimatedLength) {
+      box.width = box.width.animVal.valueInSpecifiedUnits;
+    }
+
+    if (box.height instanceof SVGAnimatedLength) {
+      box.height = box.height.animVal.valueInSpecifiedUnits;
+    }
+
+    console.warn(box);
+
+    if ((box.width < 1 || !box.width) && box.height > 1) {
+      //HACK: check if this is EditorView or similar
+      const content = child.getElementsByClassName('cm-scroller');
+      if (content.length > 0) {
+        box.width = content[0].firstChild.offsetWidth;
+      } else {
+        box.width = box.height * 1.66;
+      }
+    }
+
+    if (!size) {
+      foreignObject.attr('width', box.width);
+      foreignObject.attr('height', box.height); 
+      //size = [box.width, box.height];     
+    }
+
+
+    if ('ViewMatrix' in opts) {
+      if (!opts.ViewMatrix) {
+        foreignObject.attr('x', 0);
+        foreignObject.attr('y', 0); 
+
+        return group;
+      }
+    }
+
+    env.local.box = box;
+
+ 
+    if (!opos || typeof opos == 'string') {
+      switch(opos) {
+        case 'Top':
+          opos = [box.width/2, box.height];
+        break;
+
+        case 'Bottom':
+          opos = [box.width/2, 0];
+        break;
+
+        case 'Left':
+          opos = [0, box.height/2];
+        break;
+
+        case 'Right':
+          opos = [box.width, box.height/2];
+        break;
+
+        default:
+          opos = [box.width/2, box.height/2];
+      }
+      
+    
+
+      foreignObject.attr('x', env.xAxis(pos[0]) - opos[0])
+                 .attr('y', env.yAxis(pos[1]) + opos[1] - box.height);
+
+    } else {
+
+      foreignObject.attr('x', env.xAxis(pos[0]) - opos[0])
+                 .attr('y', env.yAxis(pos[1]) + opos[1] - box.height);
+
+      //opos = [Math.abs(env.xAxis(opos[0]) - env.xAxis(0)), -Math.abs(env.yAxis(opos[1]) - env.yAxis(0))];
+    }
+
+  
+    env.local.foreignObject = foreignObject;
+
+    env.local.opos = opos;
+
+    group.attr('opacity', env.opacity);
+    if (env.opacityRefs) {
+      env.opacityRefs[env.root.uid] = env.root;
+    }
+
+    env.local.group = group;
+
+    
+    return group;
+  };
+
+  g2d.Inset.update = async (args, env) => {
+    let pos = await interpretate(args[1], env);
+
+    if (pos instanceof NumericArrayObject) { // convert back automatically
+      pos = pos.normal();
+    }
+
+    const opos = env.local.opos;
+    const f = env.local.foreignObject;
+
+    if (f)
+    f.attr('x', env.xAxis(pos[0]) - opos[0])
+     .attr('y', env.yAxis(pos[1]) + opos[1] - env.local.box.height);
+
+    return f;
+   
+  };
+
+  g2d.Inset.updateOpacity = (args, env) => {
+    env.local.group.attr("opacity", env.opacity);    
+  };
+
+  g2d.Inset.destroy = async (args, env) => {
+    if (env.opacityRefs) {
+      delete env.opacityRefs[env.root.uid];
+    }
+
+    Object.values(env.local.stack).forEach((el) => {
+      if (!el.dead) el.dispose();
+    });
+
+    env.local.group.remove();
+  };
+
+  g2d.Inset.virtual = true;
+
+  const serialize = (svg) => {
+    const xmlns = "http://www.w3.org/2000/xmlns/";
+    const xlinkns = "http://www.w3.org/1999/xlink";
+    const svgns = "http://www.w3.org/2000/svg";
+
+    svg = svg.cloneNode(true);
+    const fragment = window.location.href + "#";
+    const walker = document.createTreeWalker(svg, NodeFilter.SHOW_ELEMENT);
+    while (walker.nextNode()) {
+      for (const attr of walker.currentNode.attributes) {
+        if (attr.value.includes(fragment)) {
+          attr.value = attr.value.replace(fragment, "#");
+        }
+      }
+    }
+    svg.setAttributeNS(xmlns, "xmlns", svgns);
+    svg.setAttributeNS(xmlns, "xmlns:xlink", xlinkns);
+    const serializer = new window.XMLSerializer;
+    const string = serializer.serializeToString(svg);
+    return new Blob([string], {type: "image/svg+xml"});
+  };
+
+  const addPanZoom = (listener, raw, view, gX, gY, gTX, gRY, gGX, gGY, xAxis, yAxis, txAxis, ryAxis, xGrid, yGrid, x, y, env) => {
+
+      console.log({listener, raw, view, gX, gY, gTX, gRY, xAxis, yAxis, txAxis, ryAxis, xGrid, yGrid, x, y, env});
+      const zoom = d3.zoom().filter(filter).on("zoom", zoomed);
+   
+      listener.call(zoom);
+      
+      env._zoom = zoom;
+
+      
+
+      function zoomed({ transform }) {
+        
+        view.attr("transform", transform);
+
+        // Rescale axes
+        const newX = transform.rescaleX(x);
+        const newY = transform.rescaleY(y);
+
+        if (gX) gX.call(xAxis.scale(newX));
+        if (gY) gY.call(yAxis.scale(newY));
+      
+        if (gTX) gTX.call(txAxis.scale(newX));
+        if (gRY) gRY.call(ryAxis.scale(newY));
+
+        // Update grid lines
+        if (gGX) gGX.call(xGrid(newX));
+        if (gGY) gGY.call(yGrid(newY));
+      
+        env.onZoom.forEach((h) => h(transform));
+      }
+  
+    
+      // prevent scrolling then apply the default filter
+      function filter(event) {
+        event.preventDefault();
+        return (!event.ctrlKey || event.type === 'wheel') && !event.button;
+      }    
+  };
+
+  g2d.Texture = async (args, env) => {
+    const image = await interpretate(args[0], {...env, offscreen: true});
+    console.log('got it!');
+
+    const img = await createImageBitmap(image);
+    image.remove();
+
+
+    const getter = (gl) => {
+      if (!env.local.texture) {
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        env.local.texture = twgl.createTexture(gl, {
+          src: img,
+          flipY: false,
+          minMag: gl.LINEAR, // Linear filtering
+        });
+        return env.local.texture;
+      }
+
+      return env.local.texture;
     };
+
+    env.local.img = img;
+    env.exposed.texture = {image: img, get: getter};
+
+    
+    return img;
+  };
+
+  g2d.Texture.destroy = (args, env) => {
+    env.local.img.close();
+  };
+
+  g2d.Texture.virtual = true;
+
+  g2d.SVGAttribute = async (args, env) => {
+    const attrs = await core._getRules(args, env);
+    let obj = await interpretate(args[0], env);
+    
+    Object.keys(attrs).forEach((a)=> {
+      obj = obj.attr(a, attrs[a]);
+    });
+
+    env.local.object = obj;
+    return obj;
+  };
+
+  g2d.SVGAttribute.update = async (args, env) => {
+    const attrs = await core._getRules(args, env);
+    //skipping evaluation of the children object
+    let obj = env.local.object.maybeTransition(env.transitionType, env.transitionDuration);
+    
+    Object.keys(attrs).forEach((a)=> {
+      obj = obj.attr(a, attrs[a]);
+    });
+
+    return obj;
+  };  
+
+  g2d.SVGAttribute.destroy = async (args, env) => {
+    console.log('SVGAttribute: nothing to destroy');
+  };
+
+  g2d.SVGAttribute.virtual = true;
+
+
+  g2d.LABColor =  async (args, env) => {
+    let lab;
+    if (args.length > 1)
+      lab = [await interpretate(args[0], env), await interpretate(args[1], env), await interpretate(args[2], env)];
+    else 
+      lab = await interpretate(args[0], env);
+
+    
+    const color = default_1({luminance: 100*lab[0], a: 100*lab[1], b: 100*lab[2]});
+    //console.log(lab);
+    //console.log('LAB color');
+    //console.log(color);
+    
+    env.color = "rgb("+Math.floor(color.red)+","+Math.floor(color.green)+","+Math.floor(color.blue)+")";
+    if (args.length > 3) env.opacity = await interpretate(args[3], env);
+    
+    return env.color;   
+  };
+
+  g2d.LABColor.update = () => {};
+ // g2d.LABColor.destroy = () => {}
+
+ g2d.arrowGenerator = undefined;
+
+ let arrow1;
+
+ //[FIXME] curves are not supported!
+ g2dComplex.BezierCurve = async (args, env) => {
+  const data  = await interpretate(args[0], env);
+  return data.filter((el) => !Array.isArray(el));
+ };
+
+ g2dComplex.Arrow = async (args, env) => {
+
+  await interpretate.shared.d3.load();
+  if (!arrow1) arrow1 = (await interpretate.shared.d3['d3-arrow']).arrow1;
+
+  let data = await interpretate(args[0], env);
+
+
+  if (!Array.isArray(data)) {
+    //if not a numerical data, but some other curves
+    let object;
+    const uid = uuidv4();
+    const arrow = arrow1()
+    .id(uid)
+    .attr("fill", env.color)
+    .attr("stroke", "none").scale([env.arrowHead]);
+  
+    env.svg.call(arrow);
+
+    object = data.attr("marker-end", "url(#"+uid+")");
+
+    return object;
+  }
+
+
+  //difference case for verices
+
+  if (!data[0][0]) {
+      const uid = uuidv4();
+      const arrow = arrow1()
+      .id(uid)
+      .attr("fill", env.color)
+      .attr("stroke", "none").scale([env.arrowHead]);
+    
+      env.svg.call(arrow);
+
+
+      const object = env.svg.append("path")
+      .datum(data.map((index) => env.wgl.fallbackVertices[index-1]))
+      .attr("fill", "none")
+      .attr("vector-effect", "non-scaling-stroke")
+      .attr('opacity', env.opacity)
+      .attr("stroke", env.color)
+      .attr("stroke-width", env.strokeWidth)
+      .attr("d", d3.line()
+        .x(function(d) { return d[0] })
+        .y(function(d) { return d[1] })
+        ).attr("marker-end", "url(#"+uid+")"); 
+
+      return object;
+    } else {
+
+      console.log('Multiple isntances');
+      console.log(data);
+
+      const gr = env.svg.append("g");
+      gr.attr("fill", "none")
+      .attr('opacity', env.opacity)
+      .attr("stroke", env.color)
+      .attr("stroke-width", env.strokeWidth);
+
+      const uid = uuidv4();
+      const arrow = arrow1()
+      .id(uid)
+      .attr("fill", env.color)
+      .attr("stroke", "none").scale([env.arrowHead]);
+      env.svg.call(arrow);  
+
+      data.forEach((dt) => {
+              
+        gr.append("path")
+        .datum(dt.map((index) => env.wgl.fallbackVertices[index-1]))
+        .attr("vector-effect", "non-scaling-stroke")
+        .attr("d", d3.line()
+          .x(function(d) { return d[0] })
+          .y(function(d) { return d[1] })
+          ).attr("marker-end", "url(#"+uid+")");      });
+
+      return gr;
+    }
+ };
+
+    
+
+ g2d.Arrow = async (args, env) => {
+   await interpretate.shared.d3.load();
+   if (!arrow1) arrow1 = (await interpretate.shared.d3['d3-arrow']).arrow1;
+
+   const x = env.xAxis;
+   const y = env.yAxis;
+
+   const uid = uuidv4();
+
+   const arrow = arrow1(-(env.strokeWidth - 1.5)*1.5)
+   .id(uid)
+   .attr("fill", env.color)
+   .attr("stroke", "none").scale([env.arrowHead]);
+
+   env.local.marker = uid;
+   //env.normalForm = true; //convert all numeric arrays to a normal form
+   env.svg.call(arrow);
+
+   let path = await interpretate(args[0], env);
+   if (path instanceof NumericArrayObject) { // convert back automatically
+    path = path.normal();
+   }
+
+   if (!Array.isArray(path)) {
+    //if not a numerical data, but some other curves
+    let object;
+    let shift = 0;
+    if (args.length > 1) {
+      shift = await interpretate(args[1], env);
+      shift = Math.max(Math.abs(x(shift)-x(0)), Math.abs(y(shift)-y(0)));
+
+
+      const arr = d3.select(document.getElementById(uid));
+      arr.attr('refX', parseFloat(arr.attr('refX')) + shift);
+    }
+
+    object = path.attr("marker-end", "url(#"+uid+")");
+    
+
+    return object;
+  }
+
+
+
+   env.local.line = d3.line()
+     .x(function(d) { return env.xAxis(d[0]) })
+     .y(function(d) { return env.yAxis(d[1]) });
+
+  //console.warn(path);
+
+  if (!path[0][0][0] && (typeof path[0][0][0] != 'number')) {
+    //console.log('Condtions special');
+    //console.warn(path);
+     const object = env.svg.append("path")
+     .datum(path)
+     .attr("vector-effect", "non-scaling-stroke")
+     .attr("fill", "none")
+     .attr('opacity', env.opacity)
+     .attr("stroke", env.color)
+     .attr("stroke-width", env.strokeWidth)
+     .attr("d", env.local.line
+     ).attr("marker-end", "url(#"+uid+")"); 
+
+     env.local.arrow = object;
+
+     if (env.colorRefs) {
+      env.colorRefs[env.root.uid] = env.root;
+    }
+    if (env.opacityRefs) {
+      env.opacityRefs[env.root.uid] = env.root;
+    }
+   
+     return object;
+  } else {
+    const object = [];
+    //console.log('Condtions object');
+
+    path.forEach((p) => {
+      
+      object.push(env.svg.append("path")
+      .datum(p)
+      .attr("vector-effect", "non-scaling-stroke")
+      .attr("fill", "none")
+      .attr('opacity', env.opacity)
+      .attr("stroke", env.color)
+      .attr("stroke-width", env.strokeWidth)
+      .attr("d", env.local.line
+      ).attr("marker-end", "url(#"+uid+")"));
+    });
+
+
+    env.local.arrows = object;
+
+    return object;
+
+  }
+
+
+
+ };
+
+ g2d.Arrow.update = async (args, env) => {
+   env.xAxis;
+   env.yAxis;
+
+
+   let path = await interpretate(args[0], env);
+   //console.log(path);
+   if (path instanceof NumericArrayObject) { // convert back automatically
+    path = path.normal();
+   }
+
+   //console.log(path);
+
+   if (path[0][0][0]) throw('Arrows update method does not support multiple traces');
+
+   //console.log(env.local);
+
+   const object = env.local.arrow.datum(path).maybeTransitionTween(env.TransitionType, env.TransitionDuration, 'd', function (d) {
+    var previous = d3.select(this).attr('d');
+    var current = env.local.line(d);
+    return interpolatePath(previous, current);
+  });
+   
+   return object;
+ };
+
+ const dynSpace = {};
+
+ dynSpace.DynamicName = async (args, env) => {
+  const res = await interpretate(args[0], {...env, context: [g2d, dynSpace]});
+  const label = await interpretate(args[1], env);
+  env.contextSpace.put(label, res);
+
+  return res;
+ };
+
+ dynSpace.DynamicLocation = async (args, env) => {
+  const label = await interpretate(args[0], env);
+  const object = await env.contextSpace.get(label);
+
+  const bbox = object.node().getBBox();
+  const pos = [bbox.x + bbox.width/2.0, bbox.y + bbox.height/2.0];
+
+  pos[0] = env.xAxis.invert(pos[0]);
+  pos[1] = env.yAxis.invert(pos[1]);
+
+  return pos;
+ };
+
+ g2d.DynamicNamespace = async (args, env) => {
+  const contextSpace = {
+    names: {},
+    que: {},
+    get: async (name) => {
+      if (name in contextSpace.names) {
+        return contextSpace.names[name]
+      } 
+
+      const promise = new Deferred();
+      if (!(name in contextSpace.que))
+        contextSpace.que[name] = [];
+
+      contextSpace.que[name].push(promise);
+
+      return promise.promise;
+    },
+    put: (name, object) => {
+      contextSpace.names[name] = object;
+
+      if (name in contextSpace.que) {
+        contextSpace.que[name].forEach((p) => p.resolve(object));
+      }
+    }
+  };
+
+  const copy = {...env, contextSpace: contextSpace, context: [dynSpace, g2d], hold:true};
+  const list = (await interpretate(args[0], copy));
+
+  const promises = [];
+  const groups = [];
+  if (Array.isArray(list)) {
+    for (const i of list.reverse()) {
+      const group = copy.svg.append('g');
+      groups.push(group);
+      //don't wait, go async we will figure out later
+      promises.push(interpretate(i, {...copy, hold:false, svg: group}));
+    }
+  } else {
+    promises.push(list);
+  }
+
+  await Promise.all(promises);
+
+  // Re-append groups to reorder them in the DOM
+  for (const group of groups) {
+    copy.svg.node().prepend(group.node());
+  }
+
+  return 
+ };
+
+ g2d.Arrow.updateColor = (args, env) => {
+  if (typeof env.local.marker == 'string') {
+    env.local.marker = d3.select(document.getElementById(env.local.marker).firstChild);
+    //throw(env.local.marker.node());
+  }
+  env.local.marker.attr("fill", env.color);
+  if (Array.isArray(env.local.arrows)) {
+    env.local.arrows.map((e) => e.attr("stroke", env.color));
+  } else {
+    env.local.arrow.attr("stroke", env.color);
+  }
+  
+ };
+
+  g2d.Arrow.updateOpacity = (args, env) => {
+    if (typeof env.local.marker == 'string') {
+      env.local.marker = d3.select(document.getElementById(env.local.marker).firstChild);
+    }    
+    env.local.marker.attr("opacity", env.opacity);
+    if (Array.isArray(env.local.arrows)) {
+      env.local.arrows.map((e) => e.attr("opacity", env.opacity));
+    } else {
+      env.local.arrow.attr("opacity", env.opacity);
+    }    
+  };
+
+ g2d.Arrow.virtual = true;
+
+ g2d.Arrow.destroy = async (args, env) => {
+  if (env.colorRefs) {
+    delete env.colorRefs[env.root.uid];
+  }
+
+  if (env.opacityRefs) {
+    delete env.opacityRefs[env.root.uid];
+  }
+
+  if (Array.isArray(env.local.arrows)) {
+    env.local.arrows.map((e)=>e.remove);
+  } else {
+    env.local?.arrow?.remove();
+  }
+
+  if (typeof env.local.marker == 'string') {
+    const c = document.getElementById(env.local.marker);
+    env.local.marker = d3.select(c?.firstChild);
+    env.local.marker?.remove();
+    c?.remove();
+  } else {
+    env.local?.marker?.remove();
+  }
+  
+ };  
+
+
+
+ g2d.ImageScaled = async (args, env) => {
+    const offset = await interpretate(args[0], env);
+    return [
+      offset[0] * (env.plotRange[0][1] - env.plotRange[0][0]) + env.plotRange[0][0],
+      offset[1] * (env.plotRange[1][1] - env.plotRange[1][0]) + env.plotRange[1][0]
+    ];
+ };
+
+  g2d.Arrowheads = async (args, env) => {
+    const head = (await interpretate(args[0], env));
+    if (Array.isArray(head)) {
+      env.arrowHead = 10.0*(head.flat())[0];
+    } else {
+      env.arrowHead = 10.0*head;
+    }
+  };
+
+  //g2d.Arrowheads.destroy = async () => {};
+
+  //g2d.Arrow.destroy = async () => {}
+  const textContext = {};  
+
+  textContext.Pane = (args, env) => {
+    return interpretate(args[0], env);
+  };
+
+  textContext.Framed = (args, env) => {
+    return interpretate(args[0], env);
+  };
+
+  g2d.DirectedInfinity = () => Infinity;
+  g2d.Infinity = () => Infinity;
+
+  textContext.NumberForm = async (args, env) => {
+  const isNumeric = (x) => typeof x === "number" && isFinite(x);
+
+  const formatWithPrecision = (num, n) => {
+    try {
+      const s = Number(num).toPrecision(n);
+      return Object.is(num, -0) ? (s.replace(/^0/, "-0")) : s;
+    } catch {
+      return String(num);
+    }
+  };
+
+  const formatWithFixed = (num, f) => {
+    try {
+      const s = Number(num).toFixed(f);
+      if (Number(s) === 0 && (1 / Number(num)) === -Infinity) return "-" + s;
+      return s;
+    } catch {
+      return String(num);
+    }
+  };
+
+  const countDigits = (s) => (s.replace(/[^0-9]/g, "").length);
+
+  // n can be Infinity. If so, always return fixed with f decimals.
+  const formatWithNF = (num, n, f) => {
+    const fixed = formatWithFixed(num, f);
+
+    if (n === Infinity) return fixed;
+
+    const digits = countDigits(fixed); // excludes sign and decimal point
+    if (digits <= n) return fixed;
+
+    // fall back to scientific with n significant digits
+    const k = Math.max(0, n - 1); // toExponential(k) => total sig figs = k+1
+    let exp;
+    try {
+      exp = Number(num).toExponential(k);
+    } catch {
+      return fixed;
+    }
+    if (Number(exp) === 0 && (1 / Number(num)) === -Infinity && !/^-/.test(exp)) {
+      exp = "-" + exp;
+    }
+    return exp;
+  };
+
+  const isPlainObject = (v) => v && typeof v === "object" && !Array.isArray(v);
+  const mapDeep = (val, fn) => {
+    if (Array.isArray(val)) return val.map((x) => mapDeep(x, fn));
+    if (isPlainObject(val)) {
+      const out = {};
+      for (const k of Object.keys(val)) out[k] = mapDeep(val[k], fn);
+      return out;
+    }
+    return fn(val);
+  };
+
+  // Evaluate the expression to format
+  const expr = await interpretate(args[0], env);
+
+  // Parse spec: NumberForm[expr], NumberForm[expr, n], NumberForm[expr, {n, f}]
+  let mode = "default";
+  let n, f;
+
+  if (args.length >= 2) {
+    const spec = await interpretate(args[1], env);
+
+    if (Array.isArray(spec) && spec.length >= 2) {
+      const nRaw = spec[0];
+      const fRaw = spec[1];
+
+      // Support Infinity in multiple shapes
+      const nNum = (nRaw === Infinity || nRaw === "Infinity") ? Infinity : Number(nRaw);
+      const fNum = Number(fRaw);
+
+      if ((Number.isFinite(nNum) || nNum === Infinity) && Number.isFinite(fNum)) {
+        n = nNum;
+        f = Math.max(0, Math.floor(fNum));
+        mode = "nf";
+      }
+    } else if (spec === Infinity || spec === "Infinity" || Number.isFinite(Number(spec))) {
+      n = (spec === Infinity || spec === "Infinity") ? Infinity : Number(spec);
+      mode = "n";
+    }
+  }
+
+  const formatter = (v) => {
+    if (!isNumeric(v)) return v;
+
+    switch (mode) {
+      case "n": {
+        if (n === Infinity) return v.toString(); // unlimited: show as-is
+        return formatWithPrecision(v, Math.max(1, Math.floor(n)));
+      }
+      case "nf": {
+        const nClamped = (n === Infinity) ? Infinity : Math.max(1, Math.floor(n));
+        return formatWithNF(v, nClamped, f);
+      }
+      case "default":
+      default:
+        return v;
+    }
+  };
+
+  return mapDeep(expr, formatter);
+};
+
+
+  g2d.Row = () => {
+    throw 'Row inside Graphics context is not applicable'
+  };
+
+
+
+
+  textContext.Rotate = async (args, env) => {
+    env.rotation = await interpretate(args[1], env);
+    return await interpretate(args[0], env);
+  };  
+
+  const textContextSym = {};
+
+  function detectNumbers(test) {
+    //we need to go in depth
+    if (!Array.isArray(test)) return false;
+    if (test[0] == 'Rational') return true;
+    if (test[0] == 'Complex')  return true;
+    if (test[0] == 'Times') return true;
+    if (test[0] == 'Sqrt') return true;
+    if (test[0] == 'Exp') return true;
+    if (test[0] == 'Log') return true;
+    if (test[0] == 'Power') return true;
+    if (test[0] == 'Plus') return true;
+  }
+
+  textContextSym.E = async (args, env) => {
+    return '𝘦'
+  };
+
+  textContextSym.E.update = textContextSym.E;
+
+  textContextSym.Pi = async (args, env) => {
+    return 'π'
+  };
+
+  textContextSym.Pi.update = textContextSym.Pi;
+
+  textContextSym.Infinity = async (args, env) => {
+    return '∞'
+  };
+
+  textContextSym.Infinity.update = textContextSym.Infinity;
+
+  textContextSym.Indeterminate = async (args, env) => {
+    return '?'
+  };
+
+  textContextSym.Indeterminate.update = textContextSym.Indeterminate;
+
+  textContextSym.DirectedInfinity = async (args, env) => {
+    return '∞'
+  };
+
+  textContextSym.DirectedInfinity.update = textContextSym.DirectedInfinity;
+
+  // Plus[a, b, c, ...]  ->  a + b + c ...
+  textContextSym.Plus = async (args, env) => {
+    const parts = await Promise.all(args.map(x => interpretate(x, env)));  
+
+    const toNode = v =>
+      v instanceof Node
+        ? v
+        : document.createTextNode(
+            v == null
+              ? ""
+              : (typeof v === "object"
+                  ? (() => { try { return JSON.stringify(v); } catch { return String(v); } })()
+                  : String(v))
+          );  
+
+    const root = document.createElement("span");
+    root.style.textWrap = "nowrap";  
+
+    parts.forEach((p, i) => {
+      if (i > 0) root.appendChild(document.createTextNode(" + "));
+      root.appendChild(toNode(p));
+    });  
+
+    return root;
+  };
+
+  textContextSym.Plus.update = textContextSym.Plus;
+
+  // Times[a, b, c, ...]  ->  a × b × c ...
+  textContextSym.Times = async (args, env) => {
+    const parts = await Promise.all(args.map(x => interpretate(x, env)));
+    const toNode = v =>
+      v instanceof Node
+        ? v
+        : document.createTextNode(
+            v == null
+              ? ""
+              : (typeof v === "object" ? (() => { try { return JSON.stringify(v); } catch { return String(v); } })() : String(v))
+          );
+
+    const root = document.createElement("span");
+    root.style.textWrap = "nowrap";
+    parts.forEach((p, i) => {
+      if (i > 0) root.appendChild(document.createTextNode(" × "));
+      root.appendChild(toNode(p));
+    });
+    return root;
+  };
+
+  textContextSym.Times.update = textContextSym.Times;
+
+  // Exp[x]  ->  e^x
+  textContextSym.Exp = async (args, env) => {
+    const [x] = await Promise.all(args.slice(0, 1).map(a => interpretate(a, env)));
+    const toNode = v =>
+      v instanceof Node
+        ? v
+        : document.createTextNode(
+            v == null
+              ? ""
+              : (typeof v === "object" ? (() => { try { return JSON.stringify(v); } catch { return String(v); } })() : String(v))
+          );
+
+    const root = document.createElement("span");
+    root.style.textWrap = "nowrap";
+
+    const eNode = document.createTextNode("e");
+    const sup = document.createElement("sup");
+    sup.appendChild(toNode(x));
+
+    root.appendChild(eNode);
+    root.appendChild(sup);
+    return root;
+  };
+
+  textContextSym.Exp.update = textContextSym.Exp;
+
+  // Log[x]           -> ln(x)
+  // Log[b, x]        -> log_b(x)  (b as subscript)
+  textContextSym.Log = async (args, env) => {
+    const vals = await Promise.all(args.slice(0, 2).map(a => interpretate(a, env)));
+    const toNode = v =>
+      v instanceof Node
+        ? v
+        : document.createTextNode(
+            v == null
+              ? ""
+              : (typeof v === "object" ? (() => { try { return JSON.stringify(v); } catch { return String(v); } })() : String(v))
+          );
+
+    const root = document.createElement("span");
+    root.style.textWrap = "nowrap";
+
+    if (vals.length === 1) {
+      // ln(x)
+      root.appendChild(document.createTextNode("ln("));
+      root.appendChild(toNode(vals[0]));
+      root.appendChild(document.createTextNode(")"));
+    } else {
+      // log_b(x)
+      const [b, x] = vals;
+      root.appendChild(document.createTextNode("log"));
+      const sub = document.createElement("sub");
+      sub.appendChild(toNode(b));
+      root.appendChild(sub);
+      root.appendChild(document.createTextNode("("));
+      root.appendChild(toNode(x));
+      root.appendChild(document.createTextNode(")"));
+    }
+    return root;
+  };
+
+  textContextSym.Log.update = textContextSym.Log;
+
+  // Sqrt[x]  -> √(x)
+  textContextSym.Sqrt = async (args, env) => {
+    const [x] = await Promise.all(args.slice(0, 1).map(a => interpretate(a, env)));
+    const toNode = v =>
+      v instanceof Node
+        ? v
+        : document.createTextNode(
+            v == null
+              ? ""
+              : (typeof v === "object" ? (() => { try { return JSON.stringify(v); } catch { return String(v); } })() : String(v))
+          );
+
+    const root = document.createElement("span");
+    root.style.textWrap = "nowrap";
+    root.classList.add('sqroot');
+    const rad = document.createElement('span');
+    rad.classList.add('radicant');
+    root.appendChild(rad.appendChild(toNode(x)));
+    return root;
+  };
+
+  textContextSym.Sqrt.update = textContextSym.Sqrt;
+
+  // Power[base, exp]  -> base^exp
+  textContextSym.Power = async (args, env) => {
+    const exp = await interpretate(args[1], {...env, compact:true});
+    const base = await interpretate(args[0], env);
+    //const [base, exp] = await Promise.all(args.slice(0, 2).map(a => interpretate(a, env)));
+    
+    const toNode = v =>
+      v instanceof Node
+        ? v
+        : document.createTextNode(
+            v == null
+              ? ""
+              : (typeof v === "object" ? (() => { try { return JSON.stringify(v); } catch { return String(v); } })() : String(v))
+          );
+
+    const root = document.createElement("span");
+    root.style.textWrap = "nowrap";
+
+    root.appendChild(toNode(base));
+    const sup = document.createElement("sup");
+    sup.style.lineHeight = 'unset';
+    sup.style.top = '-0.25rem';
+    sup.style.marginLeft = '0.05rem';
+    sup.style.fontSize = '50%';
+    sup.appendChild(toNode(exp));
+    root.appendChild(sup);
+
+    return root;
+  };
+
+  textContextSym.Power.update = textContextSym.Power;
+
+
+  textContextSym.Complex = async (args, env) => {
+    const [a, b] = await Promise.all(args.slice(0, 2).map(x => interpretate(x, env)));
+    const root = document.createElement("span");
+    root.style.textWrap = 'nowrap';
+
+    if (a != 0) {
+      if (a instanceof HTMLElement) {
+        root.appendChild(a);
+      } else {
+        root.appendChild(document.createTextNode(a));
+      }
+
+      if (b != 0) root.appendChild(document.createTextNode(' + '));
+    }
+
+    if (b != 0) {
+      if (b == 1) {
+        root.appendChild(document.createTextNode('i'));
+      } else {
+        root.appendChild(document.createTextNode('i '));
+
+        if (b instanceof HTMLElement) {
+          root.appendChild(b);
+        } else {
+          root.appendChild(document.createTextNode(b));
+        }
+      }
+    }
+    return root;
+  };
+
+  textContextSym.Complex.update = textContextSym.Complex;
+
+  textContextSym.Rational = async (args, env) => {
+    const [a, b] = await Promise.all(args.slice(0, 2).map(x => interpretate(x, env)));
+    const toNode = v =>
+      v instanceof Node
+        ? v
+        : document.createTextNode(
+            v == null
+              ? ""
+              : (typeof v === "object" ? (() => { try { return JSON.stringify(v); } catch { return  String(v); } })() : String(v))
+          );
+
+    const root = document.createElement("span");
+    if (env.compact) {
+      root.appendChild(toNode(a));
+      root.appendChild(document.createTextNode('/'));
+      root.appendChild(toNode(b));      
+    } else {
+      root.className = "fraction";
+      root.innerHTML = `
+        <table class="container" style="text-wrap: nowrap;">
+          <tbody>
+            <tr><td class="enumenator"></td></tr>
+            <tr><td></td></tr>
+          </tbody>
+        </table>`;
+
+      const [tdNum, tdDen] = root.querySelectorAll("td");
+      tdNum.appendChild(toNode(a));
+      tdDen.appendChild(toNode(b));
+    }
+
+    return root;
+  };
+
+  textContextSym.Rational.update = textContextSym.Rational;
+
+
+
+  g2d.BaseStyle = () => 'BaseStyle';
+
+  g2d.Text = async (args, env) => {
+    const copy = {...env};
+    copy.context = [textContext, g2d];
+
+    let text = args[0];
+    
+    try {
+      if (detectNumbers(text)) {
+        copy.context.unshift(textContextSym);
+        text = await interpretate(args[0], copy);
+      } else {
+        text = await interpretate(args[0], copy);
+        env.local.text = text;
+      }
+    } catch(err) {
+      console.warn('Error in interpreting input argument of Text. Is it an undefined variable?');
+      env.local.object = {
+        remove: () => {}
+      };
+
+      env.local.text = "";
+      return await g2d.Inset([args[0], args[1]], {...env});
+    }
+
+    let coords = await interpretate(args[1], env);
+
+    const opts = await core._getRules(args, {...env, hold: true});
+
+    if (coords instanceof NumericArrayObject) { // convert back automatically
+      coords = coords.normal();
+    }
+
+    let globalOffset = {x: 0, y: 0};
+
+    if (opts.BaseStyle == "'Graphics'") {
+      copy.color = 'black';
+    }
+
+    let object;
+    
+    if (text instanceof HTMLElement) {
+      env.local.htmlQ = true;
+
+      const selected = d3.select(text).style("font-family", copy.fontfamily)
+        .style("font-size", copy.fontsize+'px')
+        .style("opacity", copy.opacity)
+        .style("color", copy.color);
+
+      if (copy.fontweight) selected.style("font-weight", copy.fontweight);
+
+      object = env.svg.append('foreignObject').attr('style', 'overflow: visible');
+      object.node().appendChild(text);
+      const child = object.node();
+
+      //if (child.offsetHeight || child.firstChild?.offsetHeight || child.firstChild?.height) {
+        const h = child.offsetHeight || child.firstChild?.offsetHeight || child.firstChild?.height;
+        const w = (child.offsetWidth || child.firstChild?.offsetWidth || child.firstChild?.width);
+        object.attr('width', w).attr('height', h);
+
+        globalOffset.x = -Math.round(w/2); 
+        globalOffset.y = -Math.round(h/2); 
+      //}  
+      
+    } else {
+      object = env.svg.append('text').attr("font-family", copy.fontfamily)
+        .attr("font-size", copy.fontsize)
+        .attr("opacity", copy.opacity)
+        .attr("fill", copy.color);
+      
+      if (copy.fontweight) object.attr("font-weight", copy.fontweight);
+    }
+
+    
+
+    //(args);
+
+    if (args.length > 2) {
+      
+      let offset = [0,0];
+      
+      if (args[2][0] != 'Rule') offset = (await interpretate(args[2], {...env, plotRange:[[-1,1], [-1,1]]})).map((el => Math.round(el)));
+
+
+
+      //console.error(offset);
+      //console.error(globalOffset);
+
+
+      const px = env.xAxis(coords[0]) + globalOffset.x;
+      const py = env.yAxis(coords[1]) + globalOffset.y;
+
+      object.attr("x", px).attr("y", py);
+
+      if (copy.rotation) {
+        const deg = Math.round(copy.rotation * 180 / Math.PI);
+        object.attr("transform", `rotate(${deg}, ${px}, ${py})`);
+      }
+
+      if (offset[0] === 0) {
+        object.attr("text-anchor", "middle");
+      } else if (offset[0] > 0) {
+        object.attr("text-anchor", "end");
+      } else if (offset[0] < 0) {
+        object.attr("text-anchor", "start");
+      }
+      
+      if (offset[1] === 0) {
+        object.attr("alignment-baseline", "middle");
+      } else if (offset[1] > 0) {
+        object.attr("alignment-baseline", "hanging");
+      } else if (offset[1] < 0) {
+        object.attr("alignment-baseline", "text-after");
+      }        
+
+
+    } else {
+
+      const px = env.xAxis(coords[0]) + globalOffset.x;
+      const py = env.yAxis(coords[1]) + globalOffset.y;
+
+      object.attr("x", px).attr("y", py);
+
+      if (copy.rotation) {
+        const deg = Math.round(copy.rotation * 180 / Math.PI);
+        object.attr("transform", `rotate(${deg}, ${px}, ${py})`);
+      }
+
+    }
+
+    g2d.Text.PutText(object, text, env);
+
+    env.local.object = object;
+
+    if (env.colorRefs) {
+      env.colorRefs[env.root.uid] = env.root;
+    }
+    if (env.opacityRefs) {
+      env.opacityRefs[env.root.uid] = env.root;
+    }
+
+    return object;
+  };
+
+  g2d.Text.PutText = (object, raw, env) => {
+    //parse the text
+    if (!raw) return;
+    let text = raw;
+    if (typeof raw  === 'number') text = raw.toString();
+    if (typeof text !=  'string') return;
+    
+
+    const tokens = [g2d.Text.TokensSplit(text.replaceAll(/\\([a-zA-z]+)/g, g2d.Text.GreekReplacer), g2d.Text.TextOperators)].flat(Infinity);
+
+
+    object.html(tokens.shift());
+
+    let token;
+    let dy = 0;
+    while((token = tokens.shift()) != undefined) {
+      if (typeof token === 'string') {
+        object.append('tspan').html(token).attr('font-size', env.fontsize).attr('dy', -dy);
+        dy = 0;
+      } else {
+        dy = -env.fontsize*token.ky;
+        object.append('tspan').html(token.data).attr('font-size', Math.round(env.fontsize*token.kf)).attr('dy', dy);
+      }
+    }
+  };
+
+  g2d.Text.TextOperators = [
+    {
+      type: 'sup',
+      handler: (a) => a,
+      regexp: /\^{([^{|}]*)}/,
+      meta: {
+        ky: 0.4,
+        kf: 0.7
+      }      
+    },
+    {
+      type: 'sub',
+      handler: (a) => a,
+      regexp: /\_{([^{|}]*)}/,
+      meta: {
+        ky: -0.25,
+        kf: 0.7
+      }
+    }  
+  ];
+  
+  g2d.Text.GreekReplacer = (a, b, c) => {
+    return "&" +
+        b
+          .toLowerCase()
+          .replace("sqrt", "radic")
+          .replace("degree", "deg") +
+        ";";
+  };
+  
+  g2d.Text.TokensSplit = (str, ops, index = 0) => {
+    if (index === ops.length || index < 0) return str;
+    const match = str.match(ops[index].regexp);
+    if (match === null) return g2d.Text.TokensSplit(str, ops, index + 1);
+    const obj = {type: ops[index].type, data: ops[index].handler(match[1]), ...ops[index].meta};
+    return [g2d.Text.TokensSplit(str.slice(0, match.index), ops, index + 1), obj, g2d.Text.TokensSplit(str.slice(match.index+match[0].length), ops, 0)]
+  };  
+
+  g2d.Text.virtual = true;
+
+  g2d.Text.updateColor = (args, env) => {
+    env.local.object.attr("fill", env.color);
+  };
+
+  g2d.Text.updateOpacity = (args, env) => {
+    env.local.object.attr("opacity", env.opacity);
+  };  
+
+  g2d.Text.update = async (args, env) => {
+    let text;
+    let coords = await interpretate(args[1], env);
+
+    if (coords instanceof NumericArrayObject) { // convert back automatically
+      coords = coords.normal();
+    }
+
+
+    if (env.local.htmlQ) {
+      console.error('Update method for symbol-like elements is not supported in Text[]');
+    } else {
+      text = await interpretate(args[0], env);
+
+      let trans;
+
+      if (env.local.text != text) {
+        trans = env.local.object
+        .maybeTransition(env.transitionType, env.transitionDuration)
+        .text(text)
+        .attr("x", env.xAxis(coords[0]))
+        .attr("y", env.yAxis(coords[1]));
+      } else {
+        trans = env.local.object
+        .maybeTransition(env.transitionType, env.transitionDuration)
+        .attr("x", env.xAxis(coords[0]))
+        .attr("y", env.yAxis(coords[1]));
+      }
+
+
+
+      return trans;      
+    }
+
+  };   
+
+
+  g2d.Text.destroy = (args, env) => {
+    env.local.object.remove();
+    delete env.local.object;
+
+    if (env.colorRefs) {
+      delete env.colorRefs[env.root.uid];
+    }
+    if (env.opacityRefs) {
+      delete env.opacityRefs[env.root.uid];
+    }
+  };
+
+
+  //g2d.Text.destroy = async (args, env) => {
+    //for (const o of args) {
+      //await interpretate(o, env);
+    //}
+  //}
+
+  //transformation context to convert fractions and etc to SVG form
+  g2d.Text.subcontext = {};
+  //TODO
+
+  g2d.FontSize = () => "FontSize";
+  //g2d.FontSize.destroy = g2d.FontSize
+  g2d.FontSize.update = g2d.FontSize;
+  g2d.FontFamily = () => "FontFamily";
+  //g2d.FontFamily.destroy = g2d.FontFamily
+  g2d.FontFamily.update = g2d.FontFamily;
+  
+  g2d.Bold = () => "Bold";
+  g2d.Bold.update = () => "Bold";
+
+  g2d.Style = async (args, env) => {
+    const copy = env;
+    const options = await core._getRules(args, env);
+    
+    if (options.FontSize) {
+      copy.fontsize = options.FontSize;
+    }  
+
+    if (options.FontColor) {
+      copy.color = options.FontColor;
+    }
+  
+    if (options.FontFamily) {
+      copy.fontfamily = options.FontFamily;
+    } 
+
+    for(let i=1; i<(args.length - Object.keys(options).length); ++i) {
+      const res = await interpretate(args[i], copy);
+      if (res == 'Bold') copy.fontweight = 'bold';
+    }
+  
+    return await interpretate(args[0], copy);
+  };
+
+  //g2d.Style.destroy = async (args, env) => {
+    //const options = await core._getRules(args, env);  
+   // return await interpretate(args[0], env);
+  //}  
+  
+  g2d.Style.update = async (args, env) => {
+    const options = await core._getRules(args, env);
+    
+    if (options.FontSize) {
+      env.fontsize = options.FontSize;
+    }  
+  
+    if (options.FontFamily) {
+      env.fontfamily = options.FontFamily;
+    } 
+  
+    return await interpretate(args[0], env);
+  };  
+
+  g2d.AnimationFrameListener = async (args, env) => {
+    await interpretate(args[0], env);
+    const options = await core._getRules(args, {...env, hold:true});
+    env.local.event = await interpretate(options.Event, env);
+    
+    env.local.fire = () => {
+      server.kernel.io.poke(env.local.event);
+      performance.now();
+    };
+
+    /*if (options.Timeout) {
+      const timeout = await interpretate(options.Timeout, env);
+      env.timer = setInterval(() => {
+        t = performance.now();
+        if (t - lastStamp > timeout) {
+          env.local.fire();
+          console.warn('Violation of AnimationFrameListener interval. Took more than: ' + timeout + ' ms');
+        }
+      }, timeout);
+    }*/
+
+    window.requestAnimationFrame(env.local.fire);
+  };
+
+  g2d.AnimationFrameListener.update = async (args, env) => {
+    window.requestAnimationFrame(env.local.fire);
+  };
+
+  g2d.AnimationFrameListener.destroy = async (args, env) => {
+    console.warn('AnimationFrameListener does not exist anymore');
+    if (env.timer) clearInterval(env.timer);
+  };
+
+  g2d.AnimationFrameListener.virtual = true;
+
+
+  function replaceCanvasWithImage(gl) {
+    // Get WebGL canvas
+    const webglCanvas = gl.canvas;
+
+    // Convert WebGL canvas to an image data URL
+    const dataURL = webglCanvas.toDataURL("image/png");
+
+    // Create an image element
+    const img = new Image();
+    img.src = dataURL;
+    img.width = webglCanvas.width;
+    img.height = webglCanvas.height;
+    img.style.padding = 0;
+
+    // Replace the WebGL canvas with the image
+    const parent = webglCanvas.parentNode;
+    parent.replaceChild(img, webglCanvas);
+
+    return img;
+  }
+
+  function cleanupWebGL(gl) {
+    const ext = gl.getExtension('WEBGL_lose_context');
+    if (ext) {
+        ext.loseContext();
+    }
+  }
+
+  const vs = `
+    attribute vec2 position;
+    uniform vec2 u_resolution;
+    uniform bool u_vertexColor;
+    uniform bool u_vertexTexture;
+    uniform float u_pointSize;
+    attribute vec4 color;
+    varying vec4 v_color;
+
+    attribute vec2 texcoord;
+    varying vec2 v_texcoord;
+    
+
+    void main() {
+        vec2 clipSpace = (position / u_resolution) * 2.0 - 1.0;
+        gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1);
+        if (u_vertexColor) v_color = color;  // Pass color to fragment shader
+        if (u_vertexTexture) v_texcoord = texcoord; // Pass texture (if applicable)
+        gl_PointSize = u_pointSize;
+    }
+  `;
+
+  // Fragment Shader
+  const fs = `
+    precision mediump float;
+    uniform vec4 u_color;
+    uniform bool u_vertexColor;
+    uniform bool u_vertexTexture;
+    varying vec4 v_color;
+
+    uniform sampler2D u_texture;
+    varying vec2 v_texcoord;
+
+    void main() {
+        if (u_vertexColor) {
+          gl_FragColor = v_color;
+          return;
+        }
+
+        if (u_vertexTexture) {
+          gl_FragColor = texture2D(u_texture, v_texcoord);
+          return;
+        }    
+        
+        gl_FragColor = u_color;
+    }
+  `;
+
+  var twgl;
+  
+  g2d.GraphicsComplex = async (args, env) => {
+    if (!twgl) twgl = (await import('./twgl.module-829cd4fc.js'));
+
+    const dpi = 1.0; ///window.devicePixelRatio; (*no idea how to handle upscalling *)
+
+    const vertices = (await interpretate(args[0], env)).map((p) => {
+      return [env.xAxis(p[0]), env.yAxis(p[1])]; //[TODO] move to GPU!!!!!
+    });
+
+    let minX = Infinity, minY = Infinity;
+    let maxX = -Infinity, maxY = -Infinity;
+    
+    for (const [x, y] of vertices) {
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    }
+    
+    //const boundingBox = [[minX, minY], [maxX, maxY]];
+
+    env.local.rect = env.svg.append('rect')
+      .attr('x', minX)
+      .attr('y', minY)
+      .attr('width', maxX - minX)
+      .attr('height', maxY - minY)
+      .attr('opacity', 0); //Transparent rect to hold the place
+
+    
+    
+    const opts = await core._getRules(args, env);
+    const copy = {...env, context: [g2dComplex, g2d]};
+
+    
+
+
+    const canvas = env.svg.append('foreignObject').attr('width', env.clipWidth).attr('height', env.clipHeight).append('xhtml:canvas');
+    canvas.attr('width', Math.round(env.clipWidth*dpi)).attr('height', Math.round(env.clipHeight*dpi));
+    const gl = canvas.node().getContext('webgl', {
+      premultipliedAlpha: false
+      // Other configurations
+    });
+
+    const programInfo = twgl.createProgramInfo(gl, [vs, fs]);
+    const ext = gl.getExtension('OES_element_index_uint');
+    if (!ext) {
+      console.error('TWGL: need OES_element_index_uint');
+
+    }
+    twgl.addExtensionsToContext(gl);
+
+    copy.wgl = {gl, programInfo};
+
+    copy.wgl.fallbackVertices = vertices;
+
+    const opacity = env.opacity;
+
+    const linearBuffers = {
+      position: { numComponents: 2, data: vertices.flat(Infinity).map((e) => e*dpi) },
+    };
+
+
+    if (opts.VertexColors) {
+      let vertexColors = [];
+
+      copy.wgl.vertexColors = true;
+      copy.wgl.fallbackColors = opts.VertexColors;
+
+      switch(opts.VertexColors[0].length) {
+        case 3:
+          for (let i=0; i<opts.VertexColors.length; ++i) { //[TODO] move to GPU!!!!!
+            const c = opts.VertexColors[i];
+            vertexColors.push(...c, opacity);
+          }
+        break;
+
+        case 4:
+          vertexColors = opts.VertexColors.flat(Infinity);
+        break;
+
+        default:
+          if (typeof opts.VertexColors[0] == 'string') { //[TODO] move to GPU!!!!!
+            console.warn('FIXME: This is the worst case');
+            
+            for (let i=0; i<opts.VertexColors.length; ++i) {
+              const c = d3.color(opts.VertexColors[i]);
+              vertexColors.push(c.r/255.0, c.g/255.0, c.b/255.0, opacity);
+            }            
+          }
+      }
+
+
+
+      linearBuffers.color = {numComponents: 4, data: vertexColors};
+    }
+
+    //console.warn(vertexColors);
+
+
+    if (opts.VertexTextureCoordinates) {
+      const uv = opts.VertexTextureCoordinates.flat(Infinity);
+      linearBuffers.texcoord = { numComponents: 2, data: uv};
+
+      copy.wgl.vertexTexture = true;
+    }
+
+    
+
+    const sharedBufferInfo = twgl.createBufferInfoFromArrays(gl, linearBuffers);
+
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    
+
+    gl.useProgram(programInfo.program);
+
+    gl.enable(gl.BLEND);
+
+    twgl.setBuffersAndAttributes(gl, programInfo, sharedBufferInfo);
+
+    
+
+
+    
+
+    await interpretate(args[1], copy);
+
+    const img = replaceCanvasWithImage(gl);
+    cleanupWebGL(gl);
+
+    img.style.opacity = env.opacity;
+
+    env.local.img = img;
+
+    if (env.opacityRefs) {
+        env.opacityRefs[env.root.uid] = env.root;
+    }
+
+    return img;
+  };
+
+  g2d.GraphicsComplex.update = () => {
+    throw('Updates of GraphicsComplex are not supported!');
+  };
+
+  g2d.GraphicsComplex.updateOpacity = (args, env) => {
+    env.local.img.style.opacity = env.opacity;
+  }; 
+
+  g2d.GraphicsComplex.destroy = (args, env) => {
+    if (env.opacityRefs) {
+      delete env.opacityRefs[env.root.uid];
+    }
+
+    env.local.img.remove();
+    env.local.rect.remove();
+  };
+
+  g2d.GraphicsComplex.virtual = true; //local memory for updates
+
+  //g2d.GraphicsComplex.destroy = async (args, env) => {
+    //await interpretate(args[0], env);
+    //await interpretate(args[1], env);
+  //}
+
+  g2d.Medium = () => 0.8/10.0;
+  g2d.Large = () => 1.1/10.0;
+  g2d.Small = () => 0.5/10.0;
+  g2d.Tiny = () => 0.2/10.0;
+
+  //DO NOT CHANGE THIS LINE
+  g2d.GraphicsGroup = async (args, env) => await interpretate(args[0], env);
+  
+
+  g2d.Invisible = async (args, env) => {
+    const group = env.svg.append("g");
+    group.attr('style', 'visibility:hidden');
+    return await interpretate(args[0], {...env, svg: group});
+  }; 
+
+  //g2d.GraphicsGroup.destroy = async (args, env) => {
+    //await interpretate(args[0], env);
+  //}  
+
+  g2d.Thickness = async (args, env) => {
+    const t = await interpretate(args[0], env);
+    if (typeof t == 'number') env.strokeWidth = t*30.0;
+  };
+
+  g2d.AbsoluteThickness = (args, env) => {
+    env.strokeWidth = interpretate(args[0], env);
+  };
+
+  g2d.PointSize = async (args, env) => {
+    env.pointSize = await interpretate(args[0], env);
+  };
+
+  g2d.Annotation = async (args, env) => {
+    return await interpretate(args[0], {...env})
+  };
+
+  g2d.ZoomAt = async (args, env) => {
+    let zoom = await interpretate(args[0], env);
+    const dims = {
+
+      width: env.xAxis((env.plotRange[0][0] + env.plotRange[0][1])/2.0),
+      height: env.yAxis((env.plotRange[1][0] + env.plotRange[1][1])/2.0)
+    };
+
+    let translate = [(env.plotRange[0][0] + env.plotRange[0][1])/2.0, -(env.plotRange[1][0] + env.plotRange[1][1])/2.0];
+    if (args.length > 1) {
+      translate = await interpretate(args[1], env);
+    }
+
+    translate = [env.xAxis(translate[0]) , env.yAxis(translate[1]) ];
+    console.log(translate);
+
+    const o = env.panZoomEntites;
+
+    console.log(env.svg.attr('transform'));
+
+    const transform = d3.zoomIdentity.translate(dims.width, dims.height).scale(zoom).translate(-translate[0], -translate[1]);
+    
+
+    o.svg.maybeTransition(env.transitionType, env.transitionDuration).attr("transform", transform);
+    if (o.gX)
+      o.gX.maybeTransition(env.transitionType, env.transitionDuration).call(o.xAxis.scale(transform.rescaleX(o.x)));
+    if (o.gY)
+      o.gY.maybeTransition(env.transitionType, env.transitionDuration).call(o.yAxis.scale(transform.rescaleY(o.y)));
+
+    // Update grid lines
+    if (o.gGX) o.gGX.maybeTransition(env.transitionType, env.transitionDuration).call(o.xGrid(transform.rescaleY(o.x)));
+    if (o.gGY) o.gGY.maybeTransition(env.transitionType, env.transitionDuration).call(o.yGrid(transform.rescaleY(o.y)));
+
+    if (o.gTX)
+      o.gTX.maybeTransition(env.transitionType, env.transitionDuration).call(o.txAxis.scale(transform.rescaleX(o.x)));
+    if (o.gRY)
+      o.gRY.maybeTransition(env.transitionType, env.transitionDuration).call(o.ryAxis.scale(transform.rescaleY(o.y))); 
+
+    //env.svg.maybeTransition(env.transitionType, env.transitionDuration).call(
+      
+
+
+  };
+
+  const rescaleRanges = (ranges, old, o, env) => {
+    throw('not implemented');
+  };
+
+  g2d.Directive = async (args, env) => {
+    const opts = await core._getRules(args, env);
+    for (const o of Object.keys(opts)) {
+      env[o.toLowerCase()] = opts[o];
+    }
+
+    //rebuild transition structure
+    assignTransition(env);
+
+    if ('PlotRange' in opts) {
+      //recalculate the plot range
+      const ranges = opts.PlotRange;
+      rescaleRanges(ranges, env.plotRange, env.panZoomEntites);
+    }
+
+    for (let i=0; i<(args.length - Object.keys(opts).length); ++i) {
+      await interpretate(args[i], env);
+    }
+  };
+
+  //g2d.Directive.destroy = g2d.Directive
+
+  g2d.EdgeForm = async (args, env) => {
+    const copy = {...env, hold: true};
+    const res = await interpretate(args[0], copy);
+
+    if (Array.isArray(res)) {
+      copy.hold = false;
+      for (const i of res) {
+        await interpretate(i, copy);
+      }
+    } 
+
+    env.strokeWidth = copy.strokeWidth;
+    
+    env.strokeOpacity = copy.opacity;
+    //hack. sorry
+    if (copy.color !== 'rgb(68, 68, 68)')
+      env.stroke = copy.color;
+  };
+
+  g2d.EdgeForm.update = async (args, env) => {
+
+  };
+
+  //g2d.EdgeForm.destroy = async (args, env) => {
+
+  //}
+
+  g2d.Opacity = async (args, env) => {
+    env.opacity = await interpretate(args[0], env);
+    env.exposed.opacity = env.opacity;
+
+    if (env.root.child) {
+      console.log('Dynamic env variable caught');
+
+      const refs = {};
+      env.exposed.opacityRefs = refs;
+      env.local.refs = refs;
+    }
+    return env.opacity;
+  };
+
+  g2d.Opacity.update = async (args, env) => {
+    const opacity = await interpretate(args[0], env);
+    //update all mentioned refs
+    const refs = Object.values(env.local.refs);
+    for (const r of refs) {
+      r.execute({method: 'updateOpacity', opacity: opacity});
+    }
+  };
+
+  g2d.Opacity.destroy = (args, env) => {
+    delete env.local.refs;
+    //delete env.local;
+  };  
+
+  g2d.Opacity.virtual = true;
+
+  g2d.GrayLevel = async (args, env) => {
+    let level = await interpretate(args[0], env);
+    if (level.length) {
+      level = level[0];
+    }
+
+    level = Math.floor(level * 255);
+
+    env.color = `rgb(${level},${level},${level})`;
+    return env.color;
+  };
+
+  g2d.RGBColor = async (args, env) => {
+    let colorCss;
+
+
+
+    if (args.length == 3 || args.length == 4) {
+      colorCss = "rgb(";
+      colorCss += String(Math.floor(255 * (await interpretate(args[0], env)))) + ",";
+      colorCss += String(Math.floor(255 * (await interpretate(args[1], env)))) + ",";
+      colorCss += String(Math.floor(255 * (await interpretate(args[2], env)))) + ")";
+
+    } else {
+      let a = await interpretate(args[0], env);
+      if (a instanceof NumericArrayObject) { // convert back automatically
+        a = a.normal();
+       }
+      colorCss = "rgb(";
+      colorCss += String(Math.floor(255 * a[0])) + ",";
+      colorCss += String(Math.floor(255 * a[1])) + ",";
+      colorCss += String(Math.floor(255 * a[2])) + ")";      
+    }
+
+    if (env.root.child) {
+      console.log('Dynamic env variable caught');
+
+      const refs = {};
+      env.exposed.colorRefs = refs;
+      env.local.refs = refs;
+    }
+
+    env.exposed.color = colorCss;
+
+  
+
+    return colorCss;
+  };
+
+  g2d.RGBColor.update = async (args, env) => {
+    let colorCss;
+
+    if (args.length == 3) {
+      colorCss = "rgb(";
+      colorCss += String(Math.floor(255 * (await interpretate(args[0], env)))) + ",";
+      colorCss += String(Math.floor(255 * (await interpretate(args[1], env)))) + ",";
+      colorCss += String(Math.floor(255 * (await interpretate(args[2], env)))) + ")";
+
+    } else {
+      let a = await interpretate(args[0], env);
+      if (a instanceof NumericArrayObject) { // convert back automatically
+        a = a.normal();
+       }
+      colorCss = "rgb(";
+      colorCss += String(Math.floor(255 * a[0])) + ",";
+      colorCss += String(Math.floor(255 * a[1])) + ",";
+      colorCss += String(Math.floor(255 * a[2])) + ")";      
+    }
+    
+
+    //update all mentioned refs
+    const refs = Object.values(env.local.refs);
+    for (const r of refs) {
+      r.execute({method: 'updateColor', color: colorCss});
+    }
+  };
+
+  g2d.RGBColor.destroy = (args, env) => {
+    delete env.local.refs;
+    //delete env.local;
+  };
+
+  //hope it wont lag anythting
+  g2d.RGBColor.virtual = true;
+
+
+
+  //g2d.RGBColor.destroy = (args, env) => {}
+  //g2d.Opacity.destroy = (args, env) => {}
+  //g2d.GrayLevel.destroy = (args, env) => {}
+  
+  //g2d.PointSize.destroy = (args, env) => {}
+  //g2d.AbsoluteThickness.destroy = (args, env) => {}
+  let hsv2hsl = (h,s,v,l=v-v*s/2, m=Math.min(l,1-l)) => [h,m?(v-l)/m:0,l];
+
+  g2d.Hue = async (args, env) => {
+      let color = await Promise.all(args.map(el => interpretate(el, env)));
+      if (color.length < 3) {
+        color = [color[0], 1,1];
+      }
+      color = hsv2hsl(...color);
+      color = [color[0], (color[1]*100).toFixed(2), (color[2]*100).toFixed(2)];
+
+      env.color = "hsl("+(3.14*100*color[0]).toFixed(2)+","+color[1]+"%,"+color[2]+"%)";
+
+      if (env.root.child) {
+        console.log('Dynamic env variable caught');
+  
+        const refs = {};
+        env.exposed.colorRefs = refs;
+        env.local.refs = refs;
+      }
+  
+      env.exposed.color = env.color;
+
+      return env.color;
+
+  }; 
+
+  g2d.Hue.update = async (args, env) => {
+    let color = await Promise.all(args.map(el => interpretate(el, env)));
+
+    if (color.length < 3) {
+      color = [color[0], 1,1];
+    }
+
+    color = hsv2hsl(...color);
+    color = [color[0], (color[1]*100).toFixed(2), (color[2]*100).toFixed(2)];
+
+    const colorCss = "hsl("+(3.14*100*color[0]).toFixed(2)+","+color[1]+"%,"+color[2]+"%)";
+
+      //update all mentioned refs
+      const refs = Object.values(env.local.refs);
+      for (const r of refs) {
+        r.execute({method: 'updateColor', color: colorCss});
+      }
+    };
+
+  g2d.Hue.destroy = (args, env) => {
+      delete env.local.refs;
+      //delete env.local;
+  };    
+
+  g2d.Hue.virtual = true;
+  
+  //g2d.Hue.destroy = (args, env) => {}
+
+  g2d.CubicInOut = () => 'CubicInOut';
+  g2d.Linear = () => 'Linear';
+
+
+  //g2d.Tooltip.destroy = g2d.Tooltip
+
+  g2dComplex.List = core.List; // for speed up searching
+
+  var earcut;
+
+  //not an instance. Just a plain object. Symbols must be bounded to GraphicsComplex
+  g2dComplex.Polygon = async (args, env) => {
+    let points = await interpretate(args[0], env);
+    //console.log(points);
+    //if (!env.vertices) throw('No vertices provided!');
+
+    let color = d3.color(env.color);
+      color = [color.r/255.0, color.g/255.0, color.b/255.0, env.opacity];
+
+    //if this is a single polygon
+    if (!points[0][0]) {
+      points = [points];
+    }
+
+    
+
+    const {gl, programInfo} = env.wgl;
+    let bufferInfo; 
+    
+    switch(points[0].length) {
+      case 3:
+        bufferInfo = twgl.createBufferInfoFromArrays(gl, { indices:  points.flat(Infinity).map((index) => index-1)});
+      break;
+
+      case 4:
+        // Handle Quad (4 points)
+        {const temporalBuffer = [];
+        for (let i=0; i<points.length; ++i) {
+          const p = points[i];
+          temporalBuffer.push(
+            p[0]-1, p[1]-1, p[2]-1,
+            p[0]-1, p[2]-1, p[3]-1
+          );
+        }
+
+        bufferInfo = twgl.createBufferInfoFromArrays(gl, { 
+          indices: temporalBuffer
+        });}
+
+      break;
+
+      case 5:
+        // Handle Pentagon (5 points)
+        {
+          const temporalBuffer = [];
+          for (let i = 0; i < points.length; ++i) {
+            const p = points[i];
+            // Triangle fan for 5 vertices (assuming the first point is the center of the fan)
+            temporalBuffer.push(
+              p[0] - 1, p[1] - 1, p[2] - 1,
+              p[0] - 1, p[2] - 1, p[3] - 1,
+              p[0] - 1, p[3] - 1, p[4] - 1
+            );
+          }
+      
+          bufferInfo = twgl.createBufferInfoFromArrays(gl, {
+            indices: temporalBuffer
+          });
+        }
+        break;
+      
+      case 6:
+        // Handle Hexagon (6 points)
+        {
+          const temporalBuffer = [];
+          for (let i = 0; i < points.length; ++i) {
+            const p = points[i];
+            // Triangle fan for 6 vertices (assuming the first point is the center of the fan)
+            temporalBuffer.push(
+              p[0] - 1, p[1] - 1, p[2] - 1,
+              p[0] - 1, p[2] - 1, p[3] - 1,
+              p[0] - 1, p[3] - 1, p[4] - 1,
+              p[0] - 1, p[4] - 1, p[5] - 1
+            );
+          }
+      
+          bufferInfo = twgl.createBufferInfoFromArrays(gl, {
+            indices: temporalBuffer
+          });
+        }
+        break;
+    
+      default:
+        // Handle Arbitrary Polygon (N points)
+        // Using earcut triangulation
+        const fallbackVertices = env.wgl.fallbackVertices;
+        const localIndices = [];
+        if (!earcut) earcut = (await import('./earcut-09a28c82.js')).default;
+
+        for (let poly of points) {
+          
+          poly = poly.map((index)=>index-1);
+
+          const explicitVertices = poly.flatMap((index) => fallbackVertices[index]);
+          
+          
+          localIndices.push(earcut(explicitVertices).map((index) => poly[index]));
+          
+        }
+
+
+        bufferInfo = twgl.createBufferInfoFromArrays(gl, { 
+          indices: localIndices.flat()
+        });
+    }
+    
+    twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
+
+    if (env.wgl.vertexTexture) {
+
+      if (!env.texture) throw 'Texture is not provided!';
+
+
+      const texture = env.texture.get(gl);
+
+      twgl.setUniforms(programInfo, {
+        u_resolution: [gl.canvas.width, gl.canvas.height],
+        u_texture: texture,
+        u_vertexTexture: true
+      });      
+
+      if (env.wgl.fallbackVertices.length > 65535) {
+        gl.drawElements(gl.TRIANGLES, bufferInfo.numElements, gl.UNSIGNED_INT, 0);
+      } else {
+        gl.drawElements(gl.TRIANGLES, bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
+      }
+      return;
+    }
 
    
 
-          
+    twgl.setUniforms(programInfo, {
+      u_resolution: [gl.canvas.width, gl.canvas.height],
+      u_color: color,
+      u_vertexColor: Boolean(env.wgl.vertexColors)
+    });
 
-  } 
-}
-
-env.local.controlObject = controlObject;
-
-
-
-
-controlObject.init(activeCamera, domElement);
-controls = controlObject.o;
-
-env.local.controlObject = controlObject;
-env.local.renderer = renderer;
-env.local.domElement = domElement;
-
-if (PathRendering) {
-  controls.addEventListener( 'change', () => {
-    ptRenderer.updateCamera();
-  } ); 
-} 
-
-
-
-const group = new THREE.Group();
-
-const allowLerp = false;
-if (options.TransitionType) {
-  const type = await interpretate(options.TransitionType, env);
-  if (type === 'Linear') allowLerp = true;
-}
-
-const envcopy = {
-  ...env,
-  context: g3d,
-  numerical: true,
-  tostring: false,
-  matrix: defaultMatrix,
-  material: THREE.MeshPhysicalMaterial,
-  color: new THREE.Color(1, 1, 1),
-  opacity: 1,
-  thickness: 1,
-  roughness: 0.5,
-  edgecolor: new THREE.Color(0, 0, 0),
-  mesh: group,
-  metalness: 0,
-  emissive: undefined,
-  arrowHeight: 30,
-  arrowRadius: 30,
-  reflectivity: 0.5,
-  clearcoat: 0,
-  shadows: false,
-  Lerp: allowLerp,
-  camera: activeCamera,
-  controlObject: controlObject,
-
-  fontSize: undefined,
-  fontFamily: undefined,
-
-  Handlers: Handlers,
-  wake: wakeFunction,
-  pointSize: 0.8/10.0,
-
-  colorInherit: true,
-
-  emissiveIntensity: undefined,
-  roughness: undefined,
-  metalness: undefined,
-  ior: undefined,
-  transmission: undefined,
-  thinFilm: undefined,
-  materialThickness: undefined,
-  attenuationColor: undefined,
-  attenuationDistance: undefined,
-  opacity: undefined,
-  clearcoat: undefined,
-  clearcoatRoughness: undefined,
-  sheenColor: undefined,
-  sheenRoughness: undefined,
-  iridescence: undefined,
-  iridescenceIOR: undefined,
-  iridescenceThickness: undefined,
-  specularColor: undefined,
-  specularIntensity: undefined,
-  matte: undefined
-};  
-
-env.local.wakeThreadUp = () => {
-  if (!sleeping) return;
-  sleeping = false;
-  console.warn("g3d >> waking up!");
-  env.local.aid = requestAnimationFrame( animate );
-};
-
-env.global.renderer = renderer;
-env.global.labelRenderer = labelRenderer;
-env.global.domElement = domElement;
-env.global.scene    = scene;
-envcopy.camera   = activeCamera;
-//activeCamera.layers.enableAll();
-
-env.local.element  = container;
-
-if (PathRendering)
-  envcopy.PathRendering = true;
-
-if (options.Prolog) {
-  await interpretate(options.Prolog, envcopy);
-}
-
-if (options.Axes && plotRange) {
-  console.log('Drawing grid...');
-
-}
-
-let noLighting = false;
-
-if ('Lighting' in options) {
-  if (options.Lighting) {
-    if (options.Lighting[0] == 'List') {
-      noLighting = false;
+    if (env.wgl.fallbackVertices.length > 65535) {
+      gl.drawElements(gl.TRIANGLES, bufferInfo.numElements, gl.UNSIGNED_INT, 0);
     } else {
-      if (options.Lighting == "'Neutral'") {
-        //neutralMaterial = true;
-        envcopy.material = THREE.MeshBasicMaterial;
-      } else {
-        noLighting = true;
-      }
-      
+      gl.drawElements(gl.TRIANGLES, bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
     }
-  } else {
-    noLighting = true;
-  }
-}
 
-
-await interpretate(args[0], envcopy);
-
-if (options.Epilog) {
-  interpretate(options.Epilog, envcopy);
-}
-
-/* GET RANGES */
-
-let bbox;
-
-// helper to test for [number, number]
-const isNumRange = arr =>
-  Array.isArray(arr) &&
-  arr.length === 2 &&
-  typeof arr[0] === 'number' &&
-  typeof arr[1] === 'number';
-
-if (Array.isArray(plotRange) && isNumRange(plotRange[0])) {
-  // use X for any malformed axis
-  const xRange = plotRange[0];
-  const yRange = isNumRange(plotRange[1]) ? plotRange[1] : xRange;
-  const zRange = isNumRange(plotRange[2]) ? plotRange[2] : xRange;
-  const midX = 0.5*(xRange[1] + xRange[0]);
-  const midY = 0.5*(yRange[1] + yRange[0]);
-  const midZ = 0.5*(zRange[1] + zRange[0]);
-  const s = 1.1;
-  
-  bbox = {
-    min: { x: (xRange[0] - midX)*s + midX, y: (yRange[0] - midY)*s + midY, z: (zRange[0] - midZ)*s + midZ },
-    max: { x: (xRange[1] - midX)*s + midX, y: (yRange[1] - midY)*s + midY, z: (zRange[1] - midZ)*s + midZ }
+    return;
   };
-}
 
-// fallback if we didn’t get a valid bbox
-if (!bbox) {
-  bbox = new THREE.Box3().setFromObject(group);
-}
-
-if (options.Axes) {
-  
-  //envcopy.mesh.layers.enableAll();
-
-  const ticksLabels = {
-    x: [],
-    y: [],
-    z: []
+  g2d.Deploy =  (args, env) => {
+    return interpretate(args[0], env)
   };
-  
 
-  {
+  //this IS an instance
+  g2d.Polygon = async (args, env) => {
 
-    function niceTicks(min, max, targetCount = 8) {
-  const span = max - min;
-  if (span === 0) {
-    return { step: 0, niceMin: min, niceMax: max, count: 0 };
-  }
-  // raw step
-  const rawStep = span / targetCount;
-  // magnitude = 10^floor(log10(rawStep))
-  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
-  const residual = rawStep / mag;
+    let points = await interpretate(args[0], env);
 
-  // pick nice fraction 1, 2, or 5 (or 10)
-  let niceFrac;
-  if (residual < 1.5)      niceFrac = 1;
-  else if (residual < 3)   niceFrac = 2;
-  else if (residual < 7)   niceFrac = 5;
-  else                      niceFrac = 10;
+    if (points?.lhs) { //LIMITED SUPPORT
+      //if this is a rule. Then this is a polygon with holes
 
-  const step = niceFrac * mag;
-  // expand domain to multiples of step
-  const niceMin = Math.floor(min / step) * step;
-  const niceMax = Math.ceil(max / step) * step;
-  const count = Math.round((niceMax - niceMin) / step);
+      const line = d3.line()
+          .x(function(d) { return env.xAxis(d[0]) })
+          .y(function(d) { return env.yAxis(d[1]) });
 
-  return { step, niceMin, niceMax, count };
-}
+      let outer = points.rhs;
+      let holes = points.lhs; // array of arrays
 
-// then for your bbox:
-const xInfo = niceTicks(bbox.min.x, bbox.max.x, 8);
-const yInfo = niceTicks(bbox.min.y, bbox.max.y, 8);
-const zInfo = niceTicks(bbox.min.z, bbox.max.z, 8);
-
-// now use xInfo.count, yInfo.count, zInfo.count
-const divisions = [ xInfo.count, yInfo.count, zInfo.count ];
-
-function computeTickValues({ niceMin, step, count }) {
-  // how many decimal places do we need?
-  // e.g. step = 0.01 → decimals = 2; step = 5   → decimals = 0
-  const decimals = Math.max( 0, -Math.floor(Math.log10(step)) );
-
-  const ticks = [];
-  for (let i = 0; i <= count; i++) {
-    let raw = niceMin + step * i;
-    // round to exactly `decimals` places
-    let rounded = Number(raw.toFixed(decimals));
-    // clamp tiny negatives to +0
-    if (Math.abs(rounded) < Number.EPSILON) rounded = 0;
-    ticks.push(rounded);
-  }
-  return ticks;
-}
-
-const xTicks = computeTickValues(xInfo);
-const yTicks = computeTickValues(yInfo);
-const zTicks = computeTickValues(zInfo);
-
-let singleSide = true;
-if (options.Boxed) singleSide = false;
-
-
-
-const tickHelperIZ = createATicks(
-  bbox.max.x - bbox.min.x,
-  bbox.max.y - bbox.min.y,
-  divisions[2],
-  false,
-  singleSide
-);
-
-tickHelperIZ.position.set(
-  (bbox.max.x + bbox.min.x) / 2,
-  (bbox.max.y + bbox.min.y) / 2,
-  bbox.max.z
-);
-tickHelperIZ.layers.set(14);
-group.add(tickHelperIZ);
-
-const tickHelperY = createATicks(
-  bbox.max.x - bbox.min.x,
-  bbox.max.z - bbox.min.z,
-  divisions[1],
-  singleSide,
-  singleSide
-);
-tickHelperY.rotateX(Math.PI / 2);
-tickHelperY.position.set(
-  (bbox.max.x + bbox.min.x) / 2,
-  bbox.min.y,
-  (bbox.max.z + bbox.min.z) / 2
-);
-tickHelperY.layers.set(13);
-group.add(tickHelperY);
-
-const tickHelperIY = createATicks(
-  bbox.max.x - bbox.min.x,
-  bbox.max.z - bbox.min.z,
-  divisions[1],
-  singleSide,
-  singleSide
-);
-tickHelperIY.rotateX(Math.PI / 2);
-tickHelperIY.position.set(
-  (bbox.max.x + bbox.min.x) / 2,
-  bbox.max.y,
-  (bbox.max.z + bbox.min.z) / 2
-);
-tickHelperIY.layers.set(12);
-group.add(tickHelperIY);
-
-const tickHelperX = createATicks(
-  bbox.max.y - bbox.min.y,
-  bbox.max.z - bbox.min.z,
-  divisions[0],
-  singleSide,
-  singleSide
-);
-tickHelperX.rotateY(Math.PI / 2);
-tickHelperX.rotateZ(Math.PI / 2);
-tickHelperX.position.set(
-  bbox.max.x,
-  (bbox.max.y + bbox.min.y) / 2,
-  (bbox.max.z + bbox.min.z) / 2
-);
-tickHelperX.layers.set(11);
-group.add(tickHelperX);
-
-const tickHelperIX = createATicks(
-  bbox.max.y - bbox.min.y,
-  bbox.max.z - bbox.min.z,
-  divisions[0],
-  singleSide,
-  singleSide
-);
-tickHelperIX.rotateY(Math.PI / 2);
-tickHelperIX.rotateZ(Math.PI / 2);
-tickHelperIX.position.set(
-  bbox.min.x,
-  (bbox.max.y + bbox.min.y) / 2,
-  (bbox.max.z + bbox.min.z) / 2
-);
-tickHelperIX.layers.set(10);
-group.add(tickHelperIX);
-
-const bboxCopy = {...bbox};
-
-const margin = {
-  x: 0.12 * (bbox.max.x - bbox.min.x),
-  y: 0.12 * (bbox.max.y - bbox.min.y) ,
-  z: 0.12 * (bbox.max.z - bbox.min.z) 
-};
-
-zTicks.slice(1, -1).forEach(zVal => {
-  const span = document.createElement('span');
-  span.className = 'g3d-label opacity-0';
-  span.textContent = String(zVal);
-
-  const labelObj = new CSS2D.CSS2DObject(span);
-  // position on Z; X/Y zero because your group is already aligned
-  labelObj.position.set(0, 0, zVal);
-  labelObj.offset = [-0.7*margin.x,0.7*margin.y,0];
-  group.add(labelObj);
-  ticksLabels.z.push(labelObj);
-});
-
-// X‐axis labels
-xTicks.slice(1, -1).forEach(xVal => {
-  const span = document.createElement('span');
-  span.className = 'g3d-label opacity-0';
-  span.textContent = String(xVal);
-
-  const labelObj = new CSS2D.CSS2DObject(span);
-  // Y/Z zero, X at tick
-  labelObj.position.set(xVal, 0, 0);
-  labelObj.offset = [0,margin.y,0];
-  group.add(labelObj);
-  ticksLabels.x.push(labelObj);
-});
-
-// Y‐axis labels
-yTicks.slice(1, -1).forEach(yVal => {
-  const span = document.createElement('span');
-  span.className = 'g3d-label opacity-0';
-  span.textContent = String(yVal);
-
-  const labelObj = new CSS2D.CSS2DObject(span);
-  // X/Z zero, Y at tick
-  labelObj.position.set(0, yVal, 0);
-  labelObj.offset = [margin.x,0,0];
-  group.add(labelObj);
-  ticksLabels.y.push(labelObj);
-}); 
-
-    if (options.PlotLabel) {
-      let labelFallback = false;
-
-      if (Array.isArray(options.PlotLabel)) {
-        if (options.PlotLabel[0][0] == "HoldForm") labelFallback = true;
-      }
-      if (!labelFallback) {
-        try {
-          const label = await interpretate(options.PlotLabel, {...env, context: g3d});
-          if (label) {
-            const element = document.createElement('div');
-            element.innerHTML = latexLikeToHTML(String(label));
-            element.style = `
-              position: absolute;
-              top: 0;
-              left: 0;
-              right: 0;
-              text-align: center;
-              font-size: small;
-            `;
-            element.className = 'g3d-label';
-            container.appendChild(element);
-          }
-        } catch(err) {
-          labelFallback = true;
-        }
+      if (!Array.isArray(holes[0][0]) && outer.length == 1) {
+        holes = [holes];
+        outer = outer[0];
       }
 
-      if (labelFallback) {
-        console.warn('Non textural PlotLabel!');
-        console.warn('Convert to text');
 
-        const element = document.createElement('div');
-        element.style = `
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          text-align: center;
-          font-size: small;
-        `;
-        element.className = 'g3d-label';
-        container.appendChild(element);      
-        
-        await makeEditorView(options.PlotLabel, {...env, element:element});
-      }
-    }
+      // Convert outer polygon to a closed path
+      const outerPath = line([...outer, outer[0]]);
 
-    if (options.AxesLabel) {
-      options.AxesLabel = await interpretate(options.AxesLabel, {...env, context: g3d, hold:true});
-      
-
-      if (options?.AxesLabel?.length == 3) {
-        if (options.AxesLabel[0]) {
-          let ref = options.AxesLabel[0];
-
-          let {offset, element} = await processLabel(ref, env);
-
-
-          element.position.copy( new THREE.Vector3((bbox.min.x + bbox.max.x)/2.0 + offset[0], bbox.min.y + 1.0, bbox.min.z + offset[2])  );
-          group.add(element);
-          element.offset = [0, 3*(bbox.max.y - bbox.min.y)/divisions[1] + offset[1], 0];
-          element.onlyVisible = true;
-          ticksLabels.x.push(element);
-        }
-
-        if (options.AxesLabel[1]) {
-          let ref = options.AxesLabel[1];
-          let {offset, element} = await processLabel(ref, env);
-
-          element.position.copy( new THREE.Vector3(bbox.min.x + 1.0, (bbox.min.y + bbox.max.y)/2.0 + offset[1], bbox.min.z + offset[2])  );
-          group.add(element);
-          element.offset = [3*(bbox.max.x - bbox.min.x)/divisions[0] + offset[0], 0, 0];
-          element.onlyVisible = true;
-          ticksLabels.y.push(element);
-        }      
-
-        if (options.AxesLabel[2]) {
-          let ref = options.AxesLabel[2];
-          let {offset, element} = await processLabel(ref, env);
-
-          element.position.copy( new THREE.Vector3(bbox.min.x - 1.0, bbox.min.y + 1.0, (bbox.min.z + bbox.max.z)/2.0) + offset[2]  );
-          group.add(element);
-          element.offset = [-3*(bbox.max.x - bbox.min.x)/divisions[0] / 1.4 + offset[0], 3*(bbox.max.x - bbox.min.x)/divisions[0] / 1.4 + offset[1], 0];
-          element.onlyVisible = true;
-          ticksLabels.z.push(element);
-        }  
-
-      }
-    }
-
-    let gridHState = 0;
-    let gridVState = 0;
-
-function isOverlapping(elm1, elm2, tolerance = 0) {
-  // grab their bounding boxes (includes all CSS transforms)
-  const r1 = elm1 instanceof DOMRect ? elm1 : elm1.getBoundingClientRect();
-  const r2 = elm2 instanceof DOMRect ? elm2 : elm2.getBoundingClientRect();
-
-  // if one is entirely to the left, right, above or below the other, they do NOT overlap:
-  if (r1.right  < r2.left  + tolerance) return false;
-  if (r1.left   > r2.right - tolerance) return false;
-  if (r1.bottom < r2.top   + tolerance) return false;
-  if (r1.top    > r2.bottom- tolerance) return false;
-
-  // otherwise there's some overlap
-  return true;
-}
-
-function checkOverlap(elm1, elm2) {
-  const rect1 = elm1.getBoundingClientRect();
-  const rect2 = elm2.getBoundingClientRect();
-
-
-
-  return isOverlapping(rect1, rect2, 2)
-}
-
-function hideShowOverlapping(arr, onlyHide = false) {
-  if (arr.length < 2) return;
-
-  // determine orientation by comparing first→last horizontal vs vertical span
-  const r0 = arr[0].element.getBoundingClientRect();
-  const rN = arr[arr.length - 1].element.getBoundingClientRect();
-  Math.abs(r0.left - rN.left) < Math.abs(r0.top - rN.top);
-
-  // start by showing every tick (step = 1)
-  let step = 1;
-  let widened;
-
-  do {
-    widened = false;
-
-    // find the first j>=1 such that arr[0] overlaps arr[j*step]
-    // these would be the first two *shown* ticks if step were fixed
-    for (let j = 1; j * step < arr.length; j++) {
-      if (checkOverlap(arr[0].element, arr[j * step].element)) {
-        // they overlap → we need to widen spacing by a factor (j+1)
-        step = step * (j + 1);
-        widened = true;
-        break;
-      }
-    }
-    // repeat until no overlap at j=1
-  } while (widened);
-
-  // finally, hide any tick whose index is *not* a multiple of step
-  arr.forEach((item, i) => {
-    const keep = (i % step === 0);
-    if (keep) {
-      if (!onlyHide) item.element.classList.remove('opacity-0');
-    } else {
-      if (!item.onlyVisible) item.element.classList.add('opacity-0');
-    }
-  });
-}
-
-
-    let time = performance.now() - 500;
-
-    const calcGrid = (ev) => {
-      if (noGrid) return;
-      if (performance.now() - time < 100) return;
-
-      time = performance.now();
-      const amp = 1.0;
-      const ampZ = 1.0;
-
-      const azimuth = controls.getAzimuthalAngle();
-      const vertical = controls.getPolarAngle();
-
-      orthoCamera.layers.disable(10);
-      orthoCamera.layers.disable(11);
-      orthoCamera.layers.disable(12);
-      orthoCamera.layers.disable(13);
-      orthoCamera.layers.disable(14);
-      orthoCamera.layers.disable(15);
-
-      //if (azimuth < 1.57 + 0.78 && azimuth > 1.57 - 0.78 ) 
-      if (azimuth < 1.57  && azimuth > 0 && gridHState != 1) {
-          orthoCamera.layers.enable(13);
-          orthoCamera.layers.enable(11);
-          ticksLabels.z.forEach((e) => 
-            e.position.copy( new THREE.Vector3(bboxCopy.min.x * ampZ + e.offset[0], bboxCopy.min.y * ampZ - e.offset[1], e.position.z) )
-          );
-
-          ticksLabels.x.forEach((e) => 
-            e.position.copy( new THREE.Vector3(e.position.x - e.offset[0], bboxCopy.min.y * amp - e.offset[1], bboxCopy.min.z * amp + e.offset[2]) )
-          );
-
-          ticksLabels.y.forEach((e) => 
-            e.position.copy( new THREE.Vector3(bboxCopy.max.x * amp + e.offset[0], e.position.y, bboxCopy.min.z * amp) )
-          ); 
-
-         
-
-          //console.error('Trigger!');
-
-          //gridHState = 1;
-      }
-
-      if (azimuth < 1.57+1.57  && azimuth > 1.57 && gridHState != 2) {
-        orthoCamera.layers.enable(11);
-        orthoCamera.layers.enable(12);
-
-        ticksLabels.z.forEach((e) => 
-          e.position.copy( new THREE.Vector3(bboxCopy.max.x * ampZ - e.offset[0], bboxCopy.min.y * ampZ - e.offset[1], e.position.z) )
-        );
-
-        ticksLabels.y.forEach((e) => 
-          e.position.copy( new THREE.Vector3(bboxCopy.max.x * amp + e.offset[0], e.position.y, bboxCopy.min.z * amp) )
-        ); 
-
-        ticksLabels.x.forEach((e) => 
-          e.position.copy( new THREE.Vector3(e.position.x + e.offset[0], bboxCopy.max.y * amp + e.offset[1] ,bboxCopy.min.z * amp + e.offset[2]) )
-        );
-
-       
-
-        //gridHState = 2;
-      }
-
-      if (azimuth < 0  && azimuth > -1.57  && gridHState !=3) {
-        orthoCamera.layers.enable(13);
-        orthoCamera.layers.enable(10);
-
-        ticksLabels.z.forEach((e) => 
-          e.position.copy( new THREE.Vector3(bboxCopy.min.x * ampZ + e.offset[0],bboxCopy.max.y * ampZ + e.offset[1], e.position.z) )
-        );
-
-        ticksLabels.x.forEach((e) => 
-          e.position.copy( new THREE.Vector3(e.position.x+ e.offset[0], bboxCopy.min.y * amp - e.offset[1], bboxCopy.min.z * amp + e.offset[2]) )
-        );
-
-        ticksLabels.y.forEach((e) => 
-          e.position.copy( new THREE.Vector3(bboxCopy.min.x* amp - e.offset[0], e.position.y, bboxCopy.min.z * amp) )
-        );        
-        //gridHState = 3;
-
-        
-        
-      }
-
-      if (azimuth < -1.57  && azimuth > -2*1.57 && gridHState != 4) {
-        orthoCamera.layers.enable(10);
-        orthoCamera.layers.enable(12);
-
-        ticksLabels.z.forEach((e) => 
-          e.position.copy( new THREE.Vector3(bboxCopy.max.x* ampZ - e.offset[0],bboxCopy.max.y* ampZ + e.offset[1], e.position.z) )
-        );
-
-        ticksLabels.x.forEach((e) => 
-          e.position.copy( new THREE.Vector3(e.position.x, bboxCopy.max.y * amp + e.offset[1], bboxCopy.min.z * amp) )
-        );
-
-        ticksLabels.y.forEach((e) => 
-          e.position.copy( new THREE.Vector3(bboxCopy.min.x * amp - e.offset[0], e.position.y, bboxCopy.min.z * amp) )
-        ); 
-
-        
-        
-        //gridHState = 4;
-      }
-
-      if (vertical > 1.57 && gridVState != 1) {
-        orthoCamera.layers.enable(14);
-        ticksLabels.x.forEach((e) => 
-          e.position.copy( new THREE.Vector3(e.position.x, e.position.y, bboxCopy.max.z * amp) )
-        );
-
-        ticksLabels.y.forEach((e) => 
-          e.position.copy( new THREE.Vector3(e.position.x, e.position.y, bboxCopy.max.z * amp) )
-        ); 
-        //gridVState = 1;
-      } 
-      
-      if (vertical < 1.57 && gridVState != 2) {
-        orthoCamera.layers.enable(15);
-        ticksLabels.x.forEach((e) => 
-          e.position.copy( new THREE.Vector3(e.position.x, e.position.y, bboxCopy.min.z * amp) )
-        );
-
-        ticksLabels.y.forEach((e) => 
-          e.position.copy( new THREE.Vector3(e.position.x, e.position.y, bboxCopy.min.z * amp) )
-        );         
-        //gridVState = 2;
-      }
-
-      hideShowOverlapping(ticksLabels.x);
-      hideShowOverlapping(ticksLabels.y);
-      hideShowOverlapping(ticksLabels.z);
-
-     // hideShowOverlapping([ticksLabels.x[0], ticksLabels.x[ticksLabels.x.length-1], ticksLabels.y[0], ticksLabels.y[ticksLabels.y.length-1]], true);
-
-      //if (azimuth < 0.78 - 1.57  && azimuth > - 0.78 - 1.57 ) orthoCamera.layers.enable(11);
-      //if (azimuth < 0.78 - 2*1.57  && azimuth > - 0.78 + 2*1.57 ) orthoCamera.layers.enable(13);
-    };
-
-    if (!noGrid) setTimeout(calcGrid, 100);
-
-    controls.addEventListener('end', calcGrid);
-
-    //if (!noGrid) {
-      gui?.add({'Grid': !noGrid}, 'Grid').name('Grid').listen().onChange( (value) => {
-        if (!value) { 
-          orthoCamera.layers.disable(10);
-          orthoCamera.layers.disable(11);
-          orthoCamera.layers.disable(12);
-          orthoCamera.layers.disable(13);
-          orthoCamera.layers.disable(14);
-          orthoCamera.layers.disable(15);
-
-          //ticksLabels.x.forEach((el) => el.element.classList.add('opacity-0'));
-          //ticksLabels.y.forEach((el) => el.element.classList.add('opacity-0'));
-          //ticksLabels.z.forEach((el) => el.element.classList.add('opacity-0'));
-
-          noGrid = true;
-        } else {
-          noGrid = false;
-          calcGrid();
-        }
+      // Convert each hole to a closed, reversed path
+      const holePaths = holes.map(hole => {
+        const reversed = [...hole].reverse();
+        return line([...reversed, reversed[0]]);
       });
-    //}
-  }
-}
 
-//console.error(bbox);
-group.position.set(-(bbox.min.x + bbox.max.x) / 2, -(bbox.min.y + bbox.max.y) / 2, -(bbox.min.z + bbox.max.z) / 2);
-//throw 'fuk';
-if (options.Boxed) {
-  const boxLine = [
-    [[bbox.min.x, bbox.min.y, bbox.min.z], [bbox.max.x, bbox.min.y, bbox.min.z], [bbox.max.x, bbox.max.y, bbox.min.z], [bbox.min.x, bbox.max.y, bbox.min.z], [bbox.min.x, bbox.min.y, bbox.min.z]],
-    [[bbox.min.x, bbox.min.y, bbox.max.z], [bbox.max.x, bbox.min.y, bbox.max.z], [bbox.max.x, bbox.max.y, bbox.max.z], [bbox.min.x, bbox.max.y, bbox.max.z], [bbox.min.x, bbox.min.y, bbox.max.z]],
-    [[bbox.min.x, bbox.min.y, bbox.min.z], [bbox.min.x, bbox.min.y, bbox.max.z]],
-    [[bbox.max.x, bbox.min.y, bbox.min.z], [bbox.max.x, bbox.min.y, bbox.max.z]],
-    [[bbox.max.x, bbox.max.y, bbox.min.z], [bbox.max.x, bbox.max.y, bbox.max.z]],
-    [[bbox.min.x, bbox.max.y, bbox.min.z], [bbox.min.x, bbox.max.y, bbox.max.z]]
-  ];
+ 
 
-  for (const l of boxLine) {
-    await interpretate(['Line', ['JSObject', l]], {...envcopy});
-  }}
+      // Combine paths (outer + holes)
+      const fullPath = [outerPath, ...holePaths].join("");
 
-if (options.Axes) {
-  const length = Math.abs(Math.min(bbox.max.x - bbox.min.x, bbox.max.y - bbox.min.y, bbox.max.z - bbox.min.z));
-  const axesHelper = new THREE.AxesHelper( length/2.0 );
-  axesHelper.position.set((bbox.max.x + bbox.min.x)/2.0, (bbox.max.y + bbox.min.y)/2.0, (bbox.max.z + bbox.min.z)/2.0);
-  //axesHelper.rotateX(Math.Pi /2.0);
-  group.add( axesHelper );
-}
+      // Append the path to SVG
+      env.local.area = env.svg.append("path")
+        .attr("d", fullPath)
+        .attr("fill", env.color)
+        .attr("fill-rule", "evenodd") // This is key for holes!
+        .attr("fill-opacity", env.opacity)
+        .attr("stroke-opacity", env.strokeOpacity || env.opacity)
+        .attr("vector-effect", "non-scaling-stroke")
+        .attr("stroke-width", env.strokeWidth)
+        .attr("stroke", env.stroke || env.color);
+      
 
-group.applyMatrix4(new THREE.Matrix4().set( 
-  1, 0, 0, 0,
-  0, 0, 1, 0,
-  0, -1, 0, 0,
-  0, 0, 0, 1));
+      return env.local.area;
 
-  let size = [bbox.max.x - bbox.min.x, bbox.max.z - bbox.min.z, bbox.max.y - bbox.min.y];
-  let max = Math.max(...size);
-  const maxSize = Math.max(...size);
+    }
 
-if ('BoxRatios' in options) {
-
-  const reciprocal = size.map((e) => 1.0/(e/max));
-
-  console.warn('Rescaling....');
-
-  let ratios = await interpretate(options.BoxRatios, env);
-  ratios = [ratios[0], ratios[2], ratios[1]];
-
-  max = Math.max(...ratios);
-  ratios = ratios.map((e, index) => reciprocal[index] * e/max);
-
+    if (points instanceof NumericArrayObject) { // convert back automatically
+      points = data.normal();
+    }
   
-  console.log(max);
-  if (maxSize > 80) {
-    console.warn('Model is too large!');
-    ratios = ratios.map((e) => (e / maxSize) * 10.0);
-  }
+    env.local.line = d3.line()
+          .x(function(d) { return env.xAxis(d[0]) })
+          .y(function(d) { return env.yAxis(d[1]) });
 
-  group.applyMatrix4(new THREE.Matrix4().makeScale(...ratios));
-} else {
-  let ratios = [1,1,1];
-  if (maxSize > 80) {
-    console.warn('Model is too large!');
-    ratios = ratios.map((e) => (e / maxSize) * 10.0);
-  }
+    if (Array.isArray(points[0][0])) {
+      console.log('most likely there are many polygons');
+      const object = env.svg.append('g')
+      .attr("fill", env.color)
+      .attr('fill-opacity', env.opacity)
+      .attr('stroke-opacity', env.strokeOpacity || env.opacity)
+      .attr("vector-effect", "non-scaling-stroke")
+      .attr("stroke-width", env.strokeWidth)
+      .attr("stroke", env.stroke || env.color);
 
-  group.applyMatrix4(new THREE.Matrix4().makeScale(...ratios));
-}
+      if (env.texture) {
+        env.local.area.attr("fill", 'url(#'+env.texture+')');
+      }
 
-group.position.add(new THREE.Vector3(0,1,0));
+      if (env.dasharray) {
+        object.attr('stroke-dasharray', env.dasharray.join());
+      }  
 
-scene.add(group);
-//recalculate
-bbox = new THREE.Box3().setFromObject(group);
-//const sbox = new THREE.Box3().setFromObject(scene);
-//console.log(bbox);
+      points.forEach((e) => {
+        e.push(e[0]);
+        object.append("path")
+          .datum(e)
+          .attr("d", env.local.line);
+      });
 
-if (envcopy.camera.isOrthographicCamera) {
-  console.warn('fitting camera...');
-  const camera = envcopy.camera;
+      env.local.polygons = object;
+      return object;
 
-  console.log(bbox);
-  const center = [bbox.max.x + bbox.min.x, bbox.max.y + bbox.min.y, bbox.max.z + bbox.min.z].map((e) => -e/2);
-  const maxL = Math.max(bbox.max.x - bbox.min.x, bbox.max.y - bbox.min.y, bbox.max.z - bbox.min.z);
-  console.log(maxL);
-  console.log(center);
-  //console.log(sbox);
-  /*let scale = 2.99 / maxL;
-  if (scale > 0.9) scale = 1;
-
-  //scale = 1;
+    }
+    
+    points.push(points[0]);
+    
+    
   
-  scene.applyMatrix4((new THREE.Matrix4()).compose(new THREE.Vector3(0,center[1],0), new THREE.Quaternion(), new THREE.Vector3(1,1,1)));
-  scene.applyMatrix4((new THREE.Matrix4()).compose(new THREE.Vector3(0,1,0), new THREE.Quaternion(), new THREE.Vector3(scale, scale, scale)));
-  //scene.applyMatrix4((new THREE.Matrix4()).compose(new THREE.Vector3(-center[0] * scale, -center[1] * scale, -center[2] * scale), new THREE.Quaternion(), new THREE.Vector3(1,1,1)));
-  //scene.position.set(...center);
-  //scene.scale.set(scale, scale, scale);
-  //scene.position.set(...(center.map((e) => -e)));
-  */
+    env.local.area = env.svg.append("path")
+      .datum(points)
+      .attr("fill", env.color)
+      .attr('fill-opacity', env.opacity)
+      .attr('stroke-opacity', env.strokeOpacity || env.opacity)
+      .attr("vector-effect", "non-scaling-stroke")
+      .attr("stroke-width", env.strokeWidth)
+      .attr("stroke", env.stroke || env.color)
+      .attr("d", env.local.line);
 
-  camera.zoom = Math.min(orthoWidth / (bbox.max.x - bbox.min.x),
-  orthoHeight / (bbox.max.y - bbox.min.y)) * 0.55 ;
+      //throw env;
 
-  if (options.OrthographicCameraZoom) {
-    camera.zoom = await interpretate(options.OrthographicCameraZoom, env);
-  }
-
-  camera.updateProjectionMatrix();
-}
-
-
-//console.error(new THREE.Box3().setFromObject(scene));
-
-scene.updateMatrixWorld();
-
-//console.error(new THREE.Box3().setFromObject(scene));
-
-
-
-//add some lighting
-if (noLighting) {
-  //if ((await interpretate(options.Lighting, env)) === 'None')
-  if (options.Background && PathRendering) {
-    if (options.Background.isColor) {
-      params.environmentIntensity = 0.0;
-      const texture = new RTX.GradientEquirectTexture();
-      texture.topColor.set( 0xffffff );
-      texture.bottomColor.set( 0x666666 );
-      texture.update();
-      scene.defaultEnvTexture = texture;
-      scene.environment = texture;
-      scene.background = texture;
-    }
-  } else if (options.Background) {
-    if (options.Background.isColor) {
-      scene.background = options.Background;
-    }
-  }
-} else {
-  addDefaultLighting(scene, RTX, PathRendering);
-}
-
-if (options.Background && !PathRendering) {
-  if (options.Background.isColor) {
-    scene.background = options.Background;
-  }
-}
-
-if (PathRendering) {
-  ptRenderer.updateLights();
-  new RTX.BlurredEnvMapGenerator( renderer ); 
-}
-
-let envMapPromise;
-
-if ('Lightmap' in options) {
-  const url = await interpretate(options.Lightmap, env);
-  params.backgroundAlpha = 1.0;
-
-  envMapPromise = new RGBELoader().setDataType( THREE.FloatType )
-  .loadAsync(url)
-  .then( texture => {
-
-    if (PathRendering) {
-      envMap = texture;
-      updateEnvBlur();
+    if (env.texture) {
+      env.local.area.attr("fill", 'url(#'+env.texture+')');
     }
 
-    if (PathRendering) return;
+      if (env.dasharray) {
+        env.local.area.attr('stroke-dasharray', env.dasharray.join());
+      } 
 
-    const localEnv = pmremGenerator.fromEquirectangular( texture ).texture;
-
-    scene.environment = localEnv;
-
-    scene.background = localEnv;
-
-    texture.dispose();
-    pmremGenerator.dispose();
-
-  } );
-} 
-
-if ('BackgroundAlpha' in options) {
-  params.backgroundAlpha = await interpretate(options.BackgroundAlpha, env);
-  if (params.backgroundAlpha < 1.0) {
-    scene.background = null;
-  }
-}
-
-  if (!PathRendering) {
-    var pmremGenerator = new THREE.PMREMGenerator( renderer );
-    pmremGenerator.compileEquirectangularShader();
-  }
-
-  if (PathRendering) {
-
-
-    scene.environmentIntensity = params.environmentIntensity;
-	  scene.backgroundIntensity = params.environmentIntensity;
-    scene.backgroundAlpha = params.backgroundAlpha;
-
-    if (params.backgroundAlpha < 1.0) {
-      scene.background = null;
+    if (env.colorRefs) {
+        env.colorRefs[env.root.uid] = env.root;
     }
 
-    ptRenderer.setScene( scene, activeCamera ); 
-    ptRenderer.updateEnvironment();
-    ptRenderer.updateLights();
-    /*var generator = new RTX.PathTracingSceneGenerator( scene );
-    var sceneInfo = generator.generate( scene );
-    var { bvh, textures, materials } = sceneInfo;
+    if (env.opacityRefs) {
+        env.opacityRefs[env.root.uid] = env.root;
+    }
+    
+    return env.local.area;
+  };
 
-    var geometry = bvh.geometry;
-    var material = ptRenderer.material;
+  g2d.Polygon.updateColor = (args, env) => {
+    if (env.local.polygons) {
+      for (const p of env.local.polygons) {
+        p.attr("fill", env.color);
+      }
+      return;
+    }
 
-    material.bvh.updateFrom( bvh );
-    material.attributesArray.updateFrom(
-      geometry.attributes.normal,
-      geometry.attributes.tangent,
-      geometry.attributes.uv,
-      geometry.attributes.color,
+    env.local.area.attr("fill", env.color);
+  };
+
+  g2d.Polygon.updateOpacity = (args, env) => {
+    if (env.local.polygons) {
+      for (const p of env.local.polygons) {
+        p.attr("fill-opacity", env.opacity);
+        p.attr('stroke-opacity', env.strokeOpacity || env.opacity);
+      }
+      return;
+    }
+
+    env.local.area.attr("fill-opacity", env.opacity);
+    env.local.area.attr('stroke-opacity', env.strokeOpacity || env.opacity);
+  }; 
+  
+  g2d.Polygon.update = async (args, env) => {
+    let points = await interpretate(args[0], env);  
+
+    if (points instanceof NumericArrayObject) { // convert back automatically
+      points = points.normal();
+    }
+
+    if (env.local.polygons) {
+      throw 'update method for many polygons in not supported'
+    }    
+  
+    env.xAxis;
+    env.yAxis;
+  
+    const object = env.local.area
+          .datum(points)
+          .maybeTransitionTween(env.transitionType, env.transitionDuration, 'd', function (d) {
+            var previous = d3.select(this).attr('d');
+            var current = env.local.line(d);
+            return interpolatePath(previous, current);
+          }); 
+    
+    return object;  
+  };
+  
+  g2d.Polygon.destroy = (args, env) => {
+    console.log('area destroyed');
+
+    if (!env.local) return;
+    if (env.colorRefs) {
+      delete env.colorRefs[env.root.uid];
+    }
+    if (env.opacityRefs) {
+      delete env.opacityRefs[env.root.uid];
+    }
+    if (env.local.area) {
+      env.local.area.remove();
+      delete env.local.area;
+      return;
+    }
+
+    if (env.local.polygons) {
+      env.local.polygons.remove();
+      delete env.local.polygons;
+    }    
+  };
+  
+  g2d.Polygon.virtual = true; //for local memeory and dynamic binding
+
+  g2d.IdentityFunction = async (args, env) => {
+    return (await interpretate(args[0], env));
+  };
+
+  g2d.StatusArea = g2d.IdentityFunction;
+
+  g2d["Charting`DelayedMouseEffect"] = g2d.IdentityFunction;
+
+  g2dComplex.Line = async (args, env) => {
+    //[TODO] fallback
+
+    const data = await interpretate(args[0], env);
+        //difference case for verices
+    if (!data[0][0]) {
+
+      const object = env.svg.append("path")
+      .datum(data.map((index) => env.wgl.fallbackVertices[index-1]))
+      .attr("fill", "none")
+      .attr("vector-effect", "non-scaling-stroke")
+      .attr('opacity', env.opacity)
+      .attr("stroke", env.color)
+      .attr("stroke-width", env.strokeWidth)
+      .attr("d", d3.line()
+        .x(function(d) { return d[0] })
+        .y(function(d) { return d[1] })
+        );
+        
+        if (env.dasharray) {
+          object.attr('stroke-dasharray', env.dasharray.join());
+        } 
+  
+      return object;
+    } else {
+      const gr = env.svg.append("g");
+      gr.attr("fill", "none")
+      .attr('opacity', env.opacity)
+      .attr("stroke", env.color)
+      .attr("stroke-width", env.strokeWidth);
+  
+      data.forEach((dt) => {
+        gr.append("path")
+        .datum(dt.map((index) => env.vertices[index-1]))
+        .attr("vector-effect", "non-scaling-stroke")
+        .attr("d", d3.line()
+          .x(function(d) { return d[0] })
+          .y(function(d) { return d[1] })
+          ); 
+      });
+  
+      return gr;
+    }
+
+    /*let points = await interpretate(args[0], env);
+    //console.log(points);
+    //if (!env.vertices) throw('No vertices provided!');
+
+    let color = d3.color(env.color);
+      color = [color.r/255.0, color.g/255.0, color.b/255.0, env.opacity];
+
+    //if this is a single line segment
+    if (points[0][0]) return;
+
+
+    const {gl, programInfo} = env.wgl;
+    let bufferInfo; 
+    
+    bufferInfo = twgl.createBufferInfoFromArrays(gl, { indices:  points.flat(Infinity).map((index) => index-1)});
+    
+    twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
+
+    twgl.setUniforms(programInfo, {
+      u_resolution: [gl.canvas.width, gl.canvas.height],
+      u_color: color,
+      u_vertexColor: Boolean(env.wgl.vertexColors)
+    });
+
+    gl.lineWidth(env.strokeWidth);
+
+    gl.drawElements(gl.LINE_STRIP, bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);*/
+  };
+
+  g2d.SplineKnots = () => "SplineKnots";
+  g2d.SplineDegree = () => "SplineDegree";
+
+  g2d.BSplineCurve = async (args, env) => {
+    const options = await core._getRules(args, env);
+
+    let input = await interpretate(args[0], env);
+    const x = env.xAxis;
+    const y = env.yAxis;
+  
+    // Convert control points to 2D or 3D with weight (optional)
+    const controlPoints = input.map(pt => {
+      if (pt.length === 3) return { x: pt[0], y: pt[1], w: pt[2] };
+      return { x: pt[0], y: pt[1], w: 1.0 };
+    });
+  
+    let degree = options.SplineDegree;
+    if (typeof degree != 'number')
+      degree = 3;
+
+    const n = controlPoints.length - 1;
+    const k = degree;
+  
+    // Create a default non-uniform knot vector if not provided
+    let knots = options.SplineKnots;
+
+    if (!Array.isArray(knots)) knots = (() => {
+      const m = n + k + 1;
+      let u = [];
+      for (let i = 0; i <= m; i++) {
+        if (i <= k) u.push(0);
+        else if (i >= m - k) u.push(1);
+        else u.push((i - k) / (m - 2 * k));
+      }
+      return u;
+    })();
+  
+    // Evaluate the curve at a number of steps
+    function N(i, k, t, knots) {
+      if (k === 0) return (knots[i] <= t && t < knots[i + 1]) ? 1 : 0;
+      const d1 = knots[i + k] - knots[i];
+      const d2 = knots[i + k + 1] - knots[i + 1];
+      const a = d1 ? (t - knots[i]) / d1 * N(i, k - 1, t, knots) : 0;
+      const b = d2 ? (knots[i + k + 1] - t) / d2 * N(i + 1, k - 1, t, knots) : 0;
+      return a + b;
+    }
+  
+    function deBoor(t) {
+      let numerator = { x: 0, y: 0 };
+      let denominator = 0;
+  
+      for (let i = 0; i <= n; i++) {
+        const b = N(i, k, t, knots) * controlPoints[i].w;
+        numerator.x += b * controlPoints[i].x;
+        numerator.y += b * controlPoints[i].y;
+        denominator += b;
+      }
+  
+      return [x(numerator.x / denominator), y(numerator.y / denominator)];
+    }
+  
+    const path = d3.path();
+    const steps = env.steps || 100;
+    for (let j = 0; j <= steps; j++) {
+      const t = knots[k] + ((knots[n + 1] - knots[k]) * j) / steps;
+      const pt = deBoor(t);
+      if (j === 0) path.moveTo(...pt);
+      else path.lineTo(...pt);
+    }
+  
+    return env.svg.append("path")
+      .attr("fill", "none")
+      .attr("vector-effect", "non-scaling-stroke")
+      .attr('opacity', env.opacity)
+      .attr("stroke", env.color)
+      .attr("stroke-width", env.strokeWidth)
+      .attr("d", path);
+  };
+
+  // de Casteljau evaluator for any degree
+  const deCasteljau = (ctrl, t) => {
+    let tmp = ctrl.map(p => [p[0], p[1]]);
+    for (let r = 1; r < ctrl.length; r++) {
+      for (let i = 0; i < ctrl.length - r; i++) {
+        tmp[i][0] = (1 - t) * tmp[i][0] + t * tmp[i + 1][0];
+        tmp[i][1] = (1 - t) * tmp[i][1] + t * tmp[i + 1][1];
+      }
+    }
+    return tmp[0];
+  };
+
+  // draw a general-degree segment by sampling
+  const drawSampled = (path, ctrl, samples = 48) => {
+    for (let s = 1; s <= samples; s++) {
+      const t = s / samples;
+      const p = deCasteljau(ctrl, t);
+      path.lineTo(p[0], p[1]);
+    }
+  };
+
+g2d.BezierCurve = async (args, env) => {
+  const options = await core._getRules(args, env);
+
+  let points = await interpretate(args[0], env);
+  const path = d3.path();
+
+  const degreeOpt = (options && Number.isInteger(options.SplineDegree)) ? options.SplineDegree : 3;
+  const deg = Math.max(1, degreeOpt); // at least a line
+
+  const x = env.xAxis;
+  const y = env.yAxis;
+
+  // map to screen space
+  points = points.map(p => [x(p[0]), y(p[1])]);
+
+  if (points.length < 2) return null;
+
+
+  path.moveTo(points[0][0], points[0][1]);
+
+  // Each segment consumes "deg" control points AFTER the current start
+  // (since the start is the path's current point); end point is the last of the group.
+  let i = 1; // index into points after the initial start point
+  while (i + deg - 1 < points.length) {
+    const remaining = points.length - i;
+
+    if (deg === 3 && remaining >= 3) {
+      // cubic: [C1, C2, End]
+      path.bezierCurveTo(
+        points[i][0], points[i][1],
+        points[i + 1][0], points[i + 1][1],
+        points[i + 2][0], points[i + 2][1]
+      );
+      i += 3;
+    } else if (deg === 2 && remaining >= 2) {
+      // quadratic: [C, End]
+      path.quadraticCurveTo(
+        points[i][0], points[i][1],
+        points[i + 1][0], points[i + 1][1]
+      );
+      i += 2;
+    } else {
+      // any other degree (or not enough points left for native call): sample
+      const take = Math.min(deg, remaining);
+      const ctrl = [ /* current start */ path._currentPoint || points[i - 1] ]
+        .concat(points.slice(i, i + take));
+
+      // Ensure current start is the last point we drew to:
+      // (Path2D doesn't expose it; keep track manually)
+      // We can store it ourselves after each draw.
+      drawSampled(path, ctrl, Math.max(24, take * 12));
+
+      // update synthetic current point to the segment end
+      const end = ctrl[ctrl.length - 1];
+      path._currentPoint = [end[0], end[1]];
+
+      i += take;
+    }
+  }
+
+  // Handle any final leftover points (1 => line, 2 => quadratic, >=3 => sampled)
+  const leftover = points.length - i;
+  if (leftover === 1) {
+    path.lineTo(points[i][0], points[i][1]);
+  } else if (leftover === 2) {
+    path.quadraticCurveTo(points[i][0], points[i][1], points[i + 1][0], points[i + 1][1]);
+  } else if (leftover > 2) {
+    const ctrl = [path._currentPoint || points[i - 1]].concat(points.slice(i));
+    drawSampled(ctrl, Math.max(24, leftover * 12));
+  }
+
+  return env.svg.append("path")
+    .attr("fill", "none")
+    .attr("vector-effect", "non-scaling-stroke")
+    .attr("opacity", env.opacity)
+    .attr("stroke", env.color)
+    .attr("stroke-width", env.strokeWidth)
+    .attr("d", path);
+};
+
+
+
+  g2d.Line = async (args, env) => {
+
+    env.offset;
+    
+    let data = await interpretate(args[0], env);
+    //(data);
+
+    
+    if (data instanceof NumericArrayObject) { // convert back automatically
+      data = data.normal();
+    }
+    
+    const x = env.xAxis;
+    const y = env.yAxis;
+
+    let object;
+
+
+    switch(arrdims(data)) {
+      case 0:
+        //empty
+        object = env.svg.append("path")
+        .datum([])
+        .attr("fill", "none")
+        .attr("vector-effect", "non-scaling-stroke")
+        .attr('opacity', env.opacity)
+        .attr("stroke", env.color)
+        .attr("stroke-width", env.strokeWidth)
+        .attr("d", d3.line()
+          .x(function(d) { return x(d[0]) })
+          .y(function(d) { return y(d[1]) })
+          );  
+        
+        if (env.dasharray) {
+          object.attr('stroke-dasharray', env.dasharray.join());
+        }
+
+      break;        
+      case 2:
+        if (env.returnPath) {
+          object = null;
+          throw 'Not implemented!';
+        } else {
+          object = env.svg.append("path")
+          .datum(data)
+          .attr("vector-effect", "non-scaling-stroke")
+          .attr("fill", "none")
+          .attr('opacity', env.opacity)
+          .attr("stroke", env.color)
+          .attr("stroke-width", env.strokeWidth)
+          .attr("d", d3.line()
+            .x(function(d) { return x(d[0]) })
+            .y(function(d) { return y(d[1]) })
+            ); 
+          
+          if (env.dasharray) {
+            object.attr('stroke-dasharray', env.dasharray.join());
+          }  
+        } 
+      break;
+    
+      case 3:
+        console.log(data);
+
+        object = data.map((d)=>{
+         
+          const o = env.svg.append("path")
+          .datum(d).join("path")
+          .attr("vector-effect", "non-scaling-stroke")
+          .attr("fill", "none")
+          .attr("stroke", env.color)
+          .attr("stroke-width", env.strokeWidth)
+          .attr("d", d3.line()
+            .x(function(d) { return x(d[0]) })
+            .y(function(d) { return y(d[1]) })
+            );
+
+          if (env.dasharray) {
+            o.attr('stroke-dasharray', env.dasharray.join());
+          }
+          return o;
+        });    
+      break;
+    } 
+
+    env.local.nsets = data.length;
+
+    env.local.line = d3.line()
+        .x(function(d) { return env.xAxis(d[0]) })
+        .y(function(d) { return env.yAxis(d[1]) });
+
+    env.local.object = object;
+
+    if (env.colorRefs) {
+      env.colorRefs[env.root.uid] = env.root;
+    }
+
+    if (env.opacityRefs) {
+      env.opacityRefs[env.root.uid] = env.root;
+    }    
+
+    //[TODO]:fixme
+    if (Array.isArray(object)) return object[0];
+    return object;
+  };
+
+  //g2d.Line.destroy = (args, env) => {
+    //console.warn('Line was destroyed');
+  //}
+
+  g2d.Line.updateColor = (args, env) => {
+    if (Array.isArray(env.local.object)) {
+      env.local.object.forEach((o) => o.style("stroke", env.color));
+      return;
+    }
+    env.local.object.style("stroke", env.color);
+  };
+
+  g2d.Line.updateOpacity = (args, env) => {
+    if (Array.isArray(env.local.object)) {
+      env.local.object.forEach((o) => o.style("opacity", env.opacity));
+      return;
+    }
+    env.local.object.style("opacity", env.opacity);
+  };
+
+
+
+
+  g2d.Line.update = async (args, env) => {
+    let data = await interpretate(args[0], env);
+    //console.warn(data);
+    //console.log(data);
+
+    if (data instanceof NumericArrayObject) { // convert back automatically
+      data = data.normal();
+     }
+
+    const x = env.xAxis;
+    const y = env.yAxis;
+
+    let stored = env.local.object;
+
+    
+
+    let obj;
+
+
+    switch(arrdims(data)) {
+      case 0:
+        //empty
+
+        obj = stored
+        .datum([])
+        .maybeTransitionTween(env.transitionType, env.transitionDuration, 'd', function (d) {
+          var previous = d3.select(this).attr('d');
+          var current = env.local.line(d);
+          return interpolatePath(previous, current);
+        }); 
+
+      break;
+      case 2:
+        //animate equal
+
+        //animate the rest
+        obj = stored
+        .datum(data)
+        .maybeTransitionTween(env.transitionType, env.transitionDuration, 'd', function (d) {
+          var previous = d3.select(this).attr('d');
+          var current = env.local.line(d);
+          return interpolatePath(previous, current);
+        }); 
+
+          /*.attrTween('d', function (d) {
+            var previous = d3.select(this).attr('d');
+            var current = env.local.line(d);
+            return interpolatePath(previous, current);
+          }); */
+
+      break;
+    
+      case 3:
+        for (let i=0; i < Math.min(data.length, env.local.nsets); ++i) {
+          console.log('upd 1');
+          obj = stored[i]
+          .datum(data[i])
+          .maybeTransitionTween(env.transitionType, env.transitionDuration, 'd', function (d) {
+            var previous = d3.select(this).attr('d');
+            var current = env.local.line(d);
+            return interpolatePath(previous, current);
+          }); 
+        }
+        if (data.length > env.local.nsets) {
+          console.log('upd 2');
+          for (let i=env.local.nsets; i < data.length; ++i) {
+            obj = env.svg.append("path")
+            .datum(data[i])
+            .attr("fill", "none")
+            .attr("stroke", env.color)
+            .attr("stroke-width", env.strokeWidth)
+            .maybeTransition(env.transitionType, env.transitionDuration)          
+            .attr("d", d3.line()
+              .x(function(d) { return x(d[0]) })
+              .y(function(d) { return y(d[1]) })
+              ); 
+              
+            stored.push(obj);
+          }
+        }
+
+        if (data.length < env.local.nsets) {
+          console.log('upd 3');
+          for (let i=data.length; i < env.local.nsets; ++i) {
+            obj = stored[i].datum(data[0])
+            .join("path")
+            .maybeTransition(env.transitionType, env.transitionDuration)
+            .attr("d", env.local.line);            
+          }
+        }
+
+        
+      break;
+    }    
+
+    env.local.nsets = Math.max(data.length, env.local.nsets);
+
+    return obj;
+
+  };
+
+  g2d.Line.virtual = true;
+
+  g2d.Line.destroy = (args, env) => {
+
+    //delete env.local.area;
+    if (!env.local) return;
+    if (!env.local.object) return;
+    if (Array.isArray(env.local.object)) {
+      env.local.object.forEach((o) => o.remove());
+    } else {
+      env.local.object.remove();
+    }
+    
+    delete env.local.object;
+  };
+
+  g2d.Circle = async (args, env) => {
+    if (args.length > 2) {
+      env.local.arcQ = true;
+      return await g2d._arc(args, env);
+    }
+
+    let data = await interpretate(args[0], env);
+    if (data instanceof NumericArrayObject) { // convert back automatically
+      data = data.normal();
+    }
+
+    let radius = [1, 1]; 
+
+    if (args.length > 1) {
+      radius = await interpretate(args[1], env);
+      if (!Array.isArray(radius)) radius = [radius, radius];
+    }
+
+    //console.warn(args);
+
+    const x = env.xAxis;
+    const y = env.yAxis;
+
+    env.local.coords = [x(data[0]), y(data[1])];
+    env.local.r = [x(radius[0]) - x(0), Math.abs(y(radius[1]) - y(0))];
+    //throw env.local.r;
+    const object = env.svg
+    .append("ellipse")
+    .attr("vector-effect", "non-scaling-stroke")
+      .attr("cx",  x(data[0]))
+      .attr("cy", y(data[1]) )
+      .attr("rx", env.local.r[0])
+      .attr("ry", env.local.r[1])
+      .style("stroke", env.color)
+      .attr("vector-effect", "non-scaling-stroke")
+      .attr("stroke-width", env.strokeWidth)
+      .style("fill", 'none')
+      .style("opacity", env.opacity);
+
+    env.local.object = object;
+
+    if (env.dasharray) {
+      object.attr('stroke-dasharray', env.dasharray.join());
+    }
+
+    if (env.colorRefs) {
+      env.colorRefs[env.root.uid] = env.root;
+    }
+    if (env.opacityRefs) {
+      env.opacityRefs[env.root.uid] = env.root;
+    }
+
+    return object;
+  };
+
+  g2d.Circle.updateColor = (args, env) => {
+    env.local.object.style("stroke", env.color);
+  };
+
+  g2d.Circle.updateOpacity = (args, env) => {
+    env.local.object.style("opacity", env.opacity);
+  };  
+
+  g2d.Circle.update = async (args, env) => {
+    let data = await interpretate(args[0], env);
+
+    if (data instanceof NumericArrayObject) { // convert back automatically
+      data = data.normal();
+    }
+
+    let radius = 1; 
+
+    if (args.length > 1) {
+      radius = await interpretate(args[1], env);
+      if (!Array.isArray(radius)) radius = [radius, radius];
+    }   
+
+    const x = env.xAxis;
+    const y = env.yAxis; 
+
+    //env.local.coords = [x(data[0]), y(data[1])];
+    env.local.r = [x(radius[0]) - x(0), Math.abs(y(radius[1]) - y(0))];
+
+   
+
+    env.local.object.maybeTransition(env.transitionType, env.transitionDuration)
+    .attr("cx", x(data[0]) )
+    .attr("cy", y(data[1]) )
+    .attr("rx", env.local.r[0])
+    .attr("ry", env.local.r[1]);
+
+    return env.local.object;
+  };
+
+  g2d.Circle.destroy = (args, env) => {
+    if (env.local.arcQ) {
+      return;
+    }
+    env.local.object.remove();
+    if (env.colorRefs) {
+      delete env.colorRefs[env.root.uid];
+    }
+    if (env.opacityRefs) {
+      delete env.opacityRefs[env.root.uid];
+    }
+  };
+
+  g2d.Circle.virtual = true;
+
+  const deg = function(rad) { return rad * 180 / Math.PI };
+  const rad = function (deg) { return deg * Math.PI / 180 };
+
+  function getEllipsePointForAngle(cx, cy, rx, ry, phi, theta) {
+    const { abs, sin, cos } = Math;
+    
+    const M = abs(rx) * cos(theta),
+          N = abs(ry) * sin(theta);  
+    
+    return [
+      cx + cos(phi) * M - sin(phi) * N,
+      cy + sin(phi) * M + cos(phi) * N
+    ];
+  }
+
+  function getEndpointParameters(cx, cy, rx, ry, phi, theta, dTheta) {
+  
+    const [x1, y1] = getEllipsePointForAngle(cx, cy, rx, ry, phi, theta);
+    const [x2, y2] = getEllipsePointForAngle(cx, cy, rx, ry, phi, theta + dTheta);
+    
+    const fa = Math.abs(dTheta) > Math.PI ? 1 : 0;
+    const fs = dTheta > 0 ? 1 : 0;
+    
+    return { x1, y1, x2, y2, fa, fs }
+  }  
+  
+  function getCenterParameters(x1, y1, x2, y2, fa, fs, rx, ry, phi) {
+    const { abs, sin, cos, sqrt } = Math;
+    const pow = n => Math.pow(n, 2);
+  
+    const sinphi = sin(phi), cosphi = cos(phi);
+  
+    // Step 1: simplify through translation/rotation
+    const x =  cosphi * (x1 - x2) / 2 + sinphi * (y1 - y2) / 2,
+          y = -sinphi * (x1 - x2) / 2 + cosphi * (y1 - y2) / 2;
+  
+    const px = pow(x), py = pow(y), prx = pow(rx), pry = pow(ry);
+    
+    // correct of out-of-range radii
+    const L = px / prx + py / pry;
+  
+    if (L > 1) {
+      rx = sqrt(L) * abs(rx);
+      ry = sqrt(L) * abs(ry);
+    } else {
+      rx = abs(rx);
+      ry = abs(ry);
+    }
+
+    // Step 2 + 3: compute center
+    const sign = fa === fs ? -1 : 1;
+    const M = sqrt((prx * pry - prx * py - pry * px) / (prx * py + pry * px)) * sign;
+
+    const _cx = M * (rx * y) / ry,
+          _cy = M * (-ry * x) / rx;
+
+    const cx = cosphi * _cx - sinphi * _cy + (x1 + x2) / 2,
+          cy = sinphi * _cx + cosphi * _cy + (y1 + y2) / 2;
+
+    // Step 4: compute θ and dθ
+    const theta = vectorAngle(
+      [1, 0],
+      [(x - _cx) / rx, (y - _cy) / ry]
     );
 
-  material.materialIndexAttribute.updateFrom( geometry.attributes.materialIndex );
-  material.textures.setTextures( renderer, 2048, 2048, textures );
-  material.materials.updateFrom( materials, textures );*/
+    let _dTheta = deg(vectorAngle(
+        [(x - _cx) / rx, (y - _cy) / ry],
+        [(-x - _cx) / rx, (-y - _cy) / ry]
+    )) % 360;
+
+    if (fs === 0 && _dTheta > 0) _dTheta -= 360;
+    if (fs === 1 && _dTheta < 0) _dTheta += 360;
+  
+    return { cx, cy, theta, dTheta: rad(_dTheta) };
 }
 
-if ('Lightmap' in options)
-  await Promise.all( [ envMapPromise ] );    
+function vectorAngle ([ux, uy], [vx, vy]) {
+  const { acos, sqrt } = Math;
+  const sign = ux * vy - uy * vx < 0 ? -1 : 1,
+        ua = sqrt(ux * ux + uy * uy),
+        va = sqrt(vx * vx + vy * vy),
+        dot = ux * vx + uy * vy;
+
+  return sign * acos(dot / (ua * va));
+}
+
+g2d.Annulus = async (args, env) => {
+// Assuming this code is inside an async function
+
+// Interpret the center data, radii, and angles from the arguments
+let data = await interpretate(args[0], env);
+let radii = await interpretate(args[1], env);
+
+// Ensure radii is an array with [outerRadius, innerRadius]
+if (!Array.isArray(radii)) radii = [radii, radii];
+
+let angles = (await interpretate(args[2], env)).map((a) => (2.0*Math.PI - a));
+
+// Extract axis scaling functions
+const x = env.xAxis;
+const y = env.yAxis;
+
+// Destructure outer and inner radii
+const [outerRadius, innerRadius] = radii;
+
+// Calculate scaled radii
+const rxOuter = x(outerRadius) - x(0);
+const ryOuter = Math.abs(y(outerRadius) - y(0));
+
+const rxInner = x(innerRadius) - x(0);
+const ryInner = Math.abs(y(innerRadius) - y(0));
+
+// Extract center coordinates
+const cx = x(data[0]);
+const cy = y(data[1]);
+
+// Extract start and end angles
+const [startAngle, endAngle] = angles;
+
+// Determine if the arc is greater than 180 degrees
+const deltaAngle = endAngle - startAngle;
+const largeArcFlag = deltaAngle > Math.PI ? 0 : 1;
+
+// Sweep flag (1 for clockwise, 0 for counter-clockwise)
+// Adjust based on how your angles are defined
+const sweepFlag = 0;
+
+// Calculate coordinates for the outer arc
+const x1Outer = cx + rxOuter * Math.cos(startAngle);
+const y1Outer = cy + ryOuter * Math.sin(startAngle);
+
+const x2Outer = cx + rxOuter * Math.cos(endAngle);
+const y2Outer = cy + ryOuter * Math.sin(endAngle);
+
+// Calculate coordinates for the inner arc
+const x1Inner = cx + rxInner * Math.cos(endAngle);
+const y1Inner = cy + ryInner * Math.sin(endAngle);
+
+const x2Inner = cx + rxInner * Math.cos(startAngle);
+const y2Inner = cy + ryInner * Math.sin(startAngle);
+
+// Construct the SVG path for the annulus
+const pathData = [
+  `M ${x1Outer} ${y1Outer}`, // Move to start of outer arc
+  `A ${rxOuter} ${ryOuter} 0 ${largeArcFlag} ${sweepFlag} ${x2Outer} ${y2Outer}`, // Outer arc
+  `L ${x1Inner} ${y1Inner}`, // Line to start of inner arc
+  `A ${rxInner} ${ryInner} 0 ${largeArcFlag} ${1} ${x2Inner} ${y2Inner}`, // Inner arc
+  'Z' // Close path
+].join(' ');
+
+// Create and append the SVG path for the annulus
+const object = env.svg.append("path") 
+  .attr("vector-effect", "non-scaling-stroke")
+  .style("fill", env.color)
+  .style("opacity", env.opacity) 
+  .attr("d", pathData);
+
+return object;
+};
 
 
 
+  g2d._arc = async (args, env) => {
+    let data = await interpretate(args[0], env);
+    let radius = await interpretate(args[1], env);
+      if (!Array.isArray(radius)) radius = [radius, radius];
+    
+    let angles = (await interpretate(args[2], env)).map((a) => 2*Math.PI - a);
+
+    const x = env.xAxis;
+    const y = env.yAxis;
+
+    //env.local.coords = [x(data[0]), y(data[1])];
+    //env.local.r = [x(radius[0]) - x(0), Math.abs(y(radius[1]) - y(0))];
+    const ellipse = {
+      cx: x(data[0]),
+      cy: y(data[1]),
+
+      phi: 0,
+      rx: x(radius[0]) - x(0),
+      ry: Math.abs(y(radius[1]) - y(0)),
+      start: angles[0],
+      delta: angles[1]-angles[0]
+    };
 
 
 
-function onResize() {
+    const { x1, y1, x2, y2, fa, fs } = getEndpointParameters(
+      ellipse.cx,
+      ellipse.cy,
+      ellipse.rx,
+      ellipse.ry,
+      ellipse.phi,
+      ellipse.start,
+      ellipse.delta
+    );
 
-  const w = ImageSize[0];
-  const h = ImageSize[1];
-  const scale = params.resolutionScale;
+    const { cx, cy, theta, dTheta } = getCenterParameters(
+      x1,
+      y1,
+      x2,
+      y2,
+      fa,
+      fs,
+      ellipse.rx,
+      ellipse.ry,
+      ellipse.phi
+    );  
 
-  if (PathRendering) {
-    //ptRenderer.setSize( w * scale * dpr, h * scale * dpr );
-    ptRenderer.reset();
+   // console.log({x: x(data[0]), xorg: data[0], r: env.local.r, rorg: radius});
+
+    const object = env.svg.append("path") 
+      .attr("vector-effect", "non-scaling-stroke")
+      .style('stroke', env.stroke || env.color)
+      .style('stroke-width', env.strokeWidth)
+      .style("opacity", env.opacity) 
+      .attr("d",
+        `M ${cx} ${cy}
+         L ${x1} ${y1}
+         A ${ellipse.rx} ${ellipse.ry} ${deg(ellipse.phi)} ${fa} ${fs} ${x2} ${y2}
+         Z`); 
+
+    object.style("fill", env.filled ? env.color : 'none');
+      
+    return object;
+  };
+
+  g2dComplex.Disk = async (args, env) => {
+    if (args.length > 2) {
+      throw('Graphics complex with arcs is not supported');
+    }
+
+    let data = await interpretate(args[0], env);
+    let radius = 1; 
+
+    if (args.length > 1) {
+      radius = await interpretate(args[1], env);
+      if (Array.isArray(radius)) radius = (radius[0] + radius[1])/2.0;
+    }
+
+    //console.warn(args);
+
+    const x = env.xAxis;
+    env.yAxis;
+
+    if (!data[0]) {
+      //single vertice
+      const vertex = env.wgl.fallbackVertices[data-1];
+      const coords = [vertex[0], vertex[1]];
+      const r = x(radius) - x(0);
+
+      const object = env.svg
+      .append("circle")
+      .attr("vector-effect", "non-scaling-stroke")
+        .attr("cx", coords[0])
+        .attr("cy", coords[1])
+        .attr("r", r)
+        .style("stroke", 'none')
+        .style("fill", env.color)
+        .style("opacity", env.opacity);
+
+  
+      return object;
+
+    } else {
+      const object = [];
+      const r = x(radius) - x(0);
+
+      data.map((index) => env.wgl.fallbackVertices[index-1]).map((disk) => {
+        object.push(env.svg
+        .append("circle")
+        .attr("vector-effect", "non-scaling-stroke")
+          .attr("cx", disk[0])
+          .attr("cy", disk[1])
+          .attr("r", r)
+          .style("stroke", 'none')
+          .style("fill", env.color)
+          .style("opacity", env.opacity));
+      });
+
+      return object;
+    }
+
+  };
+
+
+  g2d.Disk = async (args, env) => {
+    if (args.length > 2) {
+      return await g2d._arc(args, {...env, filled:true});
+    }
+
+    let data = await interpretate(args[0], env);
+
+    if (data instanceof NumericArrayObject) { // convert back automatically
+      data = data.normal();
+    }    
+    
+    let radius = [1, 1]; 
+
+    if (args.length > 1) {
+      radius = await interpretate(args[1], env);
+      if (!Array.isArray(radius)) radius = [radius, radius];
+    }
+
+    //console.warn(args);
+
+    const x = env.xAxis;
+    const y = env.yAxis;
+
+    env.local.coords = [x(data[0]), y(data[1])];
+    env.local.r = [x(radius[0]) - x(0), Math.abs(y(radius[1]) - y(0))];
+    //throw env.local.r;
+    const object = env.svg
+    .append("ellipse")
+    .attr("vector-effect", "non-scaling-stroke")
+      .attr("cx",  x(data[0]))
+      .attr("cy", y(data[1]) )
+      .attr("rx", env.local.r[0])
+      .attr("ry", env.local.r[1])
+      .style("stroke", env.stroke)
+      .attr("stroke-width", env.strokeWidth)
+      .style("fill", env.color)
+      .style("opacity", env.opacity);
+
+    env.local.object = object;
+
+    if (env.colorRefs) {
+      env.colorRefs[env.root.uid] = env.root;
+    }
+    if (env.opacityRefs) {
+      env.opacityRefs[env.root.uid] = env.root;
+    }
+
+    return object;
+  };
+
+  g2d.Disk.update = async (args, env) => {
+    let data = await interpretate(args[0], env);
+
+    if (data instanceof NumericArrayObject) { // convert back automatically
+      data = data.normal();
+    }
+
+    //console.log(data);
+    let radius = env.local.r; 
+
+    if (args.length > 1) {
+      radius = await interpretate(args[1], env);
+      if (!Array.isArray(radius)) radius = [radius, radius];
+    }
+
+    const x = env.xAxis;
+    const y = env.yAxis;     
+
+    env.local.coords = [x(data[0]), y(data[1])];
+    env.local.r = [x(radius[0]) - x(0), Math.abs(y(radius[1]) - y(0))];
+
+    //console.warn(args);
+
+ 
+    
+    env.local.object.maybeTransition(env.transitionType, env.transitionDuration)
+    .attr("cx",  env.local.coords[0])
+    .attr("cy", env.local.coords[1])
+    .attr("rx", env.local.r[0])
+    .attr("ry", env.local.r[1]);
+  };
+
+  g2d.Disk.updateColor = (args, env) => {
+    env.local.object.style("fill", env.color);
+  };
+
+  g2d.Disk.updateOpacity = (args, env) => {
+    env.local.object.style("opacity", env.opacity);
+  };  
+
+  g2d.Disk.virtual = true;
+
+  g2d.Disk.destroy = (args, env) => {
+ 
+    if (!env.local) return;
+    if (!env.local.object) return;
+    if (env.colorRefs) {
+      delete env.colorRefs[env.root.uid];
+    }
+    if (env.opacityRefs) {
+      delete env.opacityRefs[env.root.uid];
+    }
+    env.local.object.remove();
+    
+    delete env.local.object;
+    //delete env.local.area;
+  };
+  
+  g2dComplex.Point = async (args, env) => {
+    let points = await interpretate(args[0], env);
+    //console.log(points);
+    //if (!env.vertices) throw('No vertices provided!');
+
+    let color = d3.color(env.color);
+      color = [color.r/255.0, color.g/255.0, color.b/255.0, env.opacity];
+
+    //if this is a single point segment
+    if (points[0][0]) {
+      return;
+    }
+
+    
+
+
+    const {gl, programInfo} = env.wgl;
+    let bufferInfo;
+    
+    let indices = points.flat(Infinity).map(i => i - 1);
+
+    if (env.wgl.fallbackVertices.length > 65535) {
+      console.warn('Vertex buffer is too large and may not be indexed correctly');
+      bufferInfo = twgl.createBufferInfoFromArrays(gl, {
+        indices: new Uint32Array(indices)
+      });
+    } else {
+      bufferInfo = twgl.createBufferInfoFromArrays(gl, {
+        indices: new Uint16Array(indices)
+      });
+    }
+
+    twgl.setBuffersAndAttributes(gl, programInfo, bufferInfo);
+
+    twgl.setUniforms(programInfo, {
+      u_resolution: [gl.canvas.width, gl.canvas.height],
+      u_color: color,
+      u_pointSize: env.pointSize * window.devicePixelRatio * 100.0 * 2.0,
+      u_vertexColor: Boolean(env.wgl.vertexColors)
+    });
+
+    if (env.wgl.fallbackVertices.length > 65535) {
+      gl.drawElements(gl.POINTS, bufferInfo.numElements, gl.UNSIGNED_INT, 0);
+    } else {
+      gl.drawElements(gl.POINTS, bufferInfo.numElements, gl.UNSIGNED_SHORT, 0);
+    } 
+
+  };
+
+  g2d.Point = async (args, env) => {
+    let data = await interpretate(args[0], env);
+    if (data instanceof NumericArrayObject) { // convert back automatically
+      data = data.normal();
+     }
+    const x = env.xAxis;
+    const y = env.yAxis;
+
+      const dp = arrdims(data);
+      if (dp === 0) {
+          data = [];
+      } else {
+        if (dp < 2) {
+          data = [data];
+        }
+      }
+
+
+
+ 
+
+    /*const object = env.svg.append('g')
+    .selectAll()
+    .data(data)
+    .enter()
+    .append("circle")
+    .attr("vector-effect", "non-scaling-stroke")
+    .attr('class', "dot-"+uid)
+      .attr("cx", function (d) { return x(d[0]); } )
+      .attr("cy", function (d) { return y(d[1]); } )
+      .attr("r", env.pointSize*100)
+      .style("fill", env.color)
+      .style("opacity", env.opacity);*/
+
+    const object = env.svg.append('g')
+    .style("stroke-width", env.pointSize*100*2)
+    .style("stroke-linecap", "round")
+    .style("stroke", env.color)
+    .style("opacity", env.opacity);
+
+    if (env.colorRefs) {
+      env.colorRefs[env.root.uid] = env.root;
+    }
+    if (env.opacityRefs) {
+      env.opacityRefs[env.root.uid] = env.root;
+    }
+
+    const points = [];
+
+    data.forEach((d, vert) => {
+
+      
+        points.push(
+         object.append("path")
+        .attr("d", `M ${x(d[0])} ${y(d[1])} l 0.0001 0`)
+        .attr("vector-effect", "non-scaling-stroke")
+        );
+      
+    });
+
+    env.local.points = points;
+    env.local.object = object;
+    
+    return object;
+  }; 
+
+  g2d.Point.updateColor = (args, env) => {
+    env.local.object.style("stroke", env.color);
+  };
+
+  g2d.Point.updateOpacity = (args, env) => {
+    env.local.object.style("opacity", env.opacity);
+  };    
+
+  g2d.Point.update = async (args, env) => {
+    let data = await interpretate(args[0], env);
+
+    if (data instanceof NumericArrayObject) { // convert back automatically
+      data = data.normal();
+    }
+    
+    const dp = arrdims(data);
+    if (dp === 0) {
+        data = [];
+    } else {
+      if (dp < 2) {
+        data = [data];
+      }
+    }
+  
+    const x = env.xAxis;
+    const y = env.yAxis;
+
+    let object;
+  
+    const u = env.local.object;
+
+    const minLength = Math.min(env.local.points.length, data.length);
+
+    let prev = [0,0];
+
+    for (let i=env.local.points.length; i<data.length; i++) {
+      if (i-1 >= 0) prev = data[i-1];
+
+      object = u.append("path")
+      .attr("d", `M ${x(prev[0])} ${y(prev[1])} l 0.0001 0`)
+      .attr("vector-effect", "non-scaling-stroke");
+
+      env.local.points.push(object);
+
+      object = object.maybeTransition(env.transitionType, env.transitionDuration)
+      .attr("d", `M ${x(data[i][0])} ${y(data[i][1])} l 0.0001 0`);
+    }
+    for (let i=env.local.points.length; i>data.length; i--) {
+      object = env.local.points.pop();
+
+      object.remove(); 
+    }
+    for (let i=0; i < minLength; i++) {
+      object = env.local.points[i].maybeTransition(env.transitionType, env.transitionDuration)
+      .attr("d", `M ${x(data[i][0])} ${y(data[i][1])} l 0.0001 0`);
+    }
+
+    return object;
+  };
+
+  //g2d.Point.destroy = (args, env) => {interpretate(args[0], env)}
+
+  g2d.Point.virtual = true;  
+
+  g2d.Point.destroy = (args, env) => {
+
+    if (!env.local) return;
+    if (!env.local.object) return;
+
+    if (env.colorRefs) 
+      delete env.colorRefs[env.root.uid];
+
+    if (Array.isArray(env.local.object)) {
+      env.local.object.forEach((o) => o.remove());
+    } else {
+      env.local.object.remove();
+    }
+    
+    delete env.local.object;
+  };
+
+  const getCanvas = (env) => {
+
+    let t = {k: 1, x:0, y:0};
+    env.onZoom.push((tranform) => {
+      t = tranform;
+    });
+
+    const copy = {xAxis: env.xAxis, yAxis: env.yAxis};
+
+    env.xAxis = (x) => {
+      return 0;
+    };
+
+    env.yAxis = (y) => {
+      return 0;
+    };
+
+    env.xAxis.invert = (x) => {
+      const X = (x - t.x - env.panZoomEntites.left) / t.k;
+      return copy.xAxis.invert(X);
+    };
+
+    env.yAxis.invert = (y) => {
+      const Y = (y - t.y - env.panZoomEntites.top) / t.k;
+      return copy.yAxis.invert(Y);
+    };
+
+    return env.panZoomEntites.canvas
+  };
+
+  g2d.EventListener = async (args, env) => {
+    const rules = await interpretate(args[1], env);
+    const copy = {...env};
+
+    let object = await interpretate(args[0], copy);
+
+    if (!object) {
+      object = getCanvas(copy);
+    } else {
+      if (Array.isArray(object)) object = object[0];
+    }
+
+    if (!object.on_list) object.on_list = {};
+
+    rules.forEach((rule)=>{
+      g2d.EventListener[rule.lhs](rule.rhs, object, copy);
+    });
+
+    return null;
+  };
+
+  g2d.EventListener.update = async (args, env) => {
+    console.log('EventListener does not support updates');
+  };
+  
+  g2d.EventListener.onload = (uid, object, env) => {
+
+    console.log('onload event generator');
+    server.kernel.emitt(uid, `True`, 'onload');
+  };  
+
+  g2d.MiddlewareListener = async (args, env) => {
+    const options = await core._getRules(args, env);
+    const name = await interpretate(args[1], env);
+    const uid = await interpretate(args[2], env);
+    console.log(args);
+    env.local.middleware = g2d.MiddlewareListener[name](uid, options, env);
+
+    return (await interpretate(args[0], env));
+  };
+
+  g2d.MiddlewareListener.update = (args, env) => {
+    return interpretate(args[0], env);
+  };
+
+  //g2d.MiddlewareListener.destroy = (args, env) => {
+    //return interpretate(args[0], env);
+  //}  
+
+  g2d.MiddlewareListener.end = (uid, params, env) => {
+    const threshold = params.Threshold || 1.0;
+    
+    server.kernel.emitt(uid, `True`, 'end');
+    console.log("pre Fire");
+
+    return (object) => {
+      let state = false;
+      
+
+      return object.then((r) => r.tween(uid, function (d) {
+        return function (t) {
+          if (t >= threshold && !state) {
+            server.kernel.emitt(uid, `True`, 'end');
+            state = true;
+          }
+        }
+      }))
+    }
+  };
+
+  g2d.MiddlewareListener.endtransition = g2d.MiddlewareListener.end;
+
+  //g2d.EventListener.destroy = (args, env) => {interpretate(args[0], env)}
+
+  g2d.EventListener.drag = (uid, object, env) => {
+    const xAxis = env.xAxis;
+    const yAxis = env.yAxis;
+
+    let bbox = null;
+
+    object.classed("cursor-pointer", true);
+
+    function dragstarted(event, d) {
+      // `this` is the DOM element being dragged
+      bbox = this.getBBox();  // Always gives visual bounds in screen coordinates
+    }
+
+    const updatePos = throttle((x, y) => {
+      server.kernel.io.fire(uid, [x, y], 'drag');
+    });
+
+    function dragged(event, d) {
+      if (!bbox) return;
+
+      // Align mouse position to the center of the element
+      const x = event.x - bbox.width / 2 - bbox.x;
+      const y = event.y - bbox.height / 2 - bbox.y;
+
+      d3.select(this)
+        .raise()
+        .attr("transform", `translate(${x},${y})`);
+
+      updatePos(xAxis.invert(event.x), yAxis.invert(event.y));
+    }
+
+    function dragended(event, d) {
+      // Optional: finalize drag
+    }
+
+    object.call(
+      d3.drag()
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended)
+    );
+  };
+
+g2d.EventListener.dragsignal = (uid, object, env) => {
+  console.log('dragsignal event generator');
+  console.log(env.local);
+
+  object.classed("cursor-pointer", true);
+
+  let t = { k: 1, x: 0, y: 0 };
+  env.onZoom.push((transform) => {
+    t = transform;
+  });
+
+  const xAxisinvert = (x) => {
+    const X = (x - t.x - env.panZoomEntites.left) / t.k;
+    return env.xAxis.invert(X);
+  };
+
+  const yAxisinvert = (y) => {
+    const Y = (y - t.y - env.panZoomEntites.top) / t.k;
+    return env.yAxis.invert(Y);
+  };
+
+  const svgNode = env.panZoomEntites.canvas.node();
+
+  let offset = [0, 0]; // offset from cursor to element center
+
+  const updatePos = throttle((x, y) => {
+    server.kernel.io.fire(uid, [x, y], 'dragsignal');
+  });
+
+  function onMouseMove(e) {
+    const coords = d3.pointer(e, svgNode);
+    const x = coords[0] + 0* offset[0];
+    const y = coords[1] + 0*offset[1];
+
+    updatePos(xAxisinvert(x), yAxisinvert(y));
   }
 
-  renderer.setSize( w, h );
-  renderer.setPixelRatio( window.devicePixelRatio * scale );
+  function onMouseUp() {
+    svgNode.removeEventListener("mousemove", onMouseMove);
+    svgNode.removeEventListener("mouseup", onMouseUp);
+  }
 
-  const aspect = w / h;
+  function onMouseDown(e) {
+    e.stopPropagation();
+    e.preventDefault();
+
+    // Use `this` to refer to the clicked DOM node
+    const bbox = e.target.getBBox();
+    const center = [
+      bbox.x + bbox.width / 2,
+      bbox.y + bbox.height / 2
+    ];
+
+    const pointer = d3.pointer(e, svgNode);
+    offset = [
+      center[0] - pointer[0],
+      center[1] - pointer[1]
+    ];
+
+    // Fire the first event immediately, adjusted to center
+    const adjX = pointer[0] ;
+    const adjY = pointer[1] ;
+    updatePos(xAxisinvert(adjX), yAxisinvert(adjY));
+
+    svgNode.addEventListener("mousemove", onMouseMove);
+    svgNode.addEventListener("mouseup", onMouseUp);
+  }
+
+  object.on("mousedown", onMouseDown);
+};
+
+  g2d.EventListener.dragall = (uid, object, env) => {
+
+    console.log('drag event generator');
+    console.log(env.local);
+    const xAxis = env.xAxis;
+    const yAxis = env.yAxis;
+
+    function dragstarted(event, d) {
+      //d3.select(this).raise().attr("stroke", "black");
+      updatePos(xAxis.invert(event.x), yAxis.invert(event.y), "dragstarted");
+    }
+
+    const updatePos = throttle((x,y,t) => {
+      server.kernel.io.fire(uid, [String(t), [x,y]], 'dragall');
+    });
   
-  perspectiveCamera.aspect = aspect;
-  perspectiveCamera.updateProjectionMatrix();
-
-  const orthoHeight = orthoWidth / aspect;
-  orthoCamera.top = orthoHeight / 2;
-  orthoCamera.bottom = orthoHeight / - 2;
-  orthoCamera.updateProjectionMatrix();
-
-}
-
-function reset() {
-  if (PathRendering)
-    ptRenderer.reset();
-}
-
-function updateEnvBlur() {
-
-
-const generator = new RTX.BlurredEnvMapGenerator( renderer );
-const blurredEnvMap = generator.generate( envMap, 0.35 );
-scene.background = blurredEnvMap;
-	scene.environment = blurredEnvMap;
-  scene.environmentIntensity = params.environmentIntensity;
-	  scene.backgroundIntensity = params.environmentIntensity;
-    scene.backgroundAlpha = params.backgroundAlpha;
-
-    if ( params.backgroundAlpha < 1.0 ) {
-
-      scene.background = null;
+    function dragged(event, d) {
+      //d3.select(this).attr("cx", d.x = event.x).attr("cy", d.y = event.y);
+      updatePos(xAxis.invert(event.x), yAxis.invert(event.y), "dragged");
+    }
   
+    function dragended(event, d) {
+      //d3.select(this).attr("stroke", null);
+      updatePos(xAxis.invert(event.x), yAxis.invert(event.y), "dragended");
     }
-  generator.dispose();
-  ptRenderer.updateEnvironment();
+  
+    object.call(d3.drag()
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended));
+  };
 
-}
 
-function updateCamera( cameraProjection ) {
+  g2d.EventListener.click = (uid, object, env) => {
 
-  if ( cameraProjection === 'Perspective' ) {
+    console.log('click event generator');
+    console.log(env.local);
+    const xAxis = env.xAxis;
+    const yAxis = env.yAxis;
 
-    if ( activeCamera ) {
-
-      perspectiveCamera.position.copy( activeCamera.position );
-      perspectiveCamera.zoom = activeCamera.zoom;
+    const updatePos = throttle((x,y) => {
+      server.kernel.io.fire(uid, [x,y], 'click');
+    });
+  
+    function clicked(event, p) {
+      if (!event.altKey)
+        updatePos(xAxis.invert(p[0]), yAxis.invert(p[1]));
     }
 
-    activeCamera = perspectiveCamera;
+    object.classed("cursor-pointer", true);
+  
+    if ('click' in object.on_list) {
+      object.on_list.click.push((e)=>clicked(e, d3.pointer(e)));
+    } else {
+      object.on_list.click = [
+        (e)=>clicked(e, d3.pointer(e))
+      ];
+      object.on("click", (e)=>{
+        for (let i=0; i<object.on_list.click.length; ++i) object.on_list.click[i](e);
+      });
+    }
+  };  
 
-  } else if ( cameraProjection === 'Orthographic' ) {
+  g2d.EventListener.mousedown = (uid, object, env) => {
 
-    if ( activeCamera ) {
+    console.log('mousedown event generator');
+    console.log(env.local);
+    const xAxis = env.xAxis;
+    const yAxis = env.yAxis;
 
-      orthoCamera.position.copy( activeCamera.position );
-      orthoCamera.zoom = activeCamera.zoom;
+    const updatePos = throttle((x,y) => {
+      server.kernel.io.fire(uid, [x,y], 'mousedown');
+    });
+  
+    function clicked(event, p) {
+      //if (event.altKey)
+        updatePos(xAxis.invert(p[0]), yAxis.invert(p[1]));
+    }
+  
+    object.on("mousedown", (e)=>clicked(e, d3.pointer(e)));
+  };  
+
+  g2d.EventListener.mouseup = (uid, object, env) => {
+
+    console.log('mouseup event generator');
+    console.log(env.local);
+    const xAxis = env.xAxis;
+    const yAxis = env.yAxis;
+
+    const updatePos = throttle((x,y) => {
+      server.kernel.io.fire(uid, [x,y], 'mouseup');
+    });
+  
+    function clicked(event, p) {
+      //if (event.altKey)
+        updatePos(xAxis.invert(p[0]), yAxis.invert(p[1]));
+    }
+  
+    object.on("mouseup", (e)=>clicked(e, d3.pointer(e)));
+  };  
+
+  g2d.EventListener.altclick = (uid, object, env) => {
+
+    console.log('click event generator');
+    console.log(env.local);
+    const xAxis = env.xAxis;
+    const yAxis = env.yAxis;
+
+    const updatePos = throttle((x,y) => {
+      server.kernel.io.fire(uid, [x,y], 'altclick');
+    });
+  
+    function clicked(event, p) {
+      if (event.altKey)
+        updatePos(xAxis.invert(p[0]), yAxis.invert(p[1]));
+    }
+  
+    if ('click' in object.on_list) {
+      object.on_list.click.push((e)=>clicked(e, d3.pointer(e)));
+    } else {
+      object.on_list.click = [
+        (e)=>clicked(e, d3.pointer(e))
+      ];
+      object.on("click", (e)=>{
+        for (let i=0; i<object.on_list.click.length; ++i) object.on_list.click[i](e);
+      });
+    }
+  };  
+
+  g2d.EventListener.capturekeydown = (uid, object, env) => {
+    //console.error('You cannot listen keys from the SVG element!');
+    let focus;
+    let enabled = true;
+    const el = object;
+    //force focus
+    focus = () => {
+      if (!enabled) return;
+      el.node().focus();
+      enabled = false;
+    };
+
+    const addClickListener = (func) => {
+      if ('click' in object.on_list) {
+        object.on_list.click.push(func);
+      } else {
+        object.on_list.click = [
+          func
+        ];
+        object.on("click", (e)=>{
+          for (let i=0; i<object.on_list.click.length; ++i) object.on_list.click[i](e);
+        });
+      }
+    };
+
+    addClickListener(focus);
+
+    el.on('blur', ()=>{
+      enabled = true;
+    });
+
+    //console.error(el.on);
+
+    el.node().addEventListener('keydown', (e) => {
+      //console.log(e);
+      server.kernel.emitt(uid, '"'+e.code+'"', 'capturekeydown');
+      e.preventDefault();
+    });
+  };  
+
+  g2d.EventListener.keydown = (uid, object, env) => {
+    //console.error('You cannot listen keys from the SVG element!');
+    let focus;
+    let enabled = true;
+    const el = object;
+    //force focus
+    focus = () => {
+      if (!enabled) return;
+      el.node().focus();
+      enabled = false;
+    };
+
+    const addClickListener = (func) => {
+      if ('click' in object.on_list) {
+        object.on_list.click.push(func);
+      } else {
+        object.on_list.click = [
+          func
+        ];
+        object.on("click", (e)=>{
+          for (let i=0; i<object.on_list.click.length; ++i) object.on_list.click[i](e);
+        });
+      }
+    };
+
+    addClickListener(focus);
+
+    el.on('blur', ()=>{
+      enabled = true;
+    });
+
+    el.addEventListener('keydown', (e) => {
+      //console.log(e);
+      server.kernel.emitt(uid, '"'+e.code+'"', 'keydown');
+      //e.preventDefault();
+    });
+  };  
+
+  g2d.EventListener.mousemove = (uid, object, env) => {
+
+    console.log('mouse event generator');
+    console.log(env.local);
+    const xAxis = env.xAxis;
+    const yAxis = env.yAxis;
+
+    const updatePos = throttle((x,y) => {
+      server.kernel.io.fire(uid, [x,y], 'mousemove');
+    });
+  
+    function moved(arr) {
+      updatePos(xAxis.invert(arr[0]), yAxis.invert(arr[1]));
+    }
+  
+    object.on("mousemove", (e) => moved(d3.pointer(e)));
+  };   
+
+  g2d.EventListener.mouseover = (uid, object, env) => {
+
+    console.log('mouse event generator');
+    console.log(env.local);
+    const xAxis = env.xAxis;
+    const yAxis = env.yAxis;
+
+    const updatePos = throttle((x,y) => {
+      server.kernel.io.fire(uid, [x,y], 'mouseover');
+    });
+  
+    function moved(arr) {
+      updatePos(xAxis.invert(arr[0]), yAxis.invert(arr[1]));
+    }
+  
+    object.on("mouseover", e => moved(d3.pointer(e)));
+  };   
+
+  g2d.EventListener.zoom = (uid, object, env) => {
+
+    console.log('zoom event generator');
+    console.log(env.local);
+
+    const updatePos = throttle(k => {
+      server.kernel.io.fire(uid, k, 'zoom');
+    });
+
+    function zoom(e) {
+      console.log();
+      updatePos(e.transform.k);
+    }
+  
+    object.call(d3.zoom()
+        .on("zoom", zoom));
+  }; 
+
+
+  
+  g2d.Rotate = async (args, env) => {
+    const degrees = await interpretate(args[1], env);
+    let aligment;
+    if (args.length > 2) {
+      aligment = await interpretate(args[2], env);
+      env.local.aligment = aligment;
     }
 
-    activeCamera = orthoCamera;
+    const group = env.svg.append("g");
+    
+    env.local.group = group;
 
+    await interpretate(args[0], {...env, svg: group});
+
+    let centre = group.node().getBBox();
+    
+    if (aligment) {
+      centre.x = (env.xAxis(aligment[0]));
+      centre.y = (env.yAxis(aligment[1]));
+    } else {
+      centre.x = (centre.x + centre.width / 2);
+      centre.y = (centre.y + centre.height / 2);
+    }
+
+
+    const rotation = "rotate(" + (-degrees / Math.PI * 180.0) + ", " + 
+    centre.x + ", " + centre.y + ")";
+
+    group.attr("transform", rotation);
+
+    env.local.rotation = rotation;
+  };
+
+  g2d.Rotate.update = async (args, env) => {
+    const degrees = await interpretate(args[1], env);
+
+    let centre;
+    centre = env.local.group.node().getBBox();
+    
+    if (env.local.aligment) {
+      centre.x = (env.xAxis(env.local.aligment[0]));
+      centre.y = (env.yAxis(env.local.aligment[1]));
+      //console.log({x: env.xAxis(env.local.aligment[0]) - env.xAxis(0), y:env.yAxis(env.local.aligment[1]) - env.yAxis(0),
+
+        //x0: centre.width / 2, y0: centre.height / 2
+      //});
+    } else {
+      centre.x = (centre.x + centre.width / 2);
+      centre.y = (centre.y + centre.height / 2);
+    }
+       
+    const rotation = "rotate(" + (-degrees / Math.PI * 180.0) + ", " + (centre.x ) + ", " + (centre.y ) + ")";
+
+    var interpol_rotate = d3.interpolateString(env.local.rotation, rotation);
+
+    env.local.group.maybeTransitionTween(env.transitionType, env.transitionDuration, 'transform' , function(d,i,a){ return interpol_rotate } );
+  
+    env.local.rotation = rotation;
+  };
+
+  g2d.Rotate.virtual = true;
+
+  g2d.Rotate.destroy = (args, env) => {
+    console.log('nothing to destroy');
+    //delete env.local.area;
+  };
+
+  g2d.GraphicsBoxOptions = () => {};
+  g2d.StrokeForm = () => {};
+  g2d.FontOpacity = () => {};
+
+  g2d.GeometricTransformation = async (args, env) => {
+    let matrix = await interpretate(args[1], env);
+    const group = env.svg.append("g");
+
+   // if (arrdims(pos) > 1) throw 'List arguments for Translate is not supported for now!';
+    
+    env.local.group = group;
+
+    const xAxis = env.xAxis;
+    const yAxis = env.yAxis;  
+
+    if (matrix.length > 3) {
+      //could be translation?
+
+      for (let m of matrix) {
+        if (!Array.isArray(m)) continue;
+
+        const g = group.append("g");
+        m = m[0];
+
+
+          if (typeof m[0] != 'number') continue;
+          if (typeof m[1] != 'number') continue;
+
+          m = [xAxis(m[0])- xAxis(0), yAxis(m[1])- yAxis(0)];
+
+          g.attr("transform", `translate(${m.join(',')})`); 
+
+        await interpretate(args[0], {...env, svg: g});
+      }
+
+      return group;
+
+    } else {
+
+      await interpretate(args[0], {...env, svg: group});
+
+
+      console.warn(matrix);
+
+      if (matrix.length == 2 ) {
+
+        matrix[0][0][1] = -matrix[0][0][1];
+        matrix[0][1][0] = -matrix[0][1][0];
+
+        matrix[0] = matrix[0].flat(Infinity);
+        matrix[1] = [xAxis(matrix[1][0])- xAxis(0), yAxis(matrix[1][1])- yAxis(0)];
+        return group.attr("transform", `matrix(${matrix[0].join(',')},${matrix[1].join(',')})`); 
+      } else {
+        matrix[0][1] = -matrix[0][1];
+        matrix[1][0] = -matrix[1][0];
+
+        matrix = matrix.flat(Infinity);
+        return group.attr("transform", `matrix(${matrix.join(',')})`); 
+      }
+
+      //return group//.attr("transform", `translate(${xAxis(-matrix[1][0]) - 0*xAxis(0)}, ${yAxis(-matrix[1][1]) - 0*yAxis(0)})`);
+    }
+  };
+
+  g2d.Translate = async (args, env) => {
+    let pos = await interpretate(args[1], env);
+    const group = env.svg.append("g");
+
+    env.local.group = group;
+
+    const xAxis = env.xAxis;
+    const yAxis = env.yAxis;  
+
+    if (pos instanceof NumericArrayObject) { 
+      pos = pos.normal();
+    }
+
+    
+
+
+
+   if (Array.isArray(pos[0])) {
+    
+    
+
+    const firstGroup = group.append("g");
+    const subgroups = [firstGroup];
+    env.local.subgroups = subgroups;
+
+    firstGroup.attr("transform", `translate(${xAxis(pos[0][0]) - xAxis(0)}, ${yAxis(pos[0][1]) - yAxis(0)})`);
+    const childGroup = firstGroup.append('g');
+
+    await interpretate(args[0], {...env, svg: childGroup});
+
+    for (let i = 1; i<pos.length; ++i) {
+      const g = group.append("g");
+      const p = pos[i];
+      subgroups.push(g);
+      g.attr("transform", `translate(${xAxis(p[0]) - xAxis(0)}, ${yAxis(p[1]) - yAxis(0)})`);
+      g.append(() => childGroup.clone(true).node());
+    }
+
+    return group;
+   }  else {
+    group.attr("transform", `translate(${xAxis(pos[0]) - xAxis(0)}, ${yAxis(pos[1]) - yAxis(0)})`);
+   }
+
+    await interpretate(args[0], {...env, svg: group});
+
+    return group;
+  };
+
+  g2d.Translate.update = async (args, env) => {
+    let pos = await interpretate(args[1], env);
+
+    if (pos instanceof NumericArrayObject) { // convert back automatically
+      pos = pos.normal();
+    }    
+
+    const xAxis = env.xAxis;
+    const yAxis = env.yAxis;
+
+    if (env.local.subgroups) {
+      for (let i=0; i<env.local.subgroups.length; ++i) {
+        const p = pos[i];
+        env.local.subgroups[i].maybeTransition(env.transitionType, env.transitionDuration).attr("transform", `translate(${xAxis(p[0])- xAxis(0)}, ${yAxis(p[1]) - yAxis(0)})`);
+      }
+
+      return;
+    }
+
+    return env.local.group.maybeTransition(env.transitionType, env.transitionDuration).attr("transform", `translate(${xAxis(pos[0])- xAxis(0)}, ${yAxis(pos[1]) - yAxis(0)})`);
+  };
+
+  //g2d.Translate.destroy = async (args, env) => {
+   // const pos = await interpretate(args[1], env);
+   // const obj = await interpretate(args[0], env);
+  //}  
+
+  g2d.Translate.virtual = true;  
+
+  g2d.Translate.destroy = (args, env) => {
+    //delete env.local.area;
+    env.local.group.remove();
+  };
+
+
+  g2d.Center = () => 'Center';
+  g2d.Center.update = g2d.Center;
+
+  g2d.Top = () => 'Top';
+  g2d.Top.update = g2d.Top;
+
+  g2d.Bottom = () => 'Bottom';
+  g2d.Bottom.update = g2d.Bottom;
+
+  g2d.Left = () => 'Left';
+  g2d.Left.update = g2d.Left;  
+
+  g2d.Right = () => 'Right';
+  g2d.Right.update = g2d.Right;
+
+  g2d.Degree = () => Math.PI/180.0;
+  //g2d.Degree.destroy = g2d.Degree
+  g2d.Degree.update = g2d.Degree;
+
+  g2d.RoundingRadius = () => "RoundingRadius";
+  g2d.RoundingRadius.update = () => "RoundingRadius";
+
+  g2d.Rectangle = async (args, env) => {
+    let from = await interpretate(args[0], env);
+    let to = await interpretate(args[1], env);
+
+    const opts = await core._getRules(args, env);
+
+
+    if (from instanceof NumericArrayObject) { // convert back automatically
+      from = from.normal();
+    }     
+
+    if (to instanceof NumericArrayObject) { // convert back automatically
+      to = to.normal();
+    }  
+
+    if (from[1] > to[1]) {
+      const t = from[1];
+      from[1] = to[1];
+      to[1] = t;
+    }
+
+    if (from[0] > to[0]) {
+      const t = from[0];
+      from[0] = to[0];
+      to[0] = t;
+    }
+
+    const x = env.xAxis;
+    const y = env.yAxis;
+
+    from[0] = x(from[0]);
+    from[1] = y(from[1]);
+    to[0] = x(to[0]);
+    to[1] = y(to[1]);
+
+    /*if (from[0] > to[0]) {
+      const t = from[0];
+      from[0] = to[0];
+      to[0] = t;
+    }*/
+
+
+    
+
+    const size = [Math.abs(to[0] - from[0]), Math.abs(to[1] - from[1])];
+
+
+
+    env.local.rect = env.svg.append('rect')
+    .attr('x', from[0])
+    .attr('y', from[1] - size[1])
+    .attr('width', size[0])
+    .attr('height', size[1])
+    .attr("vector-effect", "non-scaling-stroke")
+    .attr('stroke', env.stroke)
+    .attr("stroke-width", env.strokeWidth)
+    .attr('opacity', env.opacity)
+    .attr('fill', env.color);
+
+    if (opts.RoundingRadius) {
+      if (typeof opts.RoundingRadius == "number") {
+        env.local.rect.attr('rx', 50 *  opts.RoundingRadius / 0.75);
+      } else if (Array.isArray(opts.RoundingRadius)) {
+        env.local.rect.attr('rx', 50 *  opts.RoundingRadius[0] / 0.75);
+        env.local.rect.attr('ry', 50 *  opts.RoundingRadius[1] / 0.75);
+      }
+    }
+
+    if (env.dasharray) {
+      env.local.rect.attr('stroke-dasharray', env.dasharray.join());
+    }
+
+    if (env.colorRefs) {
+      env.colorRefs[env.root.uid] = env.root;
+    }
+    if (env.opacityRefs) {
+      env.opacityRefs[env.root.uid] = env.root;
+    }
+
+    return env.local.rect;
+     
+  };
+
+  g2d.Rectangle.updateColor = (args, env) => {
+    env.local.rect.attr('fill', env.color);
+  };
+
+  g2d.Rectangle.updateOpacity = (args, env) => {
+    env.local.rect.attr('opacity', env.opacity);
+  };  
+
+  //g2d.Rectangle.destroy = async (args, env) => {
+    //await interpretate(args[0], env);
+    //await interpretate(args[1], env);
+  //}
+  
+  g2d.Rectangle.update = async (args, env) => {
+    let from = await interpretate(args[0], env);
+    let to = await interpretate(args[1], env);
+
+    const opts = await core._getRules(args, env);
+
+
+    if (from instanceof NumericArrayObject) { // convert back automatically
+      from = from.normal();
+    }     
+
+    if (to instanceof NumericArrayObject) { // convert back automatically
+      to = to.normal();
+    }     
+    
+    if (from[1] > to[1]) {
+      const t = from[1];
+      from[1] = to[1];
+      to[1] = t;
+    }
+
+    if (from[0] > to[0]) {
+      const t = from[0];
+      from[0] = to[0];
+      to[0] = t;
+    }
+
+    const x = env.xAxis;
+    const y = env.yAxis;
+
+    from[0] = x(from[0]);
+    from[1] = y(from[1]);
+    to[0] = x(to[0]);
+    to[1] = y(to[1]);
+
+    /*if (from[0] > to[0]) {
+      const t = from[0];
+      from[0] = to[0];
+      to[0] = t;
+    }
+
+    if (from[1] > to[1]) {
+      const t = from[1];
+      from[1] = to[1];
+      to[1] = t;
+    }*/
+
+    
+
+    const size = [Math.abs(to[0] - from[0]), Math.abs(to[1] - from[1])];
+
+
+
+    env.local.rect.maybeTransition(env.transitionType, env.transitionDuration)
+    .attr('x', from[0])
+    .attr('y', from[1] - size[1]) 
+    .attr('width', size[0])
+    .attr('height', size[1]);
+
+    if (opts.RoundingRadius) {
+      if (typeof opts.RoundingRadius == "number") {
+        env.local.rect.attr('rx', 50 * opts.RoundingRadius / 0.75);
+      } else if (Array.isArray(opts.RoundingRadius)) {
+        env.local.rect.attr('rx', 50 * opts.RoundingRadius[0] / 0.75);
+        env.local.rect.attr('ry', 50 * opts.RoundingRadius[1] / 0.75);
+      }
+    }
+  };
+
+  g2d.Rectangle.virtual = true;
+
+  g2d.Rectangle.destroy = (args, env) => {
+    console.log('nothing to destroy');
+    if (!env.local) return;
+    if (!env.local.rect) return;
+    if (env.colorRefs) {
+      delete env.colorRefs[env.root.uid];
+    }
+    if (env.opacityRefs) {
+      delete env.opacityRefs[env.root.uid];
+    }
+    env.local.rect.remove();
+
+    delete env.local.rect;
+    //delete env.local.area;
+  };
+
+  // StadiumShape[{{x1,y1},{x2,y2}}, r]
+  // represents a stadium (capsule) of radius r between the points {x1,y1} and {x2,y2}. 
+
+  g2d.StadiumShape = async (args, env) => {
+    // args[0] -> {{x1,y1},{x2,y2}}
+    // args[1] -> r
+    let pts = await interpretate(args[0], env);
+    let r   = await interpretate(args[1], env); 
+
+    await core._getRules(args, env); 
+
+    if (pts instanceof NumericArrayObject) {
+      pts = pts.normal();
+    }
+    if (r instanceof NumericArrayObject) {
+      r = r.normal();
+    } 
+
+    // Radius should be a scalar
+    if (Array.isArray(r)) {
+      r = r[0];
+    } 
+
+    let from = pts[0];
+    let to   = pts[1];  
+
+    if (from instanceof NumericArrayObject) {
+      from = from.normal();
+    }
+    if (to instanceof NumericArrayObject) {
+      to = to.normal();
+    } 
+
+    const x = env.xAxis;
+    const y = env.yAxis;  
+
+    // Convert to screen coordinates
+    const p1 = [x(from[0]), y(from[1])];
+    const p2 = [x(to[0]),   y(to[1])];  
+
+    // Convert radius from data space to screen space (approx via x-axis scale)
+    let screenR = 0;
+    if (typeof r === "number") {
+      screenR = Math.abs(x(from[0] + r) - x(from[0]));
+    } 
+
+    const d = makeStadiumPath(p1, p2, screenR); 
+
+    env.local.stadium = env.svg.append('path')
+      .attr('d', d)
+      .attr("vector-effect", "non-scaling-stroke")
+      .attr('fill', env.color)
+      .attr('stroke', env.stroke)
+      .attr('stroke-width', env.strokeWidth)
+      .attr('opacity', env.opacity);  
+
+    if (env.dasharray) {
+      env.local.stadium.attr('stroke-dasharray', env.dasharray.join());
+    } 
+
+    if (env.colorRefs) {
+      env.colorRefs[env.root.uid] = env.root;
+    }
+    if (env.opacityRefs) {
+      env.opacityRefs[env.root.uid] = env.root;
+    } 
+
+    return env.local.stadium;
+  };  
+
+
+  // Helper: build SVG path data for a stadium between p1 and p2 in screen coords
+  function makeStadiumPath(p1, p2, r) {
+    const x1 = p1[0], y1 = p1[1];
+    const x2 = p2[0], y2 = p2[1]; 
+
+    // Degenerate case: draw a circle
+    if (r === 0 || (x1 === x2 && y1 === y2)) {
+      if (r === 0) return `M ${x1} ${y1} Z`;
+      const leftX  = x1 - r;
+      const rightX = x1 + r;
+      return [
+        `M ${leftX} ${y1}`,
+        `A ${r} ${r} 0 1 0 ${rightX} ${y1}`,
+        `A ${r} ${r} 0 1 0 ${leftX} ${y1}`,
+        'Z'
+      ].join(' ');
+    } 
+
+    const dx  = x2 - x1;
+    const dy  = y2 - y1;
+    const len = Math.sqrt(dx * dx + dy * dy); 
+
+    const ux = dx / len;
+    const uy = dy / len;  
+
+    // Normal vector (perpendicular)
+    const nx = -uy;
+    const ny =  ux; 
+
+    // Four rectangle corners (offset along normal)
+    const p1aX = x1 + nx * r;
+    const p1aY = y1 + ny * r;
+    const p2aX = x2 + nx * r;
+    const p2aY = y2 + ny * r;
+    const p2bX = x2 - nx * r;
+    const p2bY = y2 - ny * r;
+    const p1bX = x1 - nx * r;
+    const p1bY = y1 - ny * r; 
+
+    // Semicircle at p1: p1a -> p1b
+    // Semicircle at p2: p2b -> p2a
+    // Use rx=ry=r, large-arc-flag=0, sweep-flag=1 (180° arc)
+    return [
+      'M', p1aX, p1aY,
+      'A', r, r, 0, 0, 1, p1bX, p1bY,
+      'L', p2bX, p2bY,
+      'A', r, r, 0, 0, 1, p2aX, p2aY,
+      'Z'
+    ].join(' ');
   } 
 
-  controls.object = activeCamera;
-  if (PathRendering)
-    ptRenderer.camera = activeCamera;
 
-  controls.update();
+  g2d.StadiumShape.updateColor = (args, env) => {
+    if (!env.local || !env.local.stadium) return;
+    env.local.stadium.attr('fill', env.color);
+  };  
 
-  env.local.camera   = activeCamera;
-  envcopy.camera   = activeCamera;
+  g2d.StadiumShape.updateOpacity = (args, env) => {
+    if (!env.local || !env.local.stadium) return;
+    env.local.stadium.attr('opacity', env.opacity);
+  };  
+
+  g2d.StadiumShape.update = async (args, env) => {
+    let pts = await interpretate(args[0], env);
+    let r   = await interpretate(args[1], env); 
+
+    await core._getRules(args, env); 
+
+    if (pts instanceof NumericArrayObject) {
+      pts = pts.normal();
+    }
+    if (r instanceof NumericArrayObject) {
+      r = r.normal();
+    } 
+
+    if (Array.isArray(r)) {
+      r = r[0];
+    } 
+
+    let from = pts[0];
+    let to   = pts[1];  
+
+    if (from instanceof NumericArrayObject) {
+      from = from.normal();
+    }
+    if (to instanceof NumericArrayObject) {
+      to = to.normal();
+    } 
+
+    const x = env.xAxis;
+    const y = env.yAxis;  
+
+    const p1 = [x(from[0]), y(from[1])];
+    const p2 = [x(to[0]),   y(to[1])];  
+
+    let screenR = 0;
+    if (typeof r === "number") {
+      screenR = Math.abs(x(from[0] + r) - x(from[0]));
+    } 
+
+    const d = makeStadiumPath(p1, p2, screenR); 
+
+    env.local.stadium
+      .maybeTransition(env.transitionType, env.transitionDuration)
+      .attr('d', d);
+  };  
+
+  g2d.StadiumShape.virtual = true;  
+
+  g2d.StadiumShape.destroy = (args, env) => {
+    console.log('StadiumShape destroy');
+    if (!env.local || !env.local.stadium) return; 
+
+    if (env.colorRefs) {
+      delete env.colorRefs[env.root.uid];
+    }
+    if (env.opacityRefs) {
+      delete env.opacityRefs[env.root.uid];
+    } 
+
+    env.local.stadium.remove();
+    delete env.local.stadium;
+  };
 
 
-
-  reset();
-
-}
-
-let animate;
-
-animate = () => {
-  animateOnce();
-
-  if (performance.now() - timeStamp > params.sleepAfter && !params.runInfinitely) {
-    sleeping = true;
-    console.warn('g3d >> Sleeping...');
-  } else {
-    env.local.aid = requestAnimationFrame( animate );
-  }
-
-};  
-
-
-function updateSettings() {
-  wakeFunction();
-
-  if (PathRendering) {
-    //ptRenderer.renderSample();
-    ptRenderer.bounces = params.bounces;
-    scene.environmentIntensity = params.environmentIntensity;
-	  scene.backgroundIntensity = params.environmentIntensity;
-    scene.backgroundAlpha = params.backgroundAlpha;
-  }
-
-  activeCamera.updateMatrixWorld();
-
-  if ( params.backgroundAlpha < 1.0 ) {
-
-    scene.background = null;
-
-  } else {
-
-    scene.background = scene.environment;
-
-  }
-}
-
-env.local.updateLightingNext = false;
-env.local.updateSceneNext = false;
-
-function animateOnce() {
+  // Triangle[{p1,p2,p3}] OR Triangle[{{p11,p12,p13}, ...}]
+  // args.length is always 1; args[0] is either one triangle or an array of triangles.
+  g2d.Triangle = async (args, env) => {
+    const triList = await _triangle__normalizeInput(args, env);
   
-  if (PathRendering) {
-    //activeCamera.updateMatrixWorld();
-    if (env.local.updateSceneNext) {
-      //console.warn('set scene');
-      ptRenderer.setScene(scene, activeCamera);
-      env.local.updateSceneNext = false;
-    }    
-    if (env.local.updateLightingNext) {
-      ptRenderer.updateLights();
-      env.local.updateLightingNext = false;
+    const x = env.xAxis;
+    const y = env.yAxis;
+  
+    const toScreenTri = (tri) => tri.map(([px, py]) => [x(px), y(py)]);
+    const toPointsAttr = (tri) => tri.map(([sx, sy]) => `${sx},${sy}`).join(' ');
+  
+    if (!env.local) env.local = {};
+    env.local.triGroup = env.svg.append('g');
+  
+    const screenTris = triList.map(toScreenTri);
+  
+    let selection = env.local.triGroup.selectAll('polygon').data(screenTris);
+  
+    const enter = selection.enter()
+      .append('polygon')
+      .attr('vector-effect', 'non-scaling-stroke')
+      .attr('stroke', env.stroke)
+      .attr('stroke-width', env.strokeWidth)
+      .attr('opacity', env.opacity)
+      .attr('fill', env.color)
+      .attr('points', d => toPointsAttr(d));
+  
+    if (env.dasharray) {
+      enter.attr('stroke-dasharray', env.dasharray.join());
     }
-    
-    if (params.samplesPerFrame > 1) {
-      for (let j=0; j<params.samplesPerFrame; ++j) {
-        ptRenderer.renderSample();
+  
+    env.local.triangles = enter.merge(selection);
+  
+    if (env.colorRefs) env.colorRefs[env.root.uid] = env.root;
+    if (env.opacityRefs) env.opacityRefs[env.root.uid] = env.root;
+  
+    return env.local.triGroup;
+  };
+
+  g2d.Tooltip = async (args, env) => {
+    try {
+      await interpretate(args[0], env);
+    } catch(err) {
+      console.error(err);
+    }
+  };
+
+  g2d.Tooltip.update = g2d.Tooltip;
+ // g2d.Tooltip.destroy = g2d.Tooltip;
+  
+  g2d.Triangle.updateColor = (args, env) => {
+    if (env.local?.triGroup) {
+      env.local.triGroup.selectAll('polygon').attr('fill', env.color);
+    }
+  };
+  
+  g2d.Triangle.updateOpacity = (args, env) => {
+    if (env.local?.triGroup) {
+      env.local.triGroup.selectAll('polygon').attr('opacity', env.opacity);
+    }
+  };
+  
+  g2d.Triangle.update = async (args, env) => {
+    const triList = await _triangle__normalizeInput(args, env);
+  
+    const x = env.xAxis;
+    const y = env.yAxis;
+  
+    const toScreenTri = (tri) => tri.map(([px, py]) => [x(px), y(py)]);
+    const toPointsAttr = (tri) => tri.map(([sx, sy]) => `${sx},${sy}`).join(' ');
+  
+    const screenTris = triList.map(toScreenTri);
+  
+    let selection = env.local.triGroup.selectAll('polygon').data(screenTris);
+  
+    selection.exit().remove();
+  
+    const enter = selection.enter()
+      .append('polygon')
+      .attr('vector-effect', 'non-scaling-stroke')
+      .attr('stroke', env.stroke)
+      .attr('stroke-width', env.strokeWidth)
+      .attr('opacity', env.opacity)
+      .attr('fill', env.color);
+  
+    if (env.dasharray) {
+      enter.attr('stroke-dasharray', env.dasharray.join());
+    }
+  
+    selection = enter.merge(selection);
+  
+    selection
+      .maybeTransition(env.transitionType, env.transitionDuration)
+      .attr('points', d => toPointsAttr(d));
+  };
+  
+  g2d.Triangle.virtual = true;
+  
+  g2d.Triangle.destroy = (args, env) => {
+    if (env.colorRefs) delete env.colorRefs[env.root.uid];
+    if (env.opacityRefs) delete env.opacityRefs[env.root.uid];
+  
+    if (env.local?.triGroup) {
+      env.local.triGroup.remove();
+      delete env.local.triGroup;
+    }
+    if (env.local?.triangles) delete env.local.triangles;
+  };
+  
+  // --- helpers ---
+  
+  async function _triangle__normalizeInput(args, env) {
+    // args[0] is either [p1,p2,p3] or [[p11,p12,p13], ...]
+    let v = await interpretate(args[0], env);
+    if (v instanceof NumericArrayObject) v = v.normal();
+  
+    // Convert NumericArrayObject points and deep arrays to plain arrays
+    const normPoint = (p) => {
+      if (p instanceof NumericArrayObject) return p.normal();
+      return Array.isArray(p) ? p : [p[0], p[1]]; // fallback, though p should be [x,y]
+    };
+  
+    // Detect if v is a single triangle (triplet of points) or an array of triangles
+    const isPoint = (p) => Array.isArray(p) && p.length >= 2 && typeof p[0] === 'number' && typeof p[1] === 'number';
+    const looksLikeSingleTriangle =
+      Array.isArray(v) &&
+      v.length === 3 &&
+      v.every(isPoint);
+  
+    const triListRaw = looksLikeSingleTriangle ? [v] : v;
+  
+    // Ensure every point is normalized to [x, y]
+    return triListRaw.map(tri => tri.map(normPoint));
+  }
+
+
+  //plugs
+  g2d.Void = (args, env) => {};
+
+  g2d.Identity              = g2d.Void;
+  g2d.Scaled                = async (args, env) => {
+      if (args.length == 1) {
+        const data = await interpretate(args[0], env);
+        return [data[0]*(env.plotRange[0][1] - env.plotRange[0][0]) + env.plotRange[0][0], data[1]*(env.plotRange[1][1] - env.plotRange[1][0]) + env.plotRange[1][0]];
+      } else {
+        const data = await interpretate(args[0], env);
+        const relative = await interpretate(args[1], env);
+        return [data[0]*(env.plotRange[0][1] - env.plotRange[0][0]) + relative[0], data[1]*(env.plotRange[1][1] - env.plotRange[1][0])  + relative[1]];
       }
-    } else {
-      //console.warn('render scene');
-      ptRenderer.renderSample();
+  };
+  g2d.Scaled.update = g2d.Scaled;
+  g2d.GoldenRatio           = g2d.Void;
+  g2d.None                  = () => false;
+
+  g2d.AbsolutePointSize     = g2d.Void;
+  g2d.CopiedValueFunction   = g2d.Void;
+
+  g2d.Raster = async (args, env) => {
+    if (env.image) return await interpretate(args[0], env);
+    //TODO THIS SUCKS
+
+    const data = await interpretate(args[0], {...env, context: g2d, nfast:true, numeric:true});
+    console.log(args);
+    const height = data.length;
+    const width = data[0].length;
+    const rgb = data[0][0].length;
+
+    const x = env.xAxis;
+    const y = env.yAxis;    
+
+    let ranges = [[0, width],[0, height]];
+    if (args.length > 1) {
+      const optsRanges = await interpretate(args[1], env);
+      ranges[0][0] = optsRanges[0][0];
+      ranges[0][1] = optsRanges[1][0];
+      ranges[1][0] = optsRanges[0][1];
+      ranges[1][1] = optsRanges[1][1];      
     }
-    
-    labelRenderer.render(scene, activeCamera);
-  } else {
-    renderer.render( scene, activeCamera );
-    labelRenderer.render(scene, activeCamera);
-  }
-
-  for (let i=0; i<Handlers.length; ++i) {
-    //if (Handlers[i].sleep) continue;
-    Handlers[i].eval();
-  }
-
-  //added loop-handlers, void
-  env.local.handlers.forEach((f)=>{
-    f();
-  });    
-  /**/
-
-  //env.wake();
-
-  //samplesEl.innerText = `Samples: ${ Math.floor( ptRenderer.samples ) }`;
-
-}
-
-
-onResize();
-
-updateCamera( params.cameraProjection );
-
-if (PathRendering) {
-  scene.backgroundAlpha = params.backgroundAlpha;
-
-  const ptFolder = gui?.addFolder( 'Path Tracing' );
-
-ptFolder?.add( params, 'runInfinitely');  
-
-
-ptFolder?.add( params, 'samplesPerFrame', 1, 50, 1 );
-
-ptFolder?.add( params, 'multipleImportanceSampling').onChange(() => {
-
-  ptRenderer.multipleImportanceSampling = params.multipleImportanceSampling;
-  ptRenderer.updateLights();
-  ptRenderer.updateMaterials();
-
-}); 
-
-
-//const evFolder = gui.addFolder( 'Environment' );
-
-ptFolder?.add( params, 'environmentIntensity', 0, 3, 0.1).onChange( () => {
-
-  ptRenderer.reset();
-  updateSettings();
-  ptRenderer.updateEnvironment();
-
-} ); 
-
-ptFolder?.add( params, 'backgroundAlpha', 0, 1, 0.1).onChange( () => {
-
-  ptRenderer.reset();
-  updateSettings();
-  ptRenderer.updateEnvironment();
-
-} ); 
+    if (args.length > 2) {
+      await interpretate(args[2], env);
+      //not implemented
+      console.warn('scaling is not implemented!');
+    }
 
 
 
-/*evFolder.addColor( params, 'topColor').onChange( () => {
+    const rectWidth = Math.abs((x(ranges[0][1]) - x(ranges[0][0])) / width);
+    const rectHeight = Math.abs((y(ranges[1][1]) - y(ranges[1][0])) / height);
 
-  if (scene.defaultEnvTexture) {
-    scene.defaultEnvTexture.topColor.set( params.topColor );
-    scene.defaultEnvTexture.update();
-    
-    //ptRenderer.setScene(scene, activeCamera);
-    ptRenderer.updateEnvironment();
-  }
+    const stepX = (ranges[0][1] - ranges[0][0]) / width;
+    const stepY = (ranges[1][1] - ranges[1][0]) / height;
 
-} ); 
+    const group = env.svg;
 
-evFolder.addColor( params, 'bottomColor').onChange( () => {
+    if (!rgb) {
+      for (let i=0; i<height; ++i) {
+        for (let j=0; j<width; ++j) {
 
-  if (scene.defaultEnvTexture) {
-    scene.defaultEnvTexture.bottomColor.set( params.bottomColor );
-    scene.defaultEnvTexture.update();
-    
-    //ptRenderer.setScene(scene, activeCamera);
-    ptRenderer.updateEnvironment();
-  }
+          group.append('rect')
+          .attr('x', x(stepX * j + ranges[0][0]))
+          .attr('y', y(stepY * i + ranges[1][0])-rectHeight)
+          .attr('width', rectWidth)
+          .attr('height', rectHeight)
+          .attr('opacity', env.opacity)
+          .attr('fill', `rgb(${Math.floor(255*data[i][j])}, ${Math.floor(255*data[i][j])}, ${Math.floor(255*data[i][j])})`);
+          
+        }
+      }  
+      return;
+    }
 
-} );*/
+    if (rgb === 2) {
+      for (let i=0; i<height; ++i) {
+        for (let j=0; j<width; ++j) {
 
-//evFolder.close();  
+          group.append('rect')
+          .attr('x', x(stepX * j + ranges[0][0]))
+          .attr('y', y(stepY * i + ranges[1][0])-rectHeight)
+          .attr('width', rectWidth)
+          .attr('height', rectHeight)
+          .attr('opacity', data[i][j][1])
+          .attr('fill', `rgb(${Math.floor(255*data[i][j][0])}, ${Math.floor(255*data[i][j][0])}, ${Math.floor(255*data[i][j][0])})`);
+          
+        }
+      }  
+      return;
+    }    
 
+    if (rgb === 3) {
+      for (let i=0; i<height; ++i) {
+        for (let j=0; j<width; ++j) {
 
-ptFolder?.add( params, 'bounces', 1, 30, 1 ).onChange( () => {
+          group.append('rect')
+          .attr('x', x(stepX * j + ranges[0][0]))
+          .attr('y', y(stepY * i + ranges[1][0])-rectHeight)
+          .attr('width', rectWidth)
+          .attr('height', rectHeight)
+          .attr('opacity', env.opacity)
+          .attr('fill', `rgb(${Math.floor(255*data[i][j][0])}, ${Math.floor(255*data[i][j][1])}, ${Math.floor(255*data[i][j][2])})`);
+          
+        }
+      } 
+      return;
+    }
 
-  ptRenderer.reset();
-  updateSettings();
+    if (rgb === 4) {
+      for (let i=0; i<height; ++i) {
+        for (let j=0; j<width; ++j) {
 
-} );
+          group.append('rect')
+          .attr('x', x(stepX * j + ranges[0][0]))
+          .attr('y', y(stepY * i + ranges[1][0])-rectHeight)
+          .attr('width', rectWidth)
+          .attr('height', rectHeight)
+          .attr('opacity', data[i][j][3])
+          .attr('fill', `rgb(${Math.floor(255*data[i][j][0])}, ${Math.floor(255*data[i][j][1])}, ${Math.floor(255*data[i][j][2])})`);
+          
+        }
+      } 
+      return;
+    }    
+  };
 
-}
+  //g2d.Raster.destroy = () => {}
+  g2d.Magnification = () => "Magnification";
+  g2d.ColorSpace = () => "ColorSpace";
+  g2d.Interleaving = () => "Interleaving";
+  g2d.MetaInformation = () => "MetaInformation";
+  g2d.ImageResolution = () => "ImageResolution";
 
-const cameraFolder = gui?.addFolder( 'Camera' );
-cameraFolder?.add( params, 'sleepAfter', 1000, 30000, 10 );
-cameraFolder?.add( params, 'cameraProjection', [ 'Perspective', 'Orthographic' ] ).onChange( v => {
+  g2d.DateObject = () => {
+    console.warn('Date Object is not supported for now');
+  };
 
-  updateCamera( v );
-  updateSettings();
-
-} );
-
-cameraFolder?.add( params, 'acesToneMapping' ).onChange( value => {
-
-  renderer.toneMapping = value ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
-  updateSettings();
-
-} );
-
-cameraFolder?.close();  
-
-animate();
-
-return env;
-};
-
-core.Graphics3D.destroy = (args, env) => {
-  console.log('Graphics3D was removed');
-  env.local.wakeThreadUp = () => {};
-  env.local.controlObject.dispose();
-  cancelAnimationFrame(env.local.aid);
-  env.local.renderer.dispose();
-  env.local.renderer.forceContextLoss();
-
-  if (env.local.labelContainer) env.local.labelContainer.remove();
-  if (env.local.guiContainer) env.local.guiContainer.remove();
-  env.local.rendererContainer.remove();
-};
-
-core.Graphics3D.virtual = true;
-
-const numericAccelerator = {};
+  const numericAccelerator = {};
   numericAccelerator.TypeReal    = {};
   numericAccelerator.TypeInteger = {};
 
@@ -6864,607 +7527,676 @@ const numericAccelerator = {};
     return {buffer: array, dims: dims};
   };
 
-numericAccelerator.NumericArray.update = numericAccelerator.NumericArray;
+  numericAccelerator.NumericArray.update = numericAccelerator.NumericArray;
 
- 
-const imageTypes = {
-  Real32: {
-    constructor: Float32Array,
-    convert: (array) => {
-    
-        const size = array.dims[0] * array.dims[1] * array.dims[2];
-        const src = array.buffer;
-        const data = new Uint8ClampedArray(size);
-        let i;
-        for (i = 0; i < size; i++) {
-          const g = (src[i]*255) >>> 0;
-          data[i] = g;
-        } 
-        return data;          
-  }
-  },
+  //numericAccelerator.List = (args, env) => args
 
-  Byte: {
-    constructor: Uint8ClampedArray,
-    convert: (array) => {
-        return array.buffer;
+
+
+  function moveRGBAReal(src, dest, size) {
+    var i, j = 0;
+    for (i = 0; i < size << 2; ) {
+        dest[i++] = ((src[j++] * 255) >>> 0);
+        dest[i++] = ((src[j++] * 255) >>> 0);
+        dest[i++] = ((src[j++] * 255) >>> 0);
+        dest[i++] = ((src[j++] * 255) >>> 0);
+    }    
   }
+
+  function moveRGBReal(src, dest, size) {
+    var i, j = 0;
+    const destW = new Uint32Array(dest.buffer);
+    const alpha = 0xFF000000;  // alpha is the high byte. Bits 24-31
+    for (i = 0; i < size; i++) {
+        destW[i] = alpha + ((src[j++] * 255) >>> 0) + (((src[j++] * 255) >>> 0) << 8) + (((src[j++] * 255) >>> 0) << 16);
+    }    
   }  
-};
 
-let chroma;
+  function moveRGBReal2(src, dest, size) {
+    var i, j = 0;
+    const destW = new Uint32Array(dest.buffer);
+    const alpha = 0xFF000000;  // alpha is the high byte. Bits 24-31
+    for (i = 0; i < size; i++) {
+        destW[i] = alpha + ((src[j++] * 255) >>> 0) + (((src[j++] * 255) >>> 0) << 8);
+    }    
+  }  
 
-/**
- * Martin Röhlig
- * 3D volume rendering with WebGL / Three.js (exercise)
- * https://observablehq.com/@mroehlig/3d-volume-rendering-with-webgl-three-js
- */
+  function moveRGBRealTransposed(src, dest, size) {
+    const destW = new Uint32Array(dest.buffer);
+    const alpha = 0xFF000000;
 
-const image3DVertexShader = `
-in vec3 position;
+    const offsetG = size;       // Green starts after Red
+    const offsetB = size * 2;   // Blue starts after Green
 
-// Uniforms.
-uniform mat4 modelMatrix;
-uniform mat4 modelViewMatrix;
-uniform mat4 projectionMatrix;
-uniform vec3 cameraPosition;
+    for (let i = 0; i < size; i++) {
+        const red   = (src[i] * 255) >>> 0;
+        const green = (src[offsetG + i] * 255) >>> 0;
+        const blue  = (src[offsetB + i] * 255) >>> 0;
 
-// Output.
-out vec3 vOrigin; // Output ray origin.
-out vec3 vDirection;  // Output ray direction.
-
-void main() {
-  // Compute the ray origin in model space.
-  vOrigin = vec3(inverse(modelMatrix) * vec4(cameraPosition, 1.0)).xyz;
-  // Compute ray direction in model space.
-  vDirection = position - vOrigin;
-
-  // Compute vertex position in clip space.
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-}
-`;
-
-const image3DFragmentShader = `
-precision highp sampler3D; // Precision for 3D texture sampling.
-precision highp float; // Precision for floating point numbers.
-
-uniform sampler3D dataTexture; // Sampler for the volume data texture.
-uniform sampler2D colorTexture; // Sampler for the color palette texture.
-uniform float samplingRate; // The sampling rate.
-uniform float threshold; // Threshold to use for isosurface-style rendering.
-uniform float alphaScale; // Scaling of the color alpha value.
-uniform bool invertColor; // Option to invert the color palette.
-
-in vec3 vOrigin; // The interpolated ray origin from the vertex shader.
-in vec3 vDirection; // The interpolated ray direction from the vertex shader.
-
-out vec4 frag_color; // Output fragment color.
-
-// Sampling of the volume data texture.
-float sampleData(vec3 coord) {
-  return texture(dataTexture, coord).x;
-}
-
-// Sampling of the color palette texture.
-vec4 sampleColor(float value) {
-  // In case the color palette should be inverted, invert the texture coordinate to sample the color texture.
-  float x = invertColor ? 1.0 - value : value;
-  return texture(colorTexture, vec2(x, 0.5));
-}
-
-// Intersection of a ray and an axis-aligned bounding box.
-// Returns the intersections as the minimum and maximum distance along the ray direction. 
-vec2 intersectAABB(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax) {
-  vec3 tMin = (boxMin - rayOrigin) / rayDir;
-  vec3 tMax = (boxMax - rayOrigin) / rayDir;
-  vec3 t1 = min(tMin, tMax);
-  vec3 t2 = max(tMin, tMax);
-  float tNear = max(max(t1.x, t1.y), t1.z);
-  float tFar = min(min(t2.x, t2.y), t2.z);
-
-  return vec2(tNear, tFar);
-}
-
-// Volume sampling and composition.
-// Note that the code is inserted based on the selected algorithm in the user interface.
-vec4 compose(vec4 color, vec3 entryPoint, vec3 rayDir, float samples, float tStart, float tEnd, float tIncr) {
-  // Composition of samples using maximum intensity projection.
-  // Loop through all samples along the ray.
-  float density = 0.0;
-  for (float i = 0.0; i < samples; i += 1.0) {
-    // Determine the sampling position.
-    float t = tStart + tIncr * i; // Current distance along ray.
-    vec3 p = entryPoint + rayDir * t; // Current position.
-
-    // Sample the volume data at the current position. 
-    float value = sampleData(p);      
-
-    // Keep track of the maximum value.
-    if (value > density) {
-      // Store the value if it is greater than the previous values.
-      density = value;
+        destW[i] = alpha + red + (green << 8) + (blue << 16);
     }
+}  
 
-    // Early exit the loop when the maximum possible value is found or the exit point is reached. 
-    if (density >= 1.0 || t > tEnd) {
-      break;
-    }
+  function moveGrayReal(src, dest, size) {
+    var i;
+    const destW = new Uint32Array(dest.buffer);
+    const alpha = 0xFF000000;  // alpha is the high byte. Bits 24-31
+    for (i = 0; i < size; i++) {
+        const g = (src[i]*255) >>> 0;
+        destW[i] = alpha + (g << 16) + (g << 8) + g;
+    }    
   }
 
-  // Convert the found value to a color by sampling the color palette texture.
-  color.rgb = sampleColor(density).rgb;
-  // Modify the alpha value of the color to make lower values more transparent.
-  color.a = alphaScale * (invertColor ? 1.0 - density : density);
-
-  // Return the color for the ray.
-  return color;
-}
-
-void main() {
-  // Determine the intersection of the ray and the box.
-  vec3 rayDir = normalize(vDirection);
-  vec3 aabbmin = vec3(-0.5);
-  vec3 aabbmax = vec3(0.5);
-  vec2 intersection = intersectAABB(vOrigin, rayDir, aabbmin, aabbmax);
-
-  // Initialize the fragment color.
-  vec4 color = vec4(0.0);
-
-  // Check if the intersection is valid, i.e., if the near distance is smaller than the far distance.
-  if (intersection.x <= intersection.y) {
-    // Clamp the near intersection distance when the camera is inside the box so we do not start sampling behind the camera.
-    intersection.x = max(intersection.x, 0.0);
-    // Compute the entry and exit points for the ray.
-    vec3 entryPoint = vOrigin + rayDir * intersection.x;
-    vec3 exitPoint = vOrigin + rayDir * intersection.y;
-
-    // Determine the sampling rate and step size.
-    // Entry Exit Align Corner sampling as described in
-    // Volume Raycasting Sampling Revisited by Steneteg et al. 2019
-    vec3 dimensions = vec3(textureSize(dataTexture, 0));
-    vec3 entryToExit = exitPoint - entryPoint;
-    float samples = ceil(samplingRate * length(entryToExit * (dimensions - vec3(1.0))));
-    float tEnd = length(entryToExit);
-    float tIncr = tEnd / samples;
-    float tStart = 0.5 * tIncr;
-
-    // Determine the entry point in texture space to simplify texture sampling.
-    vec3 texEntry = (entryPoint - aabbmin) / (aabbmax - aabbmin);
-
-    // Sample the volume along the ray and convert samples to color.
-    color = compose(color, texEntry, rayDir, samples, tStart, tEnd, tIncr);
+  function moveRGB(src, dest, size) {
+    var i, j = 0;
+    const destW = new Uint32Array(dest.buffer);
+    const alpha = 0xFF000000;  // alpha is the high byte. Bits 24-31
+    for (i = 0; i < size; i++) {
+        destW[i] = alpha + src[j++] + (src[j++] << 8) + (src[j++] << 16);
+    }    
   }
 
-  // Return the fragment color.
-  frag_color = color;
-}
-`;
-
-g3d['CoffeeLiqueur`Extensions`Graphics3D`Private`SampledColorFunction'] = async (args, env) => {
-  const colors = await interpretate(args[0], env);
-  let type = "RGB";
-  if (colors[0].length > 3) {
-    type = "RGBA";
-  }
-
-  return {colors: colors, type: type};
-};
-
-core.Image3D = async (args, env) => {
-
-  await interpretate.shared.THREE.load();
-
-  if (!THREE) {
-    THREE = interpretate.shared.THREE.THREE;
-    OrbitControls = interpretate.shared.THREE.OrbitControls;
-    RGBELoader = interpretate.shared.THREE.RGBELoader;
-    CSS2D = interpretate.shared.THREE.CSS2D;
-    VariableTube = await import('./index-2643bfa9.js');
-    VariableTube = VariableTube.VariableTube;
-  }
-
-  if (!GUI) {
-    GUI           = (await import('./dat.gui.module-0f47b92e.js')).GUI;  
-  }
-
-  const gui = new GUI({ autoPlace: false, name: '...', closed:true });
-
-
-  if (!chroma) {
-    chroma = (await import('./index-27b8d831.js')).default;
-  }
-
-  const options = await core._getRules(args, {...env, context: g3d, hold:true});
-
-
-  let data = await interpretate(args[0], {...env, context: [numericAccelerator, g3d]});
-
-
-
-  let type = 'Real32';
-
-  if (args.length - Object.keys(options).length > 1) {
-    type = interpretate(args[1]);
-  }
-
-  console.log(args);
-
-  type = imageTypes[type];
-
-
-
-
-  let imageData;
-
-  //if not typed array
-  if (Array.isArray(data)) {
-    console.warn('Will be slow. Not a typed array');
-    data = {buffer: data.flat(Infinity), dims: checkdims(data)};
-  }
-
-  imageData = type.convert(data);
+  function moveRGBTransposed(src, dest, size) {
+    const destW = new Uint32Array(dest.buffer);
+    const alpha = 0xFF000000;
   
-
-  console.warn('ImageSize');
-  console.warn(data.dims);
-  const height = data.dims[2];
-  const width  = data.dims[1];
-  const depth  = data.dims[0];
-
-  const renderProps = {
-    //rotations: Array(1) ["y"]
-    speed: 0.0001,
-    samplingRate: 1,
-    threshold: 0.5054,
-    palette: "Greys",
-    invertColor: false,
-    alphaScale: 1.1916
-  };
-
-  if ('SamplingRate' in options) {
-    renderProps.samplingRate = await interpretate(options.SamplingRate, env);
+    const offsetG = size;       // Green starts after Red
+    const offsetB = size * 2;   // Blue starts after Green
+  
+    for (let i = 0; i < size; i++) {
+      const red   = src[i];
+      const green = src[offsetG + i];
+      const blue  = src[offsetB + i];
+  
+      destW[i] = alpha + red + (green << 8) + (blue << 16);
+    }
   }
 
-  if ('InvertColor' in options) {
-    renderProps.invertColor = await interpretate(options.InvertColor, env);
+  function moveRGBATransposed(src, dest, size) {
+    const destW = new Uint32Array(dest.buffer);
+  
+    const offsetG = size;        // Green starts after Red
+    const offsetB = size * 2;    // Blue starts after Green
+    const offsetA = size * 3;    // Alpha starts after Blue
+  
+    for (let i = 0; i < size; i++) {
+      const r = src[i];
+      const g = src[offsetG + i];
+      const b = src[offsetB + i];
+      const a = src[offsetA + i];
+  
+      destW[i] = (a << 24) + r + (g << 8) + (b << 16);
+    }
   }
 
-  if ('AlphaScale' in options) {
-    renderProps.alphaScale = await interpretate(options.AlphaScale, env);
+  function moveRGB2(src, dest, size) {
+    var i, j = 0;
+    const destW = new Uint32Array(dest.buffer);
+    const alpha = 0xFF000000;  // alpha is the high byte. Bits 24-31
+    for (i = 0; i < size; i++) {
+        destW[i] = alpha + src[j++] + (src[j++] << 8);
+    }    
   }  
 
-  if ('Palette' in options) {
-    renderProps.palette = await interpretate(options.Palette, env);
+  function moveGray(src, dest, size) {
+    var i;
+    const destW = new Uint32Array(dest.buffer);
+    const alpha = 0xFF000000;  // alpha is the high byte. Bits 24-31
+    for (i = 0; i < size; i++) {
+        const g = src[i];
+        destW[i] = alpha + (g << 16) + (g << 8) + g;
+    }    
+  }  
+
+  function moveGrayBits(src, dest, size) {
+    var i;
+    const destW = new Uint32Array(dest.buffer);
+    const alpha = 0xFF000000;  // alpha is the high byte. Bits 24-31
+    for (i = 0; i < size; i++) {
+        const g = src[i] << 8;
+        destW[i] = alpha + (g << 16) + (g << 8) + g;
+    }    
   }   
 
+  const imageTypes = {
+    Byte: {
+      constructor: Uint8Array,
+      convert: (array) => {
+        if (array.dims.length === 3) {
+          if (array.dims[2] === 4) {
+            //console.error(array);
+            const rgba = new Uint8ClampedArray(array.buffer);
+            //moveRGB(array.buffer, rgba, size);
+            return rgba;
+            //return array.buffer;
+          }
 
+          if (array.dims[2] === 3) {
+            const size = array.dims[0] * array.dims[1];
+            const rgba = new Uint8ClampedArray(size << 2);
+            moveRGB(array.buffer, rgba, size);
+            return rgba;
+          }
+          
+          if (array.dims[2] === 2) {
+            const size = array.dims[0] * array.dims[1];
+            const rgba = new Uint8ClampedArray(size << 2);
+            moveRGB2(array.buffer, rgba, size);
+            return rgba;
+          }
 
-  const volumeTexture = new THREE.Data3DTexture(
-    imageData, // The data values stored in the pixels of the texture.
-    height, // Width of texture.
-    width, // Height of texture.
-    depth // Depth of texture.
-  );
-  
-  volumeTexture.format = THREE.RedFormat; // Our texture has only one channel (red).
-  volumeTexture.type = THREE.UnsignedByteType; // The data type is 8 bit unsighed integer.
-  volumeTexture.minFilter = THREE.LinearFilter; // Linear filter for minification.
-  volumeTexture.magFilter = THREE.LinearFilter; // Linear filter for maximization.
+          console.error(array);
+          throw 'It must be RGB or RGBA or RG!';
+        }
 
-   // Repeat edge values when sampling outside of texture boundaries.
-  volumeTexture.wrapS = THREE.ClampToEdgeWrapping;
-  volumeTexture.wrapT = THREE.ClampToEdgeWrapping;
-  volumeTexture.wrapR = THREE.ClampToEdgeWrapping;  
+        if (array.dims.length === 2) {
+          const size = array.dims[0] * array.dims[1];
+          const rgba = new Uint8ClampedArray(size << 2);
+          moveGray(array.buffer, rgba, size);
+          return rgba;          
+        }
 
-  volumeTexture.needsUpdate = true;
+        throw 'This is not an image data!';
+      },
 
-  env.local.volumeTexture = volumeTexture;
+      convert_nonInterleaved: (array) => {
+        const channels = array.dims[0];
 
-  let colorScale = 'Spectral';
-
-  let colorFunction;
-
-  {
-    const scale = chroma.scale(colorScale);
-
-    colorFunction = (i, count) => {
-    
-      const colorvalue = scale(i / (count - 1.0)).rgb();
-      colorvalue.push(255);
-      return colorvalue;
-    };
-  }
-
-  if ('ColorFunction' in options) {
-    const c = await interpretate(options.ColorFunction, {...env, context:g3d});
-    console.warn(c);
-    if (typeof c == 'string') {
-      switch(c) {
-        case 'XRay':
-          renderProps.invertColor = true;
-          colorScale = 'Greys';
-        break;
-
-        case 'GrayLevelOpacity':
-          colorScale = 'Greys';
-        break;
-
-
+        if (channels === 3 || channels === 4) {
+          const size = array.dims[2] * array.dims[1];
+          const rgba = new Uint8ClampedArray(size << 2);
       
-        case 'Automatic':
-        break;
+          if (channels === 3) {
+            moveRGBTransposed(array.buffer, rgba, size);
+          } else {
+            moveRGBATransposed(array.buffer, rgba, size);
+          }
+      
+          return rgba;
+        }
 
-        default:
-          colorScale = c;
-      }
-
-      const scale = chroma.scale(colorScale);
-
-      colorFunction = (i, count) => {
-        
-        const colorvalue = scale(i / (count - 1.0)).rgb();
-        colorvalue.push(255);
-        return colorvalue;
-      };
-
-    } else if (c.type) {
-      //throw c.colors;
-      switch(c.type) {
-        case 'RGB':
-          colorFunction = (value, count) => {
-            
-            const colorvalue = c.colors[value].map((cl) => Math.floor(cl*255.0));
-            colorvalue.push(255);
-            return colorvalue;
-          };
-        break;
-
-        case 'RGBA':
-          colorFunction = (value, count) => {
-            //console.log(value);
-            return c.colors[value].map((cl) => Math.floor(cl*255.0));
-          };
-        break;
-
-        default:
-          console.error(c);
-          throw 'unknown color format';
-      }
-
-    }
-  }
-
-  // Create an array to hold the color values.
-  const count = 256; // Number of colors in texture.
-  const colorData = new Uint8Array(count * 4); // 4 = 4 color channels.
-  
-  // Loop through all pixels and assign color values.
-  for (let i = 0; i < count; ++i) {
-    let color = colorFunction(i, count);  // Index value to color conversion
-    
-    const stride = i * 4; // Array index
-    colorData[stride] = color[0]; // Red
-    colorData[stride + 1] = color[1]; // Green
-    colorData[stride + 2] = color[2]; // Blue
-    colorData[stride + 3] = color[3]; // Alpha
-  }
-
-  //console.warn(colorData);
-  // Create texture from color data with width = color count and height = 1.
-  const colorTexture = new THREE.DataTexture(colorData, count, 1);
-  // Specify the texture format to match the stored data.
-  colorTexture.format = THREE.RGBAFormat;
-  colorTexture.type = THREE.UnsignedByteType;
-  colorTexture.minFilter = THREE.LinearFilter; // Linear interpolation of colors.
-  colorTexture.magFilter = THREE.LinearFilter; // Linear interpolation of colors.
-  colorTexture.wrapS = THREE.ClampToEdgeWrapping;
-  colorTexture.wrapT = THREE.ClampToEdgeWrapping;
-
-  colorTexture.needsUpdate = true;
-
-  env.local.colorTexture = colorTexture;
-
-
-  const scene = new THREE.Scene();
-  // Set the background color of the visualization.
-
-  if ('Background' in options) {
-    scene.background = await interpretate(options.Background, {...env, context: g3d});
-  }
-  
-
-
-  const geometry = new THREE.BoxGeometry(1, 1, 1);
-
-  // Create a mesh from the geometric description.
-  const box = new THREE.Mesh(geometry);
-  // Scale the mesh to reflect the aspect ratio of the volume.
-
-  if ('BoxRatios' in options) {
-
-    //const reciprocal = size.map((e) => 1.0/(e/max));
-  
-    console.warn('Rescaling....');
-  
-    let ratios = await interpretate(options.BoxRatios, env);
-    if (Array.isArray(ratios)) {
-      ratios = [-ratios[0], -ratios[1], ratios[2]];
-
-      box.scale.set(...ratios);
-    } else {
-      box.scale.set(-1,-1,1);
-    }
-  } else {
-    box.scale.set(-1,-1,1);
-  }
-
-  box.applyMatrix4(new THREE.Matrix4().set( 
-    1, 0, 0, 0,
-    0, 0, -1, 0,
-    0, 1, 0, 0,
-    0, 0, 0, 1));
-  
-  // Optionally, add an outline to the box.
-  /*const line = new THREE.LineSegments(
-    new THREE.EdgesGeometry(geometry),
-    new THREE.LineBasicMaterial({ color: 0x999999 })
-  );
-  box.add(line);*/
-
-
-
-  const material = new THREE.RawShaderMaterial({
-    glslVersion: THREE.GLSL3, // Shader language version.
-    uniforms: {
-      dataTexture: { value: volumeTexture }, // Volume data texture.
-      colorTexture: { value: colorTexture }, // Color palette texture.
-      cameraPosition: { value: new THREE.Vector3() }, // Current camera position.
-      samplingRate: { value: renderProps.samplingRate }, // Sampling rate of the volume.
-      threshold: { value: renderProps.threshold }, // Threshold for adjusting volume rendering.
-      alphaScale: { value: renderProps.alphaScale }, // Alpha scale of volume rendering.
-      invertColor: { value: renderProps.invertColor } // Invert color palette.
+        console.error(array);
+      
+        throw 'convert_nonInterleaved has limited support';
+      }      
     },
-    vertexShader: image3DVertexShader, // Vertex shader code.
-    fragmentShader: image3DFragmentShader, // Fragment shader code.
-    side: THREE.BackSide, // Render only back-facing triangles of box geometry.
-    transparent: true, // Use alpha channel / alpha blending when rendering.
-  });  
 
-  env.local.material = material;
+    Bit: {
+      constructor: Uint8Array,
+      convert: (array) => {
+        const size = array.dims[0] * array.dims[1];
+        const rgba = new Uint8ClampedArray(size << 2);
+        moveGrayBits(array.buffer, rgba, size);
+        return rgba;  
+      }
+    },
 
-  box.material = material;
+    Real32: {
+      constructor: Float32Array,
+      convert: (array) => {
+        if (array.dims.length === 3) {
+          if (array.dims[2] === 4) {
+            const size = array.dims[0] * array.dims[1];
+            const rgba = new Uint8ClampedArray(size << 2);
+            moveRGBAReal(array.buffer, rgba, size);
+            return rgba;
+          }
 
-  
+          if (array.dims[2] === 3) {
+            const size = array.dims[0] * array.dims[1];
+            const rgba = new Uint8ClampedArray(size << 2);
+            moveRGBReal(array.buffer, rgba, size);
+            return rgba;
+          }
 
-  scene.add(box);
-
-  let ImageSize = [core.DefaultWidth,  core.DefaultWidth];
-
-  if ('ImageSize' in options) {
-    const size = await interpretate(options.ImageSize, env);
-    if (Array.isArray(size)) {
-      ImageSize = size;
-    } else if (typeof size == 'number') {
-      ImageSize = [size, size];
-    }
-  }
-
-
-  
-
-  const fov = 45; // Field of view.
-  const aspect = ImageSize[0] / ImageSize[1]; // Aspect ratio of viewport.
-  const near = 0.1; // Distance to near clip plane. 
-  const far = 1000; // Distance to far clip plane.
-
-  // Create the camera and set its position and orientation.
-  const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-  camera.position.set(1, 1, -1); // Move to units back from origin in negative z direction. 
-  camera.lookAt(new THREE.Vector3(0, 0, 0)); // Orient camera to origin.
-
-  
-  const renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
-  renderer.setSize(ImageSize[0], ImageSize[1]); // Set size of visualization.
-  renderer.setPixelRatio(devicePixelRatio); // Handle high resolution displays.
-
-  env.element.appendChild(renderer.domElement);
+          if (array.dims[2] === 2) {
+            const size = array.dims[0] * array.dims[1];
+            const rgba = new Uint8ClampedArray(size << 2);
+            moveRGBReal2(array.buffer, rgba, size);
+            return rgba;
+          }
 
 
-  renderer.setClearColor( 0x000000, 0 );
 
-  // Optionally, add a border arround the visualization.
-  //renderer.domElement.style.border = "1px solid black";
+          console.error(array);
+          throw 'It must be RGB or RGBA or RG!';
+        }
 
-  // Add mouse / touch control for zooming, panning and rotating the camera.
-  const controls = new OrbitControls(camera, renderer.domElement);
+        if (array.dims.length === 2) {
+          const size = array.dims[0] * array.dims[1];
+          const rgba = new Uint8ClampedArray(size << 2);
+          moveGrayReal(array.buffer, rgba, size);
+          return rgba;          
+        }
 
-  let timeout = performance.now();
-  let sleeping = false;
+        throw 'This is not an image data!';
+      },
 
-  let animationLoop;
+      convert_nonInterleaved: (array) => {
+        if (array.dims[0] === 3) { 
+          const size = array.dims[2] * array.dims[1];
+          const rgba = new Uint8ClampedArray(size << 2);
+          moveRGBRealTransposed(array.buffer, rgba, size);
+          return rgba;
+        }
 
-  const wakeFunction = () => {
-    timeout = performance.now();
-    if (sleeping) {
-      console.log('wake');
-      sleeping = false;
-      animationLoop();
+        throw 'convert_nonInterleaved has a limited support';
+      }
+    },
+
+    Real64: {
+      contructor: Float64Array,
+      convert: (array) => {
+        if (array.dims.length === 3) {
+          if (array.dims[2] === 4) {
+            const size = array.dims[0] * array.dims[1];
+            const rgba = new Uint8ClampedArray(size << 2);
+            moveRGBAReal(array.buffer, rgba, size);
+            return rgba;
+          }
+          if (array.dims[2] === 3) {
+            const size = array.dims[0] * array.dims[1];
+            const rgba = new Uint8ClampedArray(size << 2);
+            moveRGBReal(array.buffer, rgba, size);
+            return rgba;
+          }
+
+          if (array.dims[2] === 2) {
+            const size = array.dims[0] * array.dims[1];
+            const rgba = new Uint8ClampedArray(size << 2);
+            moveRGBReal2(array.buffer, rgba, size);
+            return rgba;
+          }
+
+          console.error(array);
+          throw 'It must be RGB or RGBA!';
+        }
+
+        if (array.dims.length === 2) {
+          const size = array.dims[0] * array.dims[1];
+          const rgba = new Uint8ClampedArray(size << 2);
+          moveGrayReal(array.buffer, rgba, size);
+          return rgba;          
+        }
+
+        throw 'This is not an image data!';
+      }
     }
   };
 
-  gui.add( renderProps, 'alphaScale', 0., 2.).onChange( () => {
-    material.uniforms.alphaScale.value = renderProps.alphaScale;
-    wakeFunction();
-  
-  } );
 
-  gui.add( renderProps, 'samplingRate', 0.1, 4.).onChange( () => {
-    material.uniforms.samplingRate.value = renderProps.samplingRate;
-    wakeFunction();
-  
-  } );
 
-  gui.add( renderProps, 'invertColor').onChange( () => {
-    material.uniforms.invertColor.value = renderProps.invertColor;
-    wakeFunction();
-  
-  } );
 
-  controls.addEventListener('change', wakeFunction);
-  // Add an event listener to the controls to redisplay the visualization on user input.
-  //controls.addEventListener("change", () => renderer.render(scene, camera));
+
+  g2d.Antialiasing = () => 'Antialiasing';
+
+  var imageContext = {};
+  imageContext.EventListener = async (args, env) => {
+    const rules = await interpretate(args[1], env);
+    const copy = {...env};
+
+    const object = env.local.canvas;
+
+    rules.forEach((rule)=>{
+      imageContext.EventListener[rule.lhs](rule.rhs, object, copy);
+    });
+
+    return null;
+  };
+
+  imageContext.EventListener.click = (uid, canvas, env) => {
+    const dpr = window.devicePixelRatio;
+    const updatePos = throttle((x,y) => {
+      server.kernel.io.fire(uid, [x,y], 'click');
+    });
   
-  animationLoop = () => {
-    if (material) {
-      box.material.uniforms.cameraPosition.value.copy(camera.position);
+    function clicked(event) {
+      if (!event.altKey)
+        updatePos(event.offsetX*dpr, event.offsetY*dpr);
     }
 
-    // Re-render the scene with the camera.
-    renderer.render(scene, camera);
-    if (performance.now() - timeout > 100) {
-      console.log('sleep');
-      sleeping = true;
+    canvas.addEventListener("click", clicked);
+  };
+
+  imageContext.EventListener.altclick = (uid, canvas, env) => {
+    const dpr = window.devicePixelRatio;
+    const updatePos = throttle((x,y) => {
+      server.kernel.io.fire(uid, [x,y], 'altclick');
+    });
+  
+    function clicked(event) {
+      if (event.altKey)
+        updatePos(event.offsetX*dpr, event.offsetY*dpr);
+    }
+
+    canvas.addEventListener("click", clicked);
+  }; 
+
+  imageContext.EventListener.mouseup = (uid, canvas, env) => {
+    const dpr = window.devicePixelRatio;
+    const updatePos = throttle((x,y) => {
+      server.kernel.io.fire(uid, [x,y], 'mouseup');
+    });
+  
+    function clicked(event) {
+      updatePos(event.offsetX*dpr, event.offsetY*dpr);
+    }
+
+    canvas.addEventListener("mouseup", clicked);
+  };  
+
+  imageContext.EventListener.mousedown = (uid, canvas, env) => {
+    const dpr = window.devicePixelRatio;
+    const updatePos = throttle((x,y) => {
+      server.kernel.io.fire(uid, [x,y], 'mousedown');
+    });
+  
+    function clicked(event) {
+      updatePos(event.offsetX*dpr, event.offsetY*dpr);
+    }
+
+    canvas.addEventListener("mousedown", clicked);
+  }; 
+  
+  imageContext.EventListener.mousemove = (uid, canvas, env) => {
+    const dpr = window.devicePixelRatio;
+    const updatePos = throttle((x,y) => {
+      server.kernel.io.fire(uid, [x,y], 'mousemove');
+    });
+  
+    function clicked(event) {
+      updatePos(event.offsetX*dpr, event.offsetY*dpr);
+    }
+
+    canvas.addEventListener("mousemove", clicked);
+  };  
+
+  imageContext.EventListener.mouseover = (uid, canvas, env) => {
+    const dpr = window.devicePixelRatio;
+    const updatePos = throttle((x,y) => {
+      server.kernel.io.fire(uid, [x,y], 'mouseover');
+    });
+  
+    function clicked(event) {
+      updatePos(event.offsetX*dpr, event.offsetY*dpr);
+    }
+
+    canvas.addEventListener("mouseover", clicked);
+  };  
+
+  g2d.Image = async (args, env) => {
+    const options = await core._getRules(args, {...env, context: g2d, hold:true});
+
+    //const time = performance.now();
+    //const benchmark = [];
+
+
+    let data = await interpretate(args[0], {...env, context: [numericAccelerator, g2d]});
+
+    if (data instanceof HTMLCanvasElement) {
+      if (!env.offscreen) env.element.appendChild(data);
+      env.local.canvas = data;
+      return data;
+    }
+    //benchmark.push(`${performance.now() - time} passed`);
+
+    let type = 'Real32';
+
+    if (args.length - Object.keys(options).length > 1) {
+      type = interpretate(args[1]);
+    }
+
+    type = imageTypes[type];
+
+    let imageData;
+    let interleaving = true;
+    if ('Interleaving' in options) interleaving = interpretate(options.Interleaving, {});
+
+
+
+    //if not typed array
+    if (Array.isArray(data)) {
+      console.warn('Will be slow. Not a typed array');
+      data = {buffer: data.flat(Infinity), dims: checkdims(data)};
+    }
+
+    if (interleaving) {
+      console.warn(type);
+      imageData = type.convert(data);
     } else {
-      env.local.animation = requestAnimationFrame(animationLoop);
+      imageData = type.convert_nonInterleaved(data);
     }
-  };
+    
+    //benchmark.push(`${performance.now() - time} passed`);
 
+   
+    env.local.type = type;
+
+    console.log('ImageSize');
+    console.log(data.dims);
+    let width, height;
+    
+    if (interleaving) {
+      height = data.dims[0];
+      width  = data.dims[1];
+    } else {
+      height = data.dims[1];
+      width  = data.dims[2];      
+    }
+
+    env.local.interleaving = interleaving;
+
+    env.local.dims = data.dims;
+
+    //console.log({imageData, width, height});
+
+    imageData = new ImageData(new Uint8ClampedArray(imageData), width, height);
+    //benchmark.push(`${performance.now() - time} passed`);
+
+    let ImageSize = options.ImageSize;
+    ImageSize = await interpretate(options.ImageSize, {...env, context: g2d});
+
+    if (options.Magnification) {
+      //options.Magnification = await interpretate(options.Magnification, env);
+      const mag = await interpretate(options.Magnification, {...env, context: g2d});
+      ImageSize = Math.floor(width * mag);
+    }
+
+
+
+    if (!ImageSize) {
+      if (env.imageSize) {
+        ImageSize = env.imageSize;
+      } else {
+        ImageSize = width;
+      }
+    }
+
+    if (Array.isArray(ImageSize)) {
+      if (typeof ImageSize[0] != 'number') {
+        ImageSize = [width, height];
+      }
+    } else {
+      if (typeof ImageSize != 'number') {
+        ImageSize = width;
+      }      
+    }
+
+    //only width can be controlled!
+    if (Array.isArray(ImageSize)) ImageSize = ImageSize[0];
+
+    const target_width = Math.floor(ImageSize);
+    const target_height = Math.floor((height / width) * (ImageSize));    
+
+    console.warn('ImageSize');
+    console.warn({target_width, target_height});
+
+    env.local.targetDims = [target_height, target_width];
+
+
+    let ctx;
+    const dpi = window.devicePixelRatio;
+
+    // if (env.inset) {
+    //   const foreignObject = env.inset.append('foreignObject')
+    //   .attr('width', target_width)
+    //   .attr('height', target_height);
+
+
+    
+    //   const canvas = foreignObject.append('xhtml:canvas')
+    //   .attr('xmlns', 'http://www.w3.org/1999/xhtml').node();
+
+    //   canvas.width = target_width;
+    //   canvas.height = target_height;
+
+    //   canvas.style.width = target_width / dpi + 'px';
+    //   canvas.style.height = target_height / dpi + 'px';
+
+    //   ctx = canvas.getContext('2d');
+    // } else {
+      var canvas = document.createElement("canvas");
+      canvas.width = target_width;
+      canvas.height = target_height;      
+      if (!env.offscreen) env.element.appendChild(canvas);
+      canvas.style.width = target_width / dpi + 'px';
+      canvas.style.height = target_height / dpi + 'px';
+      ctx  = canvas.getContext("2d");
+    //}
+
+    env.local.ctx = ctx;
+    env.local.canvas = canvas;
+
+    if('Antialiasing' in options) {
+      ctx.imageSmoothingEnabled = await interpretate(options.Antialiasing, {...env, context: g2d});
+    }
+    
+    //canvas.getContext('2d').scale(dpi, dpi);
+
+    //benchmark.push(`${performance.now() - time} passed`);
+
+    if (target_width != width || target_height != height) {
+      env.local.resized = true;
+      console.warn('Resizing might be slow');
+      imageData = await createImageBitmap(imageData);
+      ctx.drawImage(imageData, 0,0, target_width, target_height);
+    } else {
+      ctx.putImageData(imageData,0,0);
+    }
+
+    
+    
+    //benchmark.push(`${performance.now() - time} passed`);
+
+    //console.warn(benchmark);
+    if (options.Epilog) {
+      interpretate(options.Epilog, {...env, context: [imageContext, g2d]});
+    }
+
+    return canvas;
+};
+
+g2d.Image.update = async (args, env) => {
+  let data = await interpretate(args[0], {...env, context: [numericAccelerator, g2d]});
+    //if not typed array
+    if (Array.isArray(data)) {
+      console.warn('Image:update: not a typed array. It will be slow...');
+      data = {buffer: data.flat(Infinity), dims: checkdims(data)};
+    }    
+
+    if (!env.local.interleaving) {
+      throw 'Update with no interleaving is not supported!';
+    }
+
+    let imageData = env.local.type.convert(data);
+    imageData = new ImageData(new Uint8ClampedArray(imageData), env.local.dims[1], env.local.dims[0]);
+    
+    if (env.local.resized) {
+      imageData = await createImageBitmap(imageData);
+      env.local.ctx.clearRect(0, 0, env.local.targetDims[1], env.local.targetDims[0]);
+      env.local.ctx.drawImage(imageData, 0,0, env.local.targetDims[1], env.local.targetDims[0]);
+    } else {
+      env.local.ctx.putImageData(imageData,0,0);
+    }
   
-
-
-  const guiContainer = document.createElement('div');
-  guiContainer.classList.add('graphics3d-controller');
-  guiContainer.appendChild(gui.domElement);
-      
-  if (ImageSize[0] > 250 && ImageSize[1] > 150)
-    env.element.appendChild( guiContainer );
   
-  function takeScheenshot() {
-    renderer.render(scene, camera);
-    renderer.domElement.toBlob(function(blob){
-      var a = document.createElement('a');
-      var url = URL.createObjectURL(blob);
-      a.href = url;
-      a.download = 'screenshot.png';
-      a.click();
-    }, 'image/png', 1.0);
+};
+
+g2d.Image.destroy = (args, env) => {
+  env.local?.canvas?.remove();
+};
+
+
+let runOptcodes;
+
+core['Canvas2D`Private`ctx'] = async (args, env) => {
+  if (!env.root.parent) throw 'ctx cannot be executed without parent node'
+  if (env.root.parent.firstName != 'Image') {
+    console.error(env.root.parent);
+    throw 'parent node is not Image';
   }
-  
-  const button = { Save:function(){ takeScheenshot(); }};
-  gui.add(button, 'Save');  
 
+  //hijack options from Image
+  const opts = await core._getRules(env.root.parent.virtual.slice(1), {...env, hold:true, context: [g2d, imageContext]});
+
+  //normal execution
+  const optCodes = await interpretate(args[1], env);
+
+  if (!runOptcodes) runOptcodes = (await import('./canvas2d-cc6ed9aa.js')).runOptcodes;
+
+  const canvas = document.createElement("canvas");
+  opts.ImageResolution = await interpretate(opts.ImageResolution, env);
+
+  if (typeof opts.ImageResolution[0] != 'number') {
+    opts.ImageResolution = [500,500];
+  } 
+
+    canvas.width = opts.ImageResolution[0];
+    canvas.height = opts.ImageResolution[1];
   
-  animationLoop();
+  const ctx = canvas.getContext("2d");
+
+  env.local.ctx = ctx;
+  env.local.canvas = canvas;
+
+  if (opts.Prolog) {
+    await interpretate(opts.Prolog, {...env, context: [imageContext, g2d]});
+  }
+
+  const dpr = window.devicePixelRatio || 1;
+
+  // but keep CSS size at logical px
+  canvas.style.width = opts.ImageResolution[0]/dpr + "px";
+  canvas.style.height = opts.ImageResolution[1]/dpr + "px";  
+
+
+  env.local.refmap = new Map();
+  await runOptcodes(env.local.ctx, optCodes, env.local.refmap);
+
+  if (opts.Epilog) {
+    await interpretate(opts.Epilog, {...env, context: [imageContext, g2d]});
+  }
+
+  return canvas;     
 };
 
-core.Image3D.virtual = true;
+core['Canvas2D`Private`ctx'].virtual = true;
 
-core.Image3D.destroy = (args, env) => {
-  console.warn('Dispose');
-  cancelAnimationFrame(env.local.animation);
-  env.local.material.dispose();
-  env.local.colorTexture.dispose();
-  env.local.volumeTexture.dispose();
+core['Canvas2D`Private`ctx'].update = async (args, env) => {
+  const optCodes = await interpretate(args[1], env);
+  await runOptcodes(env.local.ctx, optCodes, env.local.refmap);
 };
 
-g3d.Ball = g3d.Sphere;
+core['Canvas2D`Private`ctx'].destroy = (args, env) => {
+  env.local.canvas.remove();
+  env.local.refmap.clear();
+};
+
+g2d.Image.virtual = true;
+g2d.Graphics.virtual = true;
+
+
+g2d.GraphicsGroupBox = g2d.GraphicsGroup;
+g2d.GraphicsComplexBox = g2d.GraphicsComplex;
+g2d.DiskBox = g2d.Disk;
+g2d.LineBox = g2d.Line;

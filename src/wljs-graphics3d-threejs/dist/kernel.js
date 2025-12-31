@@ -4478,6 +4478,8 @@ g3d.PointLight.destroy = async (args, env) => {
 console.log('PointLight destroyed');
 };
 
+
+
 g3d.PointLight.virtual = true;
 
 g3d.SpotLight = async (args, env) => {
@@ -7464,3 +7466,5 @@ core.Image3D.destroy = (args, env) => {
   env.local.colorTexture.dispose();
   env.local.volumeTexture.dispose();
 };
+
+g3d.Ball = g3d.Sphere;
