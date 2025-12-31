@@ -83,6 +83,7 @@ Renders notebook cells (input/output) with syntax highlighting and interactive f
 - `fade` - (Optional) Enable fade effect on focus/blur
 - `encoded` - (Optional) Content is URI-encoded instead of using `<xmp>`
 - `editable` - (Optional) Make the cell editable and focusable
+- `lazy` - (Optional) Defer mounting until element becomes visible (improves performance with many cells)
 
 **Content Encoding Options:**
 
