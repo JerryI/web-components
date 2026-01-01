@@ -289,7 +289,7 @@ class WLJSEditor extends HTMLElement {
         });
       },
       {
-        rootMargin: "50px", // Start loading slightly before element is visible
+        rootMargin: "500px", // Start loading slightly before element is visible
         threshold: 0.01
       }
     );
