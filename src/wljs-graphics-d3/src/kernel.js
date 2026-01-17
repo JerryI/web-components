@@ -536,6 +536,24 @@ async function processLabel(ref0, gX, env, textFallback, nodeFallback) {
     return arr.reduce((a, b) => (b.length < a.length ? b : a));
   }
 
+  function isMobile() {
+    // 1) Best when available (Chromium etc.)
+    if (navigator.userAgentData?.mobile != null) {
+      return navigator.userAgentData.mobile;
+    }
+
+    // 2) Capability-based heuristic
+    const coarse = window.matchMedia?.("(pointer: coarse)").matches;
+    const smallScreen = window.matchMedia?.("(max-width: 768px)").matches;
+    const touch = navigator.maxTouchPoints > 0;
+
+    // Common practical rule: coarse pointer + (touch or small screen)
+    if (coarse && (touch || smallScreen)) return true;
+
+    // 3) Last-resort UA fallback (older browsers)
+    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+
 
   g2d.Complex = async (args, env) => {
     console.warn('Complex numbers are only supported as decoration');
@@ -634,6 +652,21 @@ async function processLabel(ref0, gX, env, textFallback, nodeFallback) {
 
     let rawImage = false;
 
+    const mobileDetected = isMobile();
+    if (mobileDetected) {
+      console.warn('Mobile device detected!');
+      const k = 2.0 / devicePixelRatio;
+      if (typeof ImageSize == 'number') {
+        ImageSize = ImageSize * k;
+        if (ImageSize > 250) ImageSize = 250;
+      } else if (typeof ImageSize[0] == 'number') {
+        ImageSize[0] = ImageSize[0] * k;
+        if (ImageSize[0] > 250) ImageSize[0] = 250;
+        ImageSize[1] = ImageSize[1] * k;
+      }
+
+    }
+
     if (options.ImageSizeRaw) {
       const size = await interpretate(options.ImageSizeRaw, env);
 
@@ -652,20 +685,21 @@ async function processLabel(ref0, gX, env, textFallback, nodeFallback) {
     }
 
     let tinyGraph = false;
+    let deviceFactor = devicePixelRatio;
 
-    if (ImageSize instanceof Array) {
-      if (ImageSize[0] < 100 && !(options.PaddingIsImportant)) {
-        tinyGraph = true;
-     
-      }
-    } else {
-      if (ImageSize < 100 && !(options.PaddingIsImportant)) {
-        tinyGraph = true;
-  
-      }
+    if (mobileDetected) {
+      deviceFactor = 2.0;
     }
 
-
+    if (ImageSize instanceof Array) {
+      if (ImageSize[0] < 100*deviceFactor && !(options.PaddingIsImportant)) {
+        tinyGraph = true;
+      }
+    } else {
+      if (ImageSize < 100*deviceFactor && !(options.PaddingIsImportant)) {
+        tinyGraph = true;
+      }
+    }
 
 
 
@@ -679,8 +713,6 @@ async function processLabel(ref0, gX, env, textFallback, nodeFallback) {
     let framed = false;
     let axesstyle = undefined;
     let ticksstyle = undefined;
-
-    console.log(options);
 
     if (options.Frame && !tinyGraph) {
       options.Frame = await interpretate(options.Frame, env);
@@ -1986,15 +2018,18 @@ async function processLabel(ref0, gX, env, textFallback, nodeFallback) {
 
       let GUIEnabled = false;
 
-      if (options.Controls || (typeof options.Controls === 'undefined')) {
+
+      if (options.Controls || (typeof options.Controls === 'undefined') && !tinyGraph && !mobileDetected) {
         //add pan and zoom
         if (typeof options.Controls === 'undefined') {
           GUIEnabled = true;
           addPanZoom(listenerSVG, svg, env.svg, gX, gY, gTX, gRY, gGX, gGY, xAxis, yAxis, txAxis, ryAxis, xGrid, yGrid, x, y, env);
+          
         } else {
           if (await interpretate(options.Controls, env)) {
             GUIEnabled = true;
             addPanZoom(listenerSVG, svg, env.svg, gX, gY, gTX, gRY, gGX, gGY, xAxis, yAxis, txAxis, ryAxis, xGrid, yGrid, x, y, env);
+            
           }
         }
       }
@@ -2443,6 +2478,7 @@ async function processLabel(ref0, gX, env, textFallback, nodeFallback) {
         fallback = true;
       }
     }
+    if (args[0][0] == 'Legended') fallback = true;
  
     try {
       if (!fallback) await interpretate(args[0], copy);
@@ -2459,7 +2495,7 @@ async function processLabel(ref0, gX, env, textFallback, nodeFallback) {
 
     const child = foreignObject.node();
 
-    await delay(60);
+    await delay(100);
 
     
     
@@ -2488,9 +2524,13 @@ async function processLabel(ref0, gX, env, textFallback, nodeFallback) {
 
     if ((box.width < 1 || !box.width) && box.height > 1) {
       //HACK: check if this is EditorView or similar
+      console.warn('cm-scroller hack');
+      await delay(100);
       const content = child.getElementsByClassName('cm-scroller');
       if (content.length > 0) {
         box.width = content[0].firstChild.offsetWidth;
+        const h = content[0].firstChild.offsetHeight;
+        if (h) box.height = Math.max(h, box.height);
       } else {
         box.width = box.height * 1.66;
       }
@@ -2643,6 +2683,7 @@ async function processLabel(ref0, gX, env, textFallback, nodeFallback) {
 
   const addPanZoom = (listener, raw, view, gX, gY, gTX, gRY, gGX, gGY, xAxis, yAxis, txAxis, ryAxis, xGrid, yGrid, x, y, env) => {
 
+
       console.log({listener, raw, view, gX, gY, gTX, gRY, xAxis, yAxis, txAxis, ryAxis, xGrid, yGrid, x, y, env});
       const zoom = d3.zoom().filter(filter).on("zoom", zoomed);
    
@@ -2650,7 +2691,41 @@ async function processLabel(ref0, gX, env, textFallback, nodeFallback) {
       
       env._zoom = zoom;
 
+      const resetZoom = () => {
+        const transform = d3.zoomIdentity;
+        
+        listener.call(zoom.transform, transform);
+        
+        view.attr("transform", transform);
+
+        if (gX) gX.call(xAxis.scale(x));
+        if (gY) gY.call(yAxis.scale(y));
       
+        if (gTX) gTX.call(txAxis.scale(x));
+        if (gRY) gRY.call(ryAxis.scale(y));
+
+        if (gGX) gGX.call(xGrid(x));
+        if (gGY) gGY.call(yGrid(y));
+      
+        env.onZoom.forEach((h) => h(transform));
+      };
+
+      env._resetZoom = resetZoom;
+
+      listener.node().addEventListener('contextmenu', async (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (window.electronAPI) {
+          const res = await window.electronAPI.createMenu([
+             {label:'Reset axes', ref:'reset'},
+          ]);
+          if (res === 'reset') {
+            resetZoom();
+          }
+        } else {
+          resetZoom();
+        }
+      });      
 
       function zoomed({ transform }) {
         
@@ -4377,7 +4452,7 @@ async function processLabel(ref0, gX, env, textFallback, nodeFallback) {
 
 
 
-    if (args.length == 3) {
+    if (args.length == 3 || args.length == 4) {
       const color = [];
       colorCss = "rgb(";
       colorCss += String(Math.floor(255 * (await interpretate(args[0], env)))) + ",";
@@ -6644,6 +6719,7 @@ g2d.EventListener.dragsignal = (uid, object, env) => {
       env.local.aligment = aligment;
     }
 
+    if (!env.svg) return await interpretate(args[0], {}); //fuckedup case, when rotate is passed to FrameTicks
     const group = env.svg.append("g");
     
     env.local.group = group;

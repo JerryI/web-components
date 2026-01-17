@@ -60,6 +60,10 @@ core.FrontInstanceReference.destroy = (args, env) => {
 
 var delay = ms => new Promise(r => setTimeout(r, ms));
 
+core['CoffeeLiqueur`Extensions`Communication`Private`execJS'] = async (args, env) => {
+  const expr = await interpretate(args[0], env);
+  return await eval('(function () {\n'+expr+'\n})()');
+}
 
 core['CoffeeLiqueur`Extensions`Communication`Private`exec'] = async (args, env) => {
     const expr = args[0];

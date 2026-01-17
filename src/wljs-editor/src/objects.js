@@ -252,8 +252,10 @@ core["CoffeeLiqueur`Extensions`FrontendObject`Tools`UIObjects"].GetById = async 
   }
 
   const message = ObjectHashMap[uid].cache;
-  console.log(message);
-  return message;
+  
+  console.log(message);//WL can't import empty arrays
+  if (message.length) return message;
+  return false;
 }
 
 

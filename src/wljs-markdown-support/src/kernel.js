@@ -430,6 +430,11 @@ class MarkdownCell {
         }
       }
     }
+
+    static async renderToHTML(data) {
+      const marked = new Marked({async: true, renderer, extensions: [admonitionExtension({}), inlineKatex({}), mark(), blockKatex({})]});
+      return await marked.parse(fixArrowBug(unicodeToChar(data)));
+    }
     
     constructor(parent, data) {
       console.log('marked data:::');

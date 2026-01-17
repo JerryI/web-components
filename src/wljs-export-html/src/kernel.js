@@ -116,4 +116,9 @@ core['CoffeeLiqueur`Extensions`ExportImport`BlackBox`StateMachine`Private`Submit
     return hash;
 }
 
+core['CoffeeLiqueur`Extensions`ExportImport`Internal`renderMarkdownToString'] = async (args, env) => {
+    const input = await interpretate(args[0], env);
+    return await window.SupportedCells['markdown'].view.renderToHTML(input);
+}
+
 core['CoffeeLiqueur`Extensions`ExportImport`BlackBox`WidgetStateMachine`Private`SubmitState'] = core['CoffeeLiqueur`Extensions`ExportImport`BlackBox`StateMachine`Private`SubmitState'] 

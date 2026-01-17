@@ -1248,7 +1248,7 @@
 
 .markdown a {
     text-decoration:underline;
-    color: blue;
+    color: var(--system-accent-color);
 }
 
 .markdown p {
@@ -1375,4 +1375,15 @@ foreignObject .katex-display{
 
 .markdown ol > li {
     list-style-type: decimal;
+}
+
+.markdown kbd {
+    padding-top: .1875em;
+    padding-inline-end: .375em;
+    padding-bottom: .1875em;
+    box-shadow: 0 0 0 1px var(--system-accent-color), 0 3px 0 var(--system-accent-color);
+    border-radius: .3125rem;
+    padding-inline-start: .375em;
+    font-family: monospace;
+    font-size: .875em;
 }

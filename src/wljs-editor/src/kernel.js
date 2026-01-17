@@ -17,8 +17,11 @@ import {indentWithTab, indentMore, indentLess} from "@codemirror/commands"
  
 import { MatchDecorator, WidgetType, keymap } from "@codemirror/view"
 
-import {syntaxTree} from "@codemirror/language"
+import {syntaxTree, syntaxTreeAvailable, Language, LanguageState, ParseContext} from "@codemirror/language"
 import {linter} from "@codemirror/lint"
+
+import {Tree} from "@lezer/common"
+
 
 //import rainbowBrackets from 'rainbowbrackets'
 
@@ -136,6 +139,10 @@ EditorAutocomplete.extend = (list) => {
 EditorAutocomplete.replaceAll = (list) => {
   EditorAutocomplete.data = list;
   wolframLanguage.reBuild(EditorAutocomplete.data);
+}
+
+EditorAutocomplete.refresh = () => {
+  wolframLanguage.refresh();
 }
 
 const unknownLanguage = StreamLanguage.define(spreadsheet);
@@ -277,9 +284,10 @@ const decorationsSeeker = ViewPlugin.fromClass(class {
       return bracketDeco(ch, h, from, to, color)
     });
 
-    for (const m of mismatch) {
+
+    if (syntaxTreeAvailable(view.state)) {for (const m of mismatch) {
       decorations.push(bracketDeco(m.ch, 0, m.from, m.to, "var(--editor-key-invalid)"));
-    }
+    } }
 
     this.decorations = Decoration.set(decorations, true);
     //return this.decorations
@@ -317,7 +325,7 @@ const decorationsSeeker = ViewPlugin.fromClass(class {
       return bracketDeco(ch, h, from, to, c)
     });
 
-    for (const m of mismatch) {
+    if (syntaxTreeAvailable(update.view.state)) for (const m of mismatch) {
       decorations.push(bracketDeco(m.ch, 0, m.from, m.to, "var(--editor-key-invalid)"));
     }
 
@@ -329,6 +337,7 @@ const decorationsSeeker = ViewPlugin.fromClass(class {
 
   iterateTree(view, cur) {
     const tree = syntaxTree(view.state);
+  
     const ranges = this.ranges;
     const { doc } = view.state;
     const pairs = []
@@ -608,6 +617,11 @@ compactWLEditor = (args) => {
         event.stopPropagation();
         args.evalNext();
         return false;
+      } },
+      { key: "Ctrl-Shift-Enter", mac: "Cmd-Shift-Enter", stopPropagation:true, preventDefault: true, run: function (editor, event) { 
+        event.stopPropagation();
+        args.evalToWindow();
+        return false;
       } }
     ]),    
     args.extensions || [],   
@@ -668,7 +682,12 @@ compactWLEditor.state = (args) => {
           event.stopPropagation();
           args?.evalNext();
           return false;
-        } }
+        } },
+        { key: "Ctrl-Shift-Enter", mac: "Cmd-Shift-Enter", stopPropagation:true, preventDefault: true, run: function (editor, event) { 
+        event.stopPropagation();
+        args?.evalToWindow();
+        return false;
+      } }
       ]),    
       args.extensions || [],   
       minimalSetup,
@@ -992,7 +1011,12 @@ const EditorExtensions = [
       console.log(editor.state.doc.toString()); 
       self.origin.evalNext(editor.state.doc.toString()); 
       return false;
-    } }
+    } },
+    { key: "Ctrl-Shift-Enter", mac: "Cmd-Shift-Enter", stopPropagation:true, preventDefault: true, run: function (editor, event) { 
+        event.stopPropagation();
+        self.origin.evalToWindow(editor.state.doc.toString());
+        return false;
+      } }
     , ...defaultKeymap, ...historyKeymap, ...searchKeymap
   ]),
   
@@ -1039,6 +1063,7 @@ class CodeMirrorCell {
         
       this.editor.focus();
     }
+
 
     setContent (data) {
       console.warn('content mutation!');

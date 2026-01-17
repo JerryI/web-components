@@ -44,6 +44,8 @@ const pr = (elt, match, group1, group2) => {
     case 'undirectededge': return '&harr;';
     case 'twowayrule': return '&harr;';
     case 'directededge': return '&rarr;';
+    case 'suchthat': return '&#8715;';
+    case 'coproduct': return '∐';
     case 'element': return '&#8712;';
     case 'invisiblecomma': return ' ';
     case 'transpose': return '&#7488;';

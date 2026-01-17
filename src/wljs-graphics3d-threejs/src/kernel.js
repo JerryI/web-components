@@ -269,7 +269,7 @@ g3d.EdgeForm = async (args, env) => {
 g3d.RGBColor = async (args, env) => {
   env.colorInherit = false;
 
-  if (args.length !== 3 && args.length !== 1) {
+  if (args.length !== 3 && args.length !== 4 && args.length !== 1) {
     console.log("RGB format not implemented", args);
     console.error("RGB values should be triple!");
     return;
@@ -3713,8 +3713,166 @@ function latexLikeToHTML(raw) {
 }
 
 g3d.Inset = async (args, env) => {
-  throw 'Not implemented';
-}
+    let pos = [0,0,0];
+    let size; 
+
+    const opts = await core._getRules(args, env);
+    const oLength = Object.keys(opts).length;
+    
+    if (args.length - oLength > 1) pos = await interpretate(args[1], env);
+    let opos;
+
+    if (pos instanceof NumericArrayObject) { // convert back automatically
+      pos = pos.normal();
+    }
+
+    if (args.length - oLength > 2) opos = await interpretate(args[2], env);
+    //if (args.length - oLength > 3) size = await interpretate(args[3], env);
+
+
+    const foreignObject = document.createElement('div');
+
+    let object = new CSS2D.CSS2DObject( foreignObject );
+    object.className = 'g3d-label';
+
+    env.mesh.add(object);
+
+    env.local.object = object;
+
+    //const foreignObject = foreignObject.append('xhtml:canvas').attr('xmlns', 'http://www.w3.org/1999/xhtml').node();
+    const stack = {};
+    env.local.stack = stack;
+
+    const copy = {global: {...env.global, stack: stack}, inset:true, element: foreignObject, context: g3d};
+
+
+    if (opts.ImageSizeRaw) {
+      size = opts.ImageSizeRaw;
+    }
+
+    if (size) {
+      //if (typeof size === 'number') size = [size, size/1.6];
+      //size = [Math.abs(env.xAxis(size[0]) - env.xAxis(0)), Math.abs(env.yAxis(size[1]) - env.yAxis(0))];
+
+      foreignObject.style.width = size[0] + 'px';
+      foreignObject.style.height = size[1] + 'px';
+      //copy.imageSize = size;
+    } 
+
+    (async function() {
+    let fallback = false; //fallback to EditorView
+    if (args[0][0] == 'HoldForm') {
+      if (Array.isArray(args[0][1])) {
+        if (args[0][1][0] == 'Offload') {
+
+        } else {
+          fallback = true;
+        }
+      } else {
+        fallback = true;
+      }
+    }
+ 
+    try {
+      if (!fallback) await interpretate(args[0], copy);
+    } catch(err) {
+      console.warn(err);
+      fallback = true;
+    }
+
+
+
+    if (fallback) {
+      await makeEditorView(args[0], copy);
+    }
+
+    const child = foreignObject;
+
+    await delay(60);
+
+    
+    
+    const h = child.offsetHeight || child.firstChild?.offsetHeight || child.firstChild?.height;
+
+    if (h < 10) {
+      for (let u=0; u<20; ++u) {
+        await delay(300);
+        if ((child.offsetHeight || child.firstChild?.offsetHeight || child.firstChild?.height) > 30) break;
+      }
+    }
+
+
+    let box = {width: child.offsetWidth || child.firstChild?.offsetWidth || child.firstChild?.width, height: child.offsetHeight || child.firstChild?.offsetHeight || child.firstChild?.height};
+    
+
+    if (box.width instanceof SVGAnimatedLength) {
+      box.width = box.width.animVal.valueInSpecifiedUnits
+    }
+
+    if (box.height instanceof SVGAnimatedLength) {
+      box.height = box.height.animVal.valueInSpecifiedUnits
+    }
+
+
+
+    if ((box.width < 1 || !box.width) && box.height > 1) {
+      //HACK: check if this is EditorView or similar
+      const content = child.getElementsByClassName('cm-scroller');
+      if (content.length > 0) {
+        box.width = content[0].firstChild.offsetWidth;
+      } else {
+        box.width = box.height * 1.66;
+      }
+    }
+
+    if (!size) {
+      foreignObject.style.width = box.width + 'px';
+      foreignObject.style.height = box.height + 'px'; 
+      //size = [box.width, box.height];     
+    }
+
+    env.local.box = box;
+
+ 
+    
+    
+
+          object.position.copy( new THREE.Vector3(...pos)  );
+
+  })(); // go async, so the the object would appear in DOM already
+
+      return object;
+
+  }
+
+  g3d.Inset.update = async (args, env) => {
+    
+    let pos = await interpretate(args[1], env);
+
+    if (pos instanceof NumericArrayObject) { // convert back automatically
+      pos = pos.normal();
+    }
+
+    const f = env.local.object;
+
+    if (f)
+      f.position.copy( new THREE.Vector3(...pos)  );
+
+    env.wake();
+
+    return f;
+   
+  }
+
+
+  g3d.Inset.destroy = async (args, env) => {
+    Object.values(env.local.stack).forEach((el) => {
+      if (!el.dead) el.dispose();
+    });
+  }
+
+  g3d.Inset.virtual = true
+
 
 g3d.Text = async (args, env) => { 
   const text = document.createElement( 'span' );
@@ -4506,6 +4664,24 @@ g3d.Small = (args, env) => {
   return 0.4;
 }
 
+function isMobile() {
+    // 1) Best when available (Chromium etc.)
+    if (navigator.userAgentData?.mobile != null) {
+      return navigator.userAgentData.mobile;
+    }
+
+    // 2) Capability-based heuristic
+    const coarse = window.matchMedia?.("(pointer: coarse)").matches;
+    const smallScreen = window.matchMedia?.("(max-width: 768px)").matches;
+    const touch = navigator.maxTouchPoints > 0;
+
+    // Common practical rule: coarse pointer + (touch or small screen)
+    if (coarse && (touch || smallScreen)) return true;
+
+    // 3) Last-resort UA fallback (older browsers)
+    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+
 const setImageSize = async (options, env) => {
 let ImageSize;
 
@@ -4531,6 +4707,15 @@ if (options.ImageSize) {
 } else {
   ImageSize = [core.DefaultWidth, core.DefaultWidth*0.618034];
 }
+
+    const mobileDetected = isMobile();
+    if (mobileDetected) {
+      console.warn('Mobile device detected!');
+      const k = 2.0 / devicePixelRatio;
+      ImageSize[0] = ImageSize[0] * k;
+      if (ImageSize[0] > 250) ImageSize[0] = 250;
+      ImageSize[1] = ImageSize[1] * k;
+    }
 
 return ImageSize;
 }
@@ -4568,10 +4753,24 @@ if (pathtracing) {
   return;
 }
 
-const light = new THREE.PointLight(0xffffff, 2, 10);
-light.position.set(0, 10, 0);
-scene.add(light);
-var hemiLight = new THREE.HemisphereLight( 0xffffbb, 0x080820, 2 );
+// Wolfram Mathematica default lighting: 3 directional lights at 120° apart + ambient
+// Light 1: Red-tinted, front (0°)
+const light1 = new THREE.DirectionalLight(0xc99292, 1.5);
+light1.position.set(0, 1, 2);
+scene.add(light1);
+
+// Light 2: Green-tinted, back-left (120°)
+const light2 = new THREE.DirectionalLight(0x92c992, 1.5);
+light2.position.set(-1.732, 1, -1);
+scene.add(light2);
+
+// Light 3: Blue-tinted, back-right (240°)
+const light3 = new THREE.DirectionalLight(0x9292c9, 1.5);
+light3.position.set(1.732, 1, -1);
+scene.add(light3);
+
+// Ambient light for fill
+var hemiLight = new THREE.HemisphereLight( 0xe4f6ff, 0x080820, 2 );
 scene.add( hemiLight );
 }
 
@@ -4602,8 +4801,7 @@ if (args.length - olength > 1) {
 }
 
 
-let intensity = 100; if (args.length - olength > 2) intensity = await interpretate(args[2], env);
-if (typeof intensity != 'number') intensity = 100;
+let intensity = 100; 
 let distance = 0; //if (args.length > 3) distance = await interpretate(args[3], env);
 let decay = 2; //if (args.length  > 4) decay = await interpretate(args[4], env);
 
@@ -4633,47 +4831,108 @@ return light;
 }
 
 g3d.PointLight.update = async (args, env) => {
-env.wake(false, true);
-const olength = env.local.olength;
+  env.wake(false, true);
 
-if (args.length-olength > 1) {
-  let pos = await interpretate(args[1], env);
+  //light.color.set
+  if (args.length - env.local.olength > 1) {
+    let pos = await interpretate(args[1], env);
 
-  if (pos instanceof NumericArrayObject) {
-    pos = pos.normal();
-  }
-  //pos = [pos[0], pos[1], pos[2]];
-
-  if (env.Lerp) {
-      if (!env.local.lerp) {
-        
-        console.log('creating worker for lerp of movements..');
-        const worker = {
-          alpha: 0.05,
-          target: new THREE.Vector3(...pos),
-          eval: () => {
-            env.local.light.position.lerp(worker.target, 0.05)
-          }
-        };
-
-        env.local.lerp = worker;  
-
-        env.Handlers.push(worker);
-      }
-
-      env.local.lerp.target.fromArray(pos);
-      return;
+    if (pos instanceof NumericArrayObject) {
+      pos = pos.normal();
+    }
+    env.local.light.position.set(...pos); 
   } 
-
-  env.local.light.position.set(...pos);
-}  
 }
 
-g3d.PointLight.destroy = async (args, env) => {
-console.log('PointLight destroyed');
+g3d.PointLight.destroy = (args, env) => {
+  env.local.light.dispose()
 }
+
 
 g3d.PointLight.virtual = true
+
+g3d.DirectionalLight = async (args, env) => {
+  const copy = {...env};
+
+  let position = [0, 0, 10];
+  let target = [0, 0, 0];
+  let color = 0xffffff;
+
+  const options = await core._getRules(args, env);
+  const olength = Object.keys(options).length;
+  env.local.olength = olength;
+
+  if (args.length - olength > 0) color = await interpretate(args[0], copy);
+
+  if (args.length - olength > 1) {
+    position = await interpretate(args[1], env);
+
+    if (position instanceof NumericArrayObject) {
+      position = position.normal();
+    }
+
+    if (position.length == 2) {
+      target = position[1];
+      position = position[0];
+    }
+  }
+
+  let intensity = 2;
+
+  if (typeof options.Intensity == 'number') {
+    intensity = options.Intensity;
+  }
+
+  const light = new THREE.DirectionalLight(color, intensity);
+  light.castShadow = env.shadows;
+  light.position.set(...position);
+  light.target.position.set(...target);
+  light.shadow.bias = -0.01;
+
+  if (typeof options.ShadowBias == 'number') {
+    light.shadow.bias = options.ShadowBias;
+  }
+
+  light.shadow.mapSize.height = 1024;
+  light.shadow.mapSize.width = 1024;
+
+  if (typeof options.ShadowMapSize == 'number') {
+    light.shadow.mapSize.height = options.ShadowMapSize;
+    light.shadow.mapSize.width = options.ShadowMapSize;
+  }
+
+  env.local.light = light;
+  env.mesh.add(light);
+  env.mesh.add(light.target);
+
+  return light;
+}
+
+g3d.DirectionalLight.update = async (args, env) => {
+  env.wake(false, true);
+
+  if (args.length - env.local.olength > 1) {
+    let position = await interpretate(args[1], env);
+
+    if (position instanceof NumericArrayObject) {
+      position = position.normal();
+    }
+
+    if (position.length == 2) {
+      let target = position[1];
+      position = position[0];
+      env.local.light.target.position.set(...target);
+    }
+
+    env.local.light.position.set(...position);
+  }
+}
+
+g3d.DirectionalLight.destroy = (args, env) => {
+  env.local.light.dispose();
+}
+
+g3d.DirectionalLight.virtual = true
 
 g3d.SpotLight = async (args, env) => {
 const copy = {...env};
@@ -4860,6 +5119,8 @@ console.log('SpotLight destoyed');
 
 g3d.SpotLight.virtual = true
 
+
+
 g3d.Shadows = async (args, env) => {
 env.shadows = await interpretate(args[0], env);
 }
@@ -4888,6 +5149,8 @@ g3d.MeshMaterial = async (args, env) => {
 const mat = await interpretate(args[0], env);
 env.material = mat;
 }
+
+g3d['CoffeeLiqueur`Extensions`Graphics3D`MeshMaterial'] = g3d.MeshMaterial
 
 g3d.MeshPhysicalMaterial = () => THREE.MeshPhysicalMaterial
 g3d.MeshLambertMaterial = () => THREE.MeshLambertMaterial
@@ -7705,4 +7968,6 @@ core.Image3D.destroy = (args, env) => {
   env.local.colorTexture.dispose();
   env.local.volumeTexture.dispose();
 }
+
+g3d.Ball = g3d.Sphere
 

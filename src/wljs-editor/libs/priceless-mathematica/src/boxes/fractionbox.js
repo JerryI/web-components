@@ -105,7 +105,6 @@ class EditorWidget {
     this.view = view;
     this.visibleValue = visibleValue;
     this.placeholder = placeholder;
-    console.log(placeholder);
 
     this.args = matchArguments(visibleValue.str, /\(\*,\*\)/gm);
 

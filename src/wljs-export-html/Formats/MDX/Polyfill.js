@@ -292,49 +292,50 @@ interpretate.anonymous = async (d, org) => {
 
 //Polyfills fro WLJSIO package
 core.Offload = (args, env) => {
-    if (args.length > 1) {
-        //alternative path - checking options
-        //do it in ugly superfast way
-        if (args[1][1] === "'Static'") {
-            if (args[1][2]) {
-                return interpretate(args[0], {...env, static: true});
-            }
-        } else if (args.length > 2) {
-            if (args[2][1] === "'Static'") {
-                if (args[2][2]) {
-                    return interpretate(args[0], {...env, static: true});
-                }                
-            }
-        }
-    }
-  
-    return interpretate(args[0], env);
+  if (args.length > 1) {
+      //alternative path - checking options
+      //do it in ugly superfast way
+      if (args[1][1] === "'Static'") {
+          if (args[1][2] && args[1][2] != 'False') {
+              return interpretate(args[0], {...env, static: true});
+          }
+      } else if (args.length > 2) {
+          if (args[2][1] === "'Static'") {
+              if (args[2][2] && args[2][2] != 'False') {
+                  return interpretate(args[0], {...env, static: true});
+              }                
+          }
+      }
   }
 
-  core.Medium = () => 0.7
+  return interpretate(args[0], env);
+}
+
+core.Offload.update = (args, env) => {
   
-  core.Offload.update = (args, env) => {
-    if (args.length > 1) {
-        //alternative path - checking options
-        //do it in ugly superfast way
-  
-        //Volitile -> False -> Reject updates
-  
-        //low-level optimizations, we dont' need to spend time on parsing options
-        if (args[1][1] === "'Volatile'") {
-            if (!args[1][2]) {
-                console.log('Update was rejected (Nonvolatile)');
-                return;
-            }
-        } else if (args.length > 2) {
-            if (args[2][1] === "'Volatile'") {
-                if (!args[2][2]) {
-                    console.log('Update was rejected (Nonvolatile)');
-                    return;
-                }                
-            }
-        }
-    }
-  
-    return interpretate(args[0], env);
+  if (args.length > 1) {
+      //alternative path - checking options
+      //do it in ugly superfast way
+
+      //Volitile -> False -> Reject updates
+
+      //low-level optimizations, we dont' need to spend time on parsing options
+      
+      if (args[1][1] === "'Volatile'") {
+          if (!args[1][2] || args[1][2] != 'True') {
+              console.log('Update was rejected (Nonvolatile)');
+              return;
+          }
+      } else if (args.length > 2) {
+ 
+          if (args[2][1] === "'Volatile'") {
+              if (!args[2][2] || args[2][2] != 'True') {
+                  console.log('Update was rejected (Nonvolatile)');
+                  return;
+              }                
+          }
+      }
   }
+
+  return interpretate(args[0], env);
+}

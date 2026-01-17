@@ -712,14 +712,24 @@
     env.element.appendChild(post); 
   }
 
-
+  boxes.ViewDecorator.Around = async (args, env) => {
+    const mean = await interpretate(args[0], env);
+    const div  = await interpretate(args[1], env);
+    const main = document.createTextNode(mean);
+    const pm = document.createElement('span');
+    pm.innerHTML = '&plusmn;'+div;
+    pm.classList.add('text-gray-500');
+    env.element.appendChild(main);
+    env.element.appendChild(pm);
+    env.element.style.verticalAlign = 'baseline';
+  }
 
   boxes.ViewDecorator.Quantity = async (args, env) => {
     const n = await interpretate(args[0], env);
     const units = await interpretate(args[1], {...env, context:quantity});
 
     
-    env.element.classList.add(...('text-gray-500 ring-gray-300 ring-1 rounded-lg px-2 text-sm'.split(' ')));
+    env.element.classList.add(...('text-gray-500 ring-gray-300 ring-1 rounded-lg px-2'.split(' ')));
     env.element.style.verticalAlign = 'baseline';
 
     const add = (nn, nunits, gap = false) => {
@@ -1063,6 +1073,46 @@
       })
     }
   }
+
+  boxes.ViewDecorator.Over = async (args, env) => {
+    //let vars = await interpretate(args[0], env);
+    const taken = env.children;   
+    const sub = document.createElement('sub'); 
+    if (taken.length > 1) {
+      sub.appendChild(taken[1]);
+    } else {
+      sub.innerHTML = await interpretate(args[0], env);
+    }
+
+
+
+    env.global.allowCellHighlighting = true;
+    const outerDiv = document.createElement('div');
+    env.element.appendChild(outerDiv);
+    outerDiv.classList.add('flex', 'flex-col', 'items-center');
+    outerDiv.appendChild(sub);
+    outerDiv.appendChild(taken[0]);
+  }
+
+  boxes.ViewDecorator.Under = async (args, env) => {
+    //let vars = await interpretate(args[0], env);
+    const taken = env.children;    
+    const sub = document.createElement('sup'); 
+    if (taken.length > 1) {
+      sub.appendChild(taken[1]);
+    } else {
+      sub.innerHTML = await interpretate(args[0], env);
+    }
+
+    env.global.allowCellHighlighting = true;
+    const outerDiv = document.createElement('div');
+    env.element.appendChild(outerDiv);
+    outerDiv.classList.add('flex', 'flex-col', 'items-center');
+    
+    outerDiv.appendChild(taken[0]);
+    outerDiv.appendChild(sub);
+    
+  }  
 
   boxes.ViewDecorator.Piecewise = async (args, env) => {
     //let vars = await interpretate(args[0], env);

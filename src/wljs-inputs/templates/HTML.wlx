@@ -1,7 +1,0 @@
-Component[OptionsPattern[]] := With[{hClass = OptionValue["Class"], hStyle = OptionValue["Style"]},
-    <div data-type="html-string" style="{hStyle}" class="{hClass}"></div>
-]
-
-Options[Component] = {"Class"->"p-2", "Style"->""}
-
-Component

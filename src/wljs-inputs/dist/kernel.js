@@ -11,10 +11,28 @@ core.CreateUUID = async () => {
 
 core['HTMLView`TemplateProcessor'] = async (args, env) => {
   const obj = await interpretate(args[0], env);
-  env.htmlString = templateEngine(env.htmlString, obj);
+  env.htmlContent.text = templateEngine(env.htmlContent.text, obj);
 };
 
 core['CoffeeLiqueur`Extensions`InputsOutputs`Tools`TemplateProcessor'] = core['HTMLView`TemplateProcessor'];
+
+core['HTMLView`WLXProcessor'] = async (args, env) => {
+  env.local.wlxEnvs = [];
+  const string = env.htmlContent.text;
+  env.htmlContent.function = async (setContent) => {
+    await window.SupportedCells['wlx'].view.hydrate(string, env.local.wlxEnvs, setContent);
+  };
+};
+
+core['HTMLView`WLXProcessor'].destroy = (args, env) => {
+  console.log('wlx processor disposed');
+  window.SupportedCells['wlx'].view.dispose(env.local.wlxEnvs);
+  delete env.local.wlxEnvs;
+};
+
+core['HTMLView`WLXProcessor'].virtual = true;
+
+core['CoffeeLiqueur`Extensions`InputsOutputs`Tools`WLXProcessor'] = core['HTMLView`WLXProcessor'];
 
 core['HTMLView`InlineJSModule'] = async (args, env) => {
   let str = await interpretate(args[0], env);
@@ -40,7 +58,7 @@ core.HTMLView = async (args, env) => {
 
   if (Array.isArray(html)) html = html.join('\n');
 
-  env.htmlString = html;
+  env.htmlContent = {text: html};
 
 
   
@@ -48,10 +66,19 @@ core.HTMLView = async (args, env) => {
   if ('Prolog' in options) {
     await interpretate(options.Prolog, env);
   }
+  
+  let element;
+
+  if (env.htmlContent.function) {
+    await env.htmlContent.function(async (content) => {
+      element = await setInnerHTMLAsync(env.element, content);
+    });
+    console.warn('Complex processing');
+  } else {
+    element = await setInnerHTMLAsync(env.element, env.htmlContent.text);
+  }
 
   //html = replaceContextPlaceholders(html, {env: env});
-
-  const element = await setInnerHTMLAsync(env.element, env.htmlString);
 
   if ('Epilog' in options) {
     console.log('Epilog');

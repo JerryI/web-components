@@ -6,7 +6,11 @@ import {
   snippetCompletion
 } from "@codemirror/autocomplete";
 
-import { keymap } from "@codemirror/view";
+import {language} from "@codemirror/language"
+
+import { keymap, ViewPlugin } from "@codemirror/view";
+
+import {StateField} from "@codemirror/state";
 
 import { EditorSelection } from "@codemirror/state";
 
@@ -20,7 +24,7 @@ import {
   matchBrackets
 } from "@codemirror/language";
 
-import { StreamLanguage } from "@codemirror/language";
+import { StreamLanguage, Language, ParseContext, LanguageState } from "@codemirror/language";
 
 
 function newESC() {
@@ -156,7 +160,7 @@ function tokenBase(stream, state) {
   // the match is then forwarded to the mma-patterns tokenizer.
   if (
     stream.match(
-      /([a-zA-Z\$][a-zA-Z0-9\$]*\s*:)(?:(?:[a-zA-Z\$][a-zA-Z0-9\$]*)|(?:[^:=>~@\^\&\*\)\[\]'\?,\|])).*/,
+      /([a-zA-Z\$][a-zA-Z0-9\$]*\s*:)/,
       true,
       false
     )
@@ -271,6 +275,7 @@ const mathematica = {
   startState: function () {
     //.log("tocken string");
 
+
     return { tokenize: tokenBase, commentLevel: 0, localVars: {} };
   },
   token: function (stream, state) {
@@ -284,6 +289,44 @@ const mathematica = {
 
 export let wolframLanguage = {};
 
+const trackedEditors = new Set();
+
+function freshLanguageState(state) {
+  let lang = state.facet(language);
+  if (!lang) return null;
+
+  let vpTo = Math.min(3000 /* Work.InitViewport */, state.doc.length);
+  let parseState = ParseContext.create(lang.parser, state, { from: 0, to: vpTo });
+
+  // same logic as LanguageState.init
+  if (!parseState.work(20 /* Work.Apply */, vpTo)) parseState.takeTree();
+  return new LanguageState(parseState);
+}
+
+function reparseKeepingFragments(view) {
+
+  let field = view.state.field(Language.state, false);
+  if (!field) return false;
+
+  let next = freshLanguageState(view.state);
+  if (!next) return false;
+  view.dispatch({ effects: Language.setState.of(next) });
+  return true;
+}
+
+const stateTracker = ViewPlugin.fromClass(
+  class {
+    constructor(view) {
+      trackedEditors.add(view);
+      this.view = view;
+      //console.warn(trackedEditors.values());
+    }
+    destroy() {
+      trackedEditors.delete(this.view);
+    }
+  },
+);
+
 wolframLanguage.of = (vocabulary) => {
 
   return [
@@ -294,11 +337,33 @@ wolframLanguage.of = (vocabulary) => {
         //snippetCompletion('mySnippet(${one}, ${two})', {label: 'mySnippet'})
       ]
     }),
+    stateTracker,
     keymap.of([{ key: "Escape", run: newESC() }])
   ];  
+}
+
+let refreshTimeout = null;
+
+const reparse = () => {
+    console.warn('refresh syntax highlighting');
+    trackedEditors.values().forEach((view) => reparseKeepingFragments(view));
+    refreshTimeout = null;
+};
+
+wolframLanguage.refresh = () => {
+  
+  
+  if (refreshTimeout) {
+    clearTimeout(refreshTimeout);
+  }
+  
+  refreshTimeout = setTimeout(reparse, 1000);
 }
 
 wolframLanguage.reBuild = (vocabulary) => {
   builtins = vocabulary.map((e) => e.label);
   builtinsLocalQ = vocabulary.map((e) => e.type == 'keyword' ? false : true);
 }
+
+
+

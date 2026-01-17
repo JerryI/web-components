@@ -16493,6 +16493,19 @@ function syntaxTree(state) {
     let field = state.field(Language.state, false);
     return field ? field.tree : Tree.empty;
 }
+/**
+Queries whether there is a full syntax tree available up to the
+given document position. If there isn't, the background parse
+process _might_ still be working and update the tree further, but
+there is no guarantee of that—the parser will [stop
+working](https://codemirror.net/6/docs/ref/#language.syntaxParserRunning) when it has spent a
+certain amount of time or has moved beyond the visible viewport.
+Always returns false if no language has been enabled.
+*/
+function syntaxTreeAvailable(state, upto = state.doc.length) {
+    var _a;
+    return ((_a = state.field(Language.state, false)) === null || _a === void 0 ? void 0 : _a.context.isDone(upto)) || false;
+}
 // Lezer-style Input object for a Text document.
 class DocInput {
     constructor(doc) {
@@ -21859,8 +21872,7 @@ class CompletionTooltip {
                 infoResult = parent;
                 const lnk = document.createElement('a');
                 lnk.innerText = '🔎';
-                lnk.href = '/docFind/'+label;
-                lnk.target = "blank";
+                lnk.href = `javascript:server.io.fire('autocompleteFindDoc', "${label}")`;
                 infoResult.appendChild(lnk);
             }
 
@@ -29364,6 +29376,7 @@ const mathematica = {
   startState: function () {
     //.log("tocken string");
 
+
     return { tokenize: tokenBase, commentLevel: 0, localVars: {} };
   },
   token: function (stream, state) {
@@ -29377,6 +29390,44 @@ const mathematica = {
 
 let wolframLanguage = {};
 
+const trackedEditors = new Set();
+
+function freshLanguageState(state) {
+  let lang = state.facet(language);
+  if (!lang) return null;
+
+  let vpTo = Math.min(3000 /* Work.InitViewport */, state.doc.length);
+  let parseState = ParseContext.create(lang.parser, state, { from: 0, to: vpTo });
+
+  // same logic as LanguageState.init
+  if (!parseState.work(20 /* Work.Apply */, vpTo)) parseState.takeTree();
+  return new LanguageState(parseState);
+}
+
+function reparseKeepingFragments(view) {
+
+  let field = view.state.field(Language.state, false);
+  if (!field) return false;
+
+  let next = freshLanguageState(view.state);
+  if (!next) return false;
+  view.dispatch({ effects: Language.setState.of(next) });
+  return true;
+}
+
+const stateTracker = ViewPlugin.fromClass(
+  class {
+    constructor(view) {
+      trackedEditors.add(view);
+      this.view = view;
+      //console.warn(trackedEditors.values());
+    }
+    destroy() {
+      trackedEditors.delete(this.view);
+    }
+  },
+);
+
 wolframLanguage.of = (vocabulary) => {
 
   return [
@@ -29387,8 +29438,27 @@ wolframLanguage.of = (vocabulary) => {
         //snippetCompletion('mySnippet(${one}, ${two})', {label: 'mySnippet'})
       ]
     }),
+    stateTracker,
     keymap.of([{ key: "Escape", run: newESC() }])
   ];  
+};
+
+let refreshTimeout = null;
+
+const reparse = () => {
+    console.warn('refresh syntax highlighting');
+    trackedEditors.values().forEach((view) => reparseKeepingFragments(view));
+    refreshTimeout = null;
+};
+
+wolframLanguage.refresh = () => {
+  
+  
+  if (refreshTimeout) {
+    clearTimeout(refreshTimeout);
+  }
+  
+  refreshTimeout = setTimeout(reparse, 1000);
 };
 
 wolframLanguage.reBuild = (vocabulary) => {
@@ -29599,6 +29669,8 @@ const pr = (elt, match, group1, group2) => {
     case 'undirectededge': return '&harr;';
     case 'twowayrule': return '&harr;';
     case 'directededge': return '&rarr;';
+    case 'suchthat': return '&#8715;';
+    case 'coproduct': return '∐';
     case 'element': return '&#8712;';
     case 'invisiblecomma': return ' ';
     case 'transpose': return '&#7488;';
@@ -41131,6 +41203,10 @@ EditorAutocomplete.replaceAll = (list) => {
   wolframLanguage.reBuild(EditorAutocomplete.data);
 };
 
+EditorAutocomplete.refresh = () => {
+  wolframLanguage.refresh();
+};
+
 const unknownLanguage = StreamLanguage.define(spreadsheet);
 const regLang = new RegExp(/^[\w]*\.[A-Za-z_]+/);
 
@@ -41270,9 +41346,10 @@ const decorationsSeeker = ViewPlugin.fromClass(class {
       return bracketDeco(ch, h, from, to, color)
     });
 
-    for (const m of mismatch) {
+
+    if (syntaxTreeAvailable(view.state)) {for (const m of mismatch) {
       decorations.push(bracketDeco(m.ch, 0, m.from, m.to, "var(--editor-key-invalid)"));
-    }
+    } }
 
     this.decorations = Decoration.set(decorations, true);
     //return this.decorations
@@ -41310,7 +41387,7 @@ const decorationsSeeker = ViewPlugin.fromClass(class {
       return bracketDeco(ch, h, from, to, c)
     });
 
-    for (const m of mismatch) {
+    if (syntaxTreeAvailable(update.view.state)) for (const m of mismatch) {
       decorations.push(bracketDeco(m.ch, 0, m.from, m.to, "var(--editor-key-invalid)"));
     }
 
@@ -41322,6 +41399,7 @@ const decorationsSeeker = ViewPlugin.fromClass(class {
 
   iterateTree(view, cur) {
     const tree = syntaxTree(view.state);
+  
     const ranges = this.ranges;
     const { doc } = view.state;
     const pairs = [];
@@ -41575,6 +41653,11 @@ compactWLEditor = (args) => {
         event.stopPropagation();
         args.evalNext();
         return false;
+      } },
+      { key: "Ctrl-Shift-Enter", mac: "Cmd-Shift-Enter", stopPropagation:true, preventDefault: true, run: function (editor, event) { 
+        event.stopPropagation();
+        args.evalToWindow();
+        return false;
       } }
     ]),    
     args.extensions || [],   
@@ -41635,7 +41718,12 @@ compactWLEditor.state = (args) => {
           event.stopPropagation();
           args?.evalNext();
           return false;
-        } }
+        } },
+        { key: "Ctrl-Shift-Enter", mac: "Cmd-Shift-Enter", stopPropagation:true, preventDefault: true, run: function (editor, event) { 
+        event.stopPropagation();
+        args?.evalToWindow();
+        return false;
+      } }
       ]),    
       args.extensions || [],   
       minimalSetup,
@@ -41955,7 +42043,12 @@ const EditorExtensions = [
       console.log(editor.state.doc.toString()); 
       self.origin.evalNext(editor.state.doc.toString()); 
       return false;
-    } }
+    } },
+    { key: "Ctrl-Shift-Enter", mac: "Cmd-Shift-Enter", stopPropagation:true, preventDefault: true, run: function (editor, event) { 
+        event.stopPropagation();
+        self.origin.evalToWindow(editor.state.doc.toString());
+        return false;
+      } }
     , ...defaultKeymap, ...historyKeymap, ...searchKeymap
   ]),
   
@@ -42002,6 +42095,7 @@ class CodeMirrorCell {
         
       this.editor.focus();
     }
+
 
     setContent (data) {
       console.warn('content mutation!');
